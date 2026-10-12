@@ -66,14 +66,14 @@ export const MacroRings: React.FC<MacroRingsProps> = ({ totals, targets }) => {
       </div>
 
       {/* Macro Grid */}
-      <div className="grid grid-cols-3 gap-2.5 pt-1">
+      <div className="grid grid-cols-3 gap-2 pt-1">
         {/* Protein */}
-        <div className="bg-slate-950/60 border border-emerald-500/20 rounded-xl p-2.5 flex flex-col justify-between">
+        <div className="min-w-0 bg-slate-950/60 border border-emerald-500/20 rounded-xl p-2.5 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11px] font-bold text-emerald-400 flex items-center gap-1">
               <Beef className="w-3.5 h-3.5" /> Protein
             </span>
-            <span className="text-[10px] text-slate-400">{proteinPercent}%</span>
+            <span className="text-[10px] text-slate-400 max-[400px]:hidden">{proteinPercent}%</span>
           </div>
           <div className="flex items-baseline justify-between mb-1.5">
             <span className="text-base font-bold text-white">
@@ -90,12 +90,12 @@ export const MacroRings: React.FC<MacroRingsProps> = ({ totals, targets }) => {
         </div>
 
         {/* Carbs */}
-        <div className="bg-slate-950/60 border border-amber-500/20 rounded-xl p-2.5 flex flex-col justify-between">
+        <div className="min-w-0 bg-slate-950/60 border border-amber-500/20 rounded-xl p-2.5 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11px] font-bold text-amber-400 flex items-center gap-1">
               <Wheat className="w-3.5 h-3.5" /> Carbs
             </span>
-            <span className="text-[10px] text-slate-400">{carbsPercent}%</span>
+            <span className="text-[10px] text-slate-400 max-[400px]:hidden">{carbsPercent}%</span>
           </div>
           <div className="flex items-baseline justify-between mb-1.5">
             <span className="text-base font-bold text-white">
@@ -112,12 +112,12 @@ export const MacroRings: React.FC<MacroRingsProps> = ({ totals, targets }) => {
         </div>
 
         {/* Fats */}
-        <div className="bg-slate-950/60 border border-sky-500/20 rounded-xl p-2.5 flex flex-col justify-between">
+        <div className="min-w-0 bg-slate-950/60 border border-sky-500/20 rounded-xl p-2.5 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11px] font-bold text-sky-400 flex items-center gap-1">
               <Droplets className="w-3.5 h-3.5" /> Fats
             </span>
-            <span className="text-[10px] text-slate-400">{fatsPercent}%</span>
+            <span className="text-[10px] text-slate-400 max-[400px]:hidden">{fatsPercent}%</span>
           </div>
           <div className="flex items-baseline justify-between mb-1.5">
             <span className="text-base font-bold text-white">
