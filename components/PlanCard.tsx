@@ -19,15 +19,15 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
       <div className="absolute -top-12 -right-12 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
 
       {/* Header with Goal */}
-      <div className="flex items-start justify-between relative z-10">
-        <div>
-          <div className="flex items-center gap-1.5">
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 tracking-wide uppercase">
+      <div className="flex items-start justify-between gap-2 relative z-10">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="shrink-0 whitespace-nowrap px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 tracking-wide uppercase">
               Active Plan
             </span>
-            <span className="text-xs text-slate-400 font-medium">· {plan.planName}</span>
+            <span className="text-xs text-slate-400 font-medium truncate">· {plan.planName}</span>
           </div>
-          <div className="flex items-baseline gap-2 mt-1">
+          <div className="flex flex-wrap items-baseline gap-x-2 mt-1">
             <h3 className="text-lg font-black text-white tracking-tight flex items-center gap-1.5">
               <span>{plan.currentWeight} kg</span>
               <ArrowRight className="w-4 h-4 text-emerald-400" />
@@ -40,9 +40,9 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
         </div>
 
         {/* Projected Completion Badge */}
-        <div className="bg-slate-950/80 border border-emerald-500/40 rounded-xl px-3 py-1.5 text-right shadow-inner">
+        <div className="shrink-0 bg-slate-950/80 border border-emerald-500/40 rounded-xl px-2.5 py-1.5 text-right shadow-inner">
           <div className="text-[10px] text-slate-400 font-semibold flex items-center justify-end gap-1">
-            <Calendar className="w-3 h-3 text-emerald-400" /> Projected Date
+            <Calendar className="w-3 h-3 text-emerald-400" /> Projected
           </div>
           <div className="text-xs font-black text-emerald-300 tracking-tight">
             {plan.projectedDate}
@@ -136,7 +136,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
           </div>
           <div className="min-w-0">
             <span className="text-[10px] text-slate-400 font-medium block truncate">
-              Resting (BMR) Burn
+              Resting Burn
             </span>
             <div className="flex items-baseline gap-1">
               <span className="text-sm font-black text-white">
