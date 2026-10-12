@@ -96,7 +96,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, ingredien
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md active:scale-95 transition-all"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Recipe</span>
+            <span>Add</span>
           </button>
         )}
       </div>
