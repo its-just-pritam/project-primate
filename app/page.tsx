@@ -522,6 +522,8 @@ export default function Home() {
               logs={logs}
               targets={targets}
               daysElapsed={currentPlan?.hasPlan ? currentPlan.daysElapsed : undefined}
+              planStartDate={currentPlan?.hasPlan ? currentPlan.startDate : undefined}
+              currentWeight={currentPlan?.hasPlan ? currentPlan.currentWeight : undefined}
               restingCalories={currentPlan?.hasPlan ? currentPlan.restingCalories : undefined}
               workoutCaloriesByDate={workoutCaloriesByDate}
             />

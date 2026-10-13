@@ -14,9 +14,22 @@ import {
   PlanInput,
   PlanSummary,
 } from '@/types/nutrition';
+import {
+  calculateDailyFatMassChangeGrams,
+  calculateDailyWetMuscleMassChangeGrams,
+} from '@/lib/bodyComposition';
 
 const SPREADSHEET_ID =
   process.env.GOOGLE_SHEET_ID || '1JcGmHgvQA7jQEqryYJu1wINirAc-r9EA0fd5FUa4vIU';
+
+type DailyNutritionTotals = {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+};
+
+const toUtcDateKey = (value: string | Date) => new Date(value).toISOString().slice(0, 10);
 
 // Bypass local SSL inspection/proxy certificate verification
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
@@ -430,6 +443,11 @@ export async function fetchPlanAnalytics(): Promise<{
     totalCalorieConsumed: 3964,
     totalCalorieDeficit: 1286,
     averageCalorieDeficit: 643,
+    totalFatMassChangeGrams: 0,
+    averageDailyFatMassChangeGrams: 0,
+    totalMuscleMassChangeGrams: 0,
+    totalWeightChangeGrams: 0,
+    averageDailyWeightChangeGrams: 0,
     projectedDate: 'Jan 14, 2027',
     daysElapsed: 2,
     daysRemaining: 94,
@@ -509,6 +527,11 @@ export async function fetchPlanAnalytics(): Promise<{
           totalCalorieConsumed: 0,
           totalCalorieDeficit: 0,
           averageCalorieDeficit: 0,
+          totalFatMassChangeGrams: 0,
+          averageDailyFatMassChangeGrams: 0,
+          totalMuscleMassChangeGrams: 0,
+          totalWeightChangeGrams: 0,
+          averageDailyWeightChangeGrams: 0,
           projectedDate: '',
           daysElapsed: 0,
           daysRemaining: 0,
@@ -584,33 +607,86 @@ export async function fetchPlanAnalytics(): Promise<{
     const totalCalorieDeficit = Math.round(totalCalorieBurnt - totalCalorieConsumed);
     const averageCalorieDeficit = Math.round(totalCalorieDeficit / Math.max(1, elapsedDays));
 
-    // Weight to lose (8 kg = ~61,600 kcal)
-    const weightToLose = Math.max(0, currentWeight - targetWeight);
-    const totalDeficitNeeded = weightToLose * 7700;
-    const remainingDeficit = Math.max(0, totalDeficitNeeded - totalCalorieDeficit);
+    const nutritionByDate: Record<string, DailyNutritionTotals> = {};
+    mealLogs.forEach((item) => {
+      const when = new Date(item.timestamp);
+      if (Number.isNaN(when.getTime()) || when.getTime() < startMs) return;
+      const dateKey = toUtcDateKey(when);
+      const totals = nutritionByDate[dateKey] || { calories: 0, protein: 0, carbs: 0, fats: 0 };
+      totals.calories += item.calories;
+      totals.protein += item.protein;
+      totals.carbs += item.carbs;
+      totals.fats += item.fats;
+      nutritionByDate[dateKey] = totals;
+    });
+
+    const dailyFatMassChanges: number[] = [];
+    const dailyMuscleMassChanges: number[] = [];
+    const modelDay = new Date(startDate);
+    modelDay.setUTCHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+
+    while (modelDay <= today) {
+      const dateKey = toUtcDateKey(modelDay);
+      const totals = nutritionByDate[dateKey] || { calories: 0, protein: 0, carbs: 0, fats: 0 };
+      dailyFatMassChanges.push(
+        calculateDailyFatMassChangeGrams({
+          weightKg: currentWeight,
+          proteinG: totals.protein,
+          carbohydrateG: totals.carbs,
+          dietaryFatG: totals.fats,
+          calorieIntake: totals.calories,
+          workoutCalories: workoutCaloriesByDate[dateKey] || 0,
+          restingCalories,
+        })
+      );
+      dailyMuscleMassChanges.push(
+        calculateDailyWetMuscleMassChangeGrams({
+          weightKg: currentWeight,
+          proteinG: totals.protein,
+          carbohydrateG: totals.carbs,
+          dietaryFatG: totals.fats,
+          calorieIntake: totals.calories,
+          workoutCalories: workoutCaloriesByDate[dateKey] || 0,
+          restingCalories,
+        })
+      );
+      modelDay.setUTCDate(modelDay.getUTCDate() + 1);
+    }
+
+    const totalFatMassChangeGrams = dailyFatMassChanges.reduce((sum, change) => sum + change, 0);
+    const averageDailyFatMassChangeGrams =
+      totalFatMassChangeGrams / Math.max(1, dailyFatMassChanges.length);
+    const totalMuscleMassChangeGrams = dailyMuscleMassChanges.reduce(
+      (sum, change) => sum + change,
+      0
+    );
+    const totalWeightChangeGrams = totalFatMassChangeGrams + totalMuscleMassChangeGrams;
+    const averageDailyWeightChangeGrams =
+      totalWeightChangeGrams / Math.max(1, dailyMuscleMassChanges.length);
+    const targetFatLossGrams = Math.max(0, currentWeight - targetWeight) * 1000;
+    const weightLossGrams = Math.max(0, -totalWeightChangeGrams);
+    const remainingWeightLossGrams = Math.max(0, targetFatLossGrams - weightLossGrams);
 
     let daysRemaining = 0;
     let projectedDate = 'Target achieved';
 
-    if (remainingDeficit > 0 && averageCalorieDeficit > 0) {
-      daysRemaining = Math.ceil(remainingDeficit / averageCalorieDeficit);
+    if (remainingWeightLossGrams > 0 && averageDailyWeightChangeGrams < 0) {
+      daysRemaining = Math.ceil(remainingWeightLossGrams / -averageDailyWeightChangeGrams);
       const projDateObj = new Date(Date.now() + daysRemaining * 86400000);
       projectedDate = projDateObj.toLocaleDateString([], {
         month: 'short',
         day: 'numeric',
         year: 'numeric',
       });
-    } else if (averageCalorieDeficit <= 0) {
-      projectedDate = 'Need Calorie Deficit';
-      daysRemaining = 0;
+    } else if (remainingWeightLossGrams > 0) {
+      projectedDate = 'Need Daily Weight Loss';
     }
 
     const progressPercent =
-      totalDeficitNeeded > 0
-        ? Math.min(
-            100,
-            Math.max(0, Math.round((totalCalorieDeficit / totalDeficitNeeded) * 100))
-          )
+      targetFatLossGrams > 0
+        ? Math.round((-totalWeightChangeGrams / targetFatLossGrams) * 1000) / 10
         : 100;
 
     const plan: PlanAnalytics = {
@@ -623,6 +699,11 @@ export async function fetchPlanAnalytics(): Promise<{
       totalCalorieConsumed,
       totalCalorieDeficit,
       averageCalorieDeficit,
+      totalFatMassChangeGrams,
+      averageDailyFatMassChangeGrams,
+      totalMuscleMassChangeGrams,
+      totalWeightChangeGrams,
+      averageDailyWeightChangeGrams,
       projectedDate,
       daysElapsed,
       daysRemaining,

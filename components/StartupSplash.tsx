@@ -5,7 +5,7 @@ export const StartupSplash: React.FC = () => (
     role="status"
     aria-live="polite"
     aria-label="Opening Primate Fuel"
-    className="relative flex min-h-screen flex-1 flex-col items-center justify-center overflow-hidden bg-[#07141a] px-8"
+    className="absolute inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-[#07141a] px-8"
   >
     <div className="absolute h-72 w-72 rounded-full bg-[radial-gradient(ellipse_at_center,rgba(94,234,212,.22),rgba(16,185,129,.08)_34%,rgba(16,185,129,.025)_58%,transparent_78%)]" />
     <div className="absolute h-56 w-56 rounded-full bg-emerald-400/[.035] blur-3xl" />

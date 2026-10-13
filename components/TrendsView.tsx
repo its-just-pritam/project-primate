@@ -7,6 +7,8 @@ import {
   BarChart,
   Bar,
   Cell,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   Tooltip,
@@ -15,11 +17,17 @@ import {
 } from 'recharts';
 import { TrendingUp, Award, CalendarDays } from 'lucide-react';
 import { toLocalDateKey } from '@/lib/localDate';
+import {
+  calculateDailyFatMassChangeGrams,
+  calculateDailyWetMuscleMassChangeGrams,
+} from '@/lib/bodyComposition';
 
 interface TrendsViewProps {
   logs: MealLogEntry[];
   targets: DailyTargets;
   daysElapsed?: number;
+  planStartDate?: string;
+  currentWeight?: number;
   restingCalories?: number;
   workoutCaloriesByDate?: Record<string, number>;
 }
@@ -61,6 +69,8 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
   logs,
   targets,
   daysElapsed,
+  planStartDate,
+  currentWeight,
   restingCalories,
   workoutCaloriesByDate = {},
 }) => {
@@ -70,10 +80,14 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
       date: string;
       calories: number;
       protein: number;
+      carbs: number;
+      fats: number;
       burnt: number | null;
       resting: number | null;
       workout: number | null;
       deficit: number | null;
+      fatChange: number | null;
+      muscleChange: number | null;
       displayDate: string;
     };
   } = {};
@@ -82,6 +96,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
   const CHART_DAYS = 7;
   const daysToShow =
     daysElapsed === undefined ? CHART_DAYS : Math.min(CHART_DAYS, Math.max(1, Math.floor(daysElapsed)));
+  const planStartDateKey = planStartDate ? toLocalDateKey(planStartDate) : undefined;
 
   const today = new Date();
   for (let i = CHART_DAYS - 1; i >= 0; i--) {
@@ -93,10 +108,14 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
       date: dateStr,
       calories: 0,
       protein: 0,
+      carbs: 0,
+      fats: 0,
       burnt: 0,
       resting: 0,
       workout: 0,
       deficit: 0,
+      fatChange: 0,
+      muscleChange: 0,
       displayDate,
     };
   }
@@ -107,21 +126,24 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
     if (day) {
       day.calories += log.calories;
       day.protein += log.protein;
+      day.carbs += log.carbs;
+      day.fats += log.fats;
     }
   });
 
   const chartData = Object.values(dateMap)
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  // Days before the plan started have no burn or deficit to report.
-  const firstPlanDayIndex = chartData.length - daysToShow;
+  // Days before the plan started have no burn, deficit, or composition change to report.
   if (restingCalories !== undefined) {
     chartData.forEach((day, idx) => {
-      if (idx < firstPlanDayIndex) {
+      if (planStartDateKey !== undefined && day.date < planStartDateKey) {
         day.burnt = null;
         day.resting = null;
         day.workout = null;
         day.deficit = null;
+        day.fatChange = null;
+        day.muscleChange = null;
         return;
       }
       // Today's resting burn accrues in proportion to the time elapsed so far.
@@ -133,10 +155,28 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
       day.workout = workoutCaloriesByDate[day.date] || 0;
       day.burnt = day.resting + day.workout;
       day.deficit = day.burnt - day.calories;
+      if (currentWeight !== undefined) {
+        const compositionInputs = {
+          weightKg: currentWeight,
+          proteinG: day.protein,
+          carbohydrateG: day.carbs,
+          dietaryFatG: day.fats,
+          calorieIntake: day.calories,
+          workoutCalories: day.workout ?? 0,
+          restingCalories,
+        };
+        day.fatChange = calculateDailyFatMassChangeGrams(compositionInputs);
+        day.muscleChange = calculateDailyWetMuscleMassChangeGrams(compositionInputs);
+      } else {
+        day.fatChange = null;
+        day.muscleChange = null;
+      }
     });
   }
 
-  const averagedDays = chartData.slice(firstPlanDayIndex);
+  const averagedDays = planStartDateKey === undefined
+    ? chartData
+    : chartData.filter((day) => day.date >= planStartDateKey);
 
   const avgCalories =
     averagedDays.length > 0
@@ -291,6 +331,83 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
                     ))}
                   </Bar>
                 </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Daily Body Composition Change Chart */}
+      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+            <TrendingUp className="w-3.5 h-3.5 text-violet-400" /> Daily Fat &amp; Muscle Change
+          </h3>
+          <span className="text-[10px] text-slate-400">Modelled mass change</span>
+        </div>
+
+        {restingCalories === undefined || currentWeight === undefined ? (
+          <p className="text-xs text-amber-400">Plan body-composition data is unavailable.</p>
+        ) : (
+          <>
+            <p className="text-[10px] text-slate-400">
+              Daily predicted change from the active plan&apos;s fat and protein-balance models. Values above zero indicate gain.
+            </p>
+            <div className="flex items-center gap-4 text-[10px] font-semibold">
+              <span className="flex items-center gap-1.5 text-rose-400">
+                <span className="w-2 h-2 rounded-full bg-rose-400" /> Fat
+              </span>
+              <span className="flex items-center gap-1.5 text-sky-400">
+                <span className="w-2 h-2 rounded-full bg-sky-400" /> Muscle
+              </span>
+            </div>
+            <div className="h-48 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData} margin={CHART_MARGIN}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                  <XAxis
+                    dataKey="date"
+                    tick={<DayTick />}
+                    interval={0}
+                    height={40}
+                    tickLine={false}
+                    axisLine={{ stroke: '#334155' }}
+                    padding={{ left: 16, right: 16 }}
+                  />
+                  <YAxis
+                    stroke="#64748b"
+                    fontSize={10}
+                    tickLine={false}
+                    axisLine={false}
+                    width={40}
+                    tickFormatter={(value) => `${value}g`}
+                  />
+                  <Tooltip
+                    formatter={(value, name) => [`${Number(value).toFixed(1)} g`, name]}
+                    {...TOOLTIP_PROPS}
+                  />
+                  <ReferenceLine y={0} stroke="#64748b" />
+                  <Line
+                    type="monotone"
+                    dataKey="fatChange"
+                    name="Fat"
+                    stroke="#fb7185"
+                    strokeWidth={2.5}
+                    dot={{ r: 3, fill: '#fb7185' }}
+                    activeDot={{ r: 5 }}
+                    connectNulls={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="muscleChange"
+                    name="Muscle"
+                    stroke="#38bdf8"
+                    strokeWidth={2.5}
+                    dot={{ r: 3, fill: '#38bdf8' }}
+                    activeDot={{ r: 5 }}
+                    connectNulls={false}
+                  />
+                </LineChart>
               </ResponsiveContainer>
             </div>
           </>
