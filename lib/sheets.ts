@@ -14,19 +14,13 @@ import {
   PlanInput,
   PlanSummary,
 } from '@/types/nutrition';
+import {
+  calculateDailyFatMassChangeGrams,
+  calculateDailyWetMuscleMassChangeGrams,
+} from '@/lib/bodyComposition';
 
 const SPREADSHEET_ID =
   process.env.GOOGLE_SHEET_ID || '1JcGmHgvQA7jQEqryYJu1wINirAc-r9EA0fd5FUa4vIU';
-
-const FAT_TISSUE_ENERGY_DENSITY = 7.7;
-const PROTEIN_TEF_RATE = 0.2;
-const FAT_TEF_RATE = 0.03;
-const CARBOHYDRATE_TEF_RATE = 0.08;
-const PROTEIN_FIRST_PASS_OXIDATION = 0.35;
-const BASAL_PROTEIN_LOSS_PER_KG = 0.34;
-const EXERCISE_PROTEIN_OXIDATION_PER_KCAL = 0.0125;
-const DEFICIT_PROTEIN_CATABOLISM_PER_KCAL = 0.05;
-const WET_MUSCLE_MASS_PER_DRY_PROTEIN = 5;
 
 type DailyNutritionTotals = {
   calories: number;
@@ -36,82 +30,6 @@ type DailyNutritionTotals = {
 };
 
 const toUtcDateKey = (value: string | Date) => new Date(value).toISOString().slice(0, 10);
-
-const calculateThermicEffectOfFood = ({
-  proteinG,
-  carbohydrateG,
-  dietaryFatG,
-}: {
-  proteinG: number;
-  carbohydrateG: number;
-  dietaryFatG: number;
-}) =>
-  proteinG * 4 * PROTEIN_TEF_RATE +
-  dietaryFatG * 9 * FAT_TEF_RATE +
-  carbohydrateG * 4 * CARBOHYDRATE_TEF_RATE;
-
-const calculateDailyFatMassChangeGrams = ({
-  proteinG,
-  carbohydrateG,
-  dietaryFatG,
-  calorieIntake,
-  workoutCalories,
-  restingCalories,
-}: {
-  proteinG: number;
-  carbohydrateG: number;
-  dietaryFatG: number;
-  calorieIntake: number;
-  workoutCalories: number;
-  restingCalories: number;
-}) => {
-  const thermicEffectOfFood = calculateThermicEffectOfFood({
-    proteinG,
-    carbohydrateG,
-    dietaryFatG,
-  });
-  const energyBalance =
-    calorieIntake - restingCalories - workoutCalories - thermicEffectOfFood;
-
-  return energyBalance / FAT_TISSUE_ENERGY_DENSITY;
-};
-
-const calculateDailyWetMuscleMassChangeGrams = ({
-  weightKg,
-  proteinG,
-  carbohydrateG,
-  dietaryFatG,
-  calorieIntake,
-  workoutCalories,
-  restingCalories,
-}: {
-  weightKg: number;
-  proteinG: number;
-  carbohydrateG: number;
-  dietaryFatG: number;
-  calorieIntake: number;
-  workoutCalories: number;
-  restingCalories: number;
-}) => {
-  const thermicEffectOfFood = calculateThermicEffectOfFood({
-    proteinG,
-    carbohydrateG,
-    dietaryFatG,
-  });
-  const totalEnergyExpenditure = restingCalories + workoutCalories + thermicEffectOfFood;
-  const energyDeficit = Math.max(0, totalEnergyExpenditure - calorieIntake);
-  const availableProtein = (1 - PROTEIN_FIRST_PASS_OXIDATION) * proteinG;
-  const basalProteinLoss = BASAL_PROTEIN_LOSS_PER_KG * weightKg;
-  const exerciseProteinOxidation =
-    EXERCISE_PROTEIN_OXIDATION_PER_KCAL *
-    workoutCalories *
-    (1 + workoutCalories / restingCalories);
-  const deficitProteinCatabolism = DEFICIT_PROTEIN_CATABOLISM_PER_KCAL * energyDeficit;
-  const dryProteinMassChange =
-    availableProtein - basalProteinLoss - exerciseProteinOxidation - deficitProteinCatabolism;
-
-  return dryProteinMassChange * WET_MUSCLE_MASS_PER_DRY_PROTEIN;
-};
 
 // Bypass local SSL inspection/proxy certificate verification
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
@@ -714,6 +632,7 @@ export async function fetchPlanAnalytics(): Promise<{
       const totals = nutritionByDate[dateKey] || { calories: 0, protein: 0, carbs: 0, fats: 0 };
       dailyFatMassChanges.push(
         calculateDailyFatMassChangeGrams({
+          weightKg: currentWeight,
           proteinG: totals.protein,
           carbohydrateG: totals.carbs,
           dietaryFatG: totals.fats,
