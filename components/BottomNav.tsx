@@ -21,7 +21,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onChangeTab, a
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-slate-900/90 backdrop-blur-lg border-t border-slate-800/80 px-2 py-2 max-w-lg mx-auto">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-slate-900/90 backdrop-blur-lg border-t border-slate-800/80 px-2 py-2 max-w-lg md:max-w-3xl lg:max-w-5xl mx-auto md:px-8">
       <div className="flex items-center justify-around">
         {tabs.map((tab) => {
           const Icon = tab.icon;
