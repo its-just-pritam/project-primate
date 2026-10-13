@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Header } from '@/components/Header';
 import { AVATARS, DEFAULT_AVATAR } from '@/lib/avatars';
 import { BottomNav, TabType } from '@/components/BottomNav';
@@ -13,7 +13,7 @@ import { RecipeManager } from '@/components/RecipeManager';
 import { TrendsView } from '@/components/TrendsView';
 import { PlanCarousel } from '@/components/PlanCarousel';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { Plus } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toLocalDateKey, parseLocalDateKey } from '@/lib/localDate';
 import { ProfileScreen } from '@/components/ProfileScreen';
 import {
@@ -55,6 +55,17 @@ export default function Home() {
   const [selectedDate, setSelectedDate] = useState<string>(
     toLocalDateKey(new Date())
   );
+  const todayKey = toLocalDateKey(new Date());
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
+
+  // Moves the selected day by delta days, never past today.
+  const shiftSelectedDate = (delta: number) => {
+    const d = parseLocalDateKey(selectedDate);
+    d.setDate(d.getDate() + delta);
+    const next = toLocalDateKey(d);
+    if (next > todayKey) return;
+    setSelectedDate(next);
+  };
 
   // Fetch initial data
   const loadData = async () => {
@@ -350,13 +361,30 @@ export default function Home() {
             )}
 
             {/* Date Selector Header */}
-            <div className="flex items-center justify-between pb-1">
-              <div>
+            <div
+              className="space-y-4 touch-pan-y"
+              onTouchStart={(e) => {
+                const t = e.touches[0];
+                swipeStart.current = { x: t.clientX, y: t.clientY };
+              }}
+              onTouchEnd={(e) => {
+                const start = swipeStart.current;
+                swipeStart.current = null;
+                if (!start) return;
+                const t = e.changedTouches[0];
+                const dx = t.clientX - start.x;
+                const dy = t.clientY - start.y;
+                if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+                shiftSelectedDate(dx < 0 ? 1 : -1);
+              }}
+            >
+            <div className="flex items-center justify-between gap-2 pb-1">
+              <div className="min-w-0">
                 <p className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
                   Daily Nutrition
                 </p>
                 <h2 className="text-lg font-extrabold text-white">
-                  {selectedDate === toLocalDateKey(new Date())
+                  {selectedDate === todayKey
                     ? 'Today'
                     : parseLocalDateKey(selectedDate).toLocaleDateString([], {
                         month: 'short',
@@ -365,12 +393,33 @@ export default function Home() {
                 </h2>
               </div>
 
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="bg-slate-900 border border-slate-800 text-xs text-slate-300 rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-emerald-500"
-              />
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  aria-label="Previous day"
+                  onClick={() => shiftSelectedDate(-1)}
+                  className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white active:scale-95 transition"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  max={todayKey}
+                  onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
+                  style={{ colorScheme: 'dark' }}
+                  className="bg-slate-900 border border-slate-800 text-xs text-slate-300 rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-emerald-500"
+                />
+                <button
+                  type="button"
+                  aria-label="Next day"
+                  onClick={() => shiftSelectedDate(1)}
+                  disabled={selectedDate >= todayKey}
+                  className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white active:scale-95 transition disabled:opacity-30 disabled:pointer-events-none"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             <MacroRings totals={dailyTotals} targets={targets} />
@@ -386,6 +435,7 @@ export default function Home() {
                 setPendingDelete({ kind: 'workout', id: w.id!, name: w.name, timestamp: w.timestamp })
               }
             />
+            </div>
           </div>
         )}
 
