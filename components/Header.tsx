@@ -1,36 +1,28 @@
 'use client';
 
 import React from 'react';
-import { Database, RefreshCw, UserCheck } from 'lucide-react';
+import { Database, RefreshCw } from 'lucide-react';
 
 interface HeaderProps {
   isLive: boolean;
   onRefresh: () => void;
   isLoading: boolean;
   userName?: string;
-  avatar?: string;
-  onOpenProfile: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ isLive, onRefresh, isLoading, userName, avatar, onOpenProfile }) => {
+export const Header: React.FC<HeaderProps> = ({ isLive, onRefresh, isLoading, userName }) => {
   return (
     <header className="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-md border-b border-slate-800/80 px-4 py-3 flex items-center justify-between">
-      <button
-        type="button"
-        onClick={onOpenProfile}
-        title="Edit user & plan"
-        className="flex items-center space-x-2.5 text-left"
-      >
-        <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 font-bold text-slate-950 text-sm">
-          {avatar || '🥑'}
-        </div>
+      <div className="flex items-center space-x-2.5 text-left">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/icon.svg" alt="Primate Fuel" className="w-8 h-8 rounded-xl shadow-lg shadow-emerald-500/20" />
         <div>
           <h1 className="text-base font-bold tracking-tight text-white flex items-center gap-1.5">
             Primate Fuel
           </h1>
           <p className="text-[10px] text-slate-400 font-medium">{userName || 'Pritam Mallick'}</p>
         </div>
-      </button>
+      </div>
 
       <div className="flex items-center space-x-2">
         <div
