@@ -22,7 +22,9 @@ export const MacroRings: React.FC<MacroRingsProps> = ({ totals, targets }) => {
   const carbsPercent = Math.min(100, Math.round((totals.carbs / targets.carbs) * 100));
   const fatsPercent = Math.min(100, Math.round((totals.fats / targets.fats) * 100));
 
-  const calRemaining = Math.max(0, Math.round(targets.calories - totals.calories));
+  const calDiff = Math.round(targets.calories - totals.calories);
+  const calRemaining = Math.max(0, calDiff);
+  const calSurplus = Math.max(0, -calDiff);
 
   return (
     <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-4">
@@ -46,12 +48,12 @@ export const MacroRings: React.FC<MacroRingsProps> = ({ totals, targets }) => {
         <div className="text-right">
           <span
             className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold ${
-              calRemaining === 0
+              calSurplus > 0
                 ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                 : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
             }`}
           >
-            {calRemaining > 0 ? `${calRemaining} left` : 'Target met'}
+            {calSurplus > 0 ? `${calSurplus} surplus` : calRemaining > 0 ? `${calRemaining} left` : 'Target met'}
           </span>
           <p className="text-[10px] text-slate-500 mt-1">{calPercent}% achieved</p>
         </div>

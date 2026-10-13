@@ -541,6 +541,8 @@ export async function fetchPlanAnalytics(): Promise<{
     const now = new Date();
     const diffTime = Math.max(0, now.getTime() - startDate.getTime());
     const daysElapsed = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+    // Fractional days drive the calorie maths so the current day accrues proportionally
+    const elapsedDays = diffTime / (1000 * 60 * 60 * 24);
 
     // Only activity since the plan started counts towards the plan
     const startMs = startDate.getTime();
@@ -567,7 +569,7 @@ export async function fetchPlanAnalytics(): Promise<{
     });
 
     // Total resting calories burnt
-    const totalRestingBurnt = daysElapsed * restingCalories;
+    const totalRestingBurnt = elapsedDays * restingCalories;
     const totalCalorieBurnt = Math.round(totalRestingBurnt + totalWorkoutBurnt);
 
     // Total calories consumed from food (calculated on the fly via Recipe & Ingredients)
@@ -580,7 +582,7 @@ export async function fetchPlanAnalytics(): Promise<{
 
     // Calorie deficit
     const totalCalorieDeficit = Math.round(totalCalorieBurnt - totalCalorieConsumed);
-    const averageCalorieDeficit = Math.round(totalCalorieDeficit / daysElapsed);
+    const averageCalorieDeficit = Math.round(totalCalorieDeficit / Math.max(1, elapsedDays));
 
     // Weight to lose (8 kg = ~61,600 kcal)
     const weightToLose = Math.max(0, currentWeight - targetWeight);

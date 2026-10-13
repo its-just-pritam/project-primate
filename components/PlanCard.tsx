@@ -1,17 +1,20 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { PlanAnalytics } from '@/types/nutrition';
-import { Calendar, Target, Flame, Zap, ArrowRight, TrendingDown, Utensils, Clock } from 'lucide-react';
+import { Target, Flame, Zap, ArrowRight, TrendingDown, Utensils, Clock, Info } from 'lucide-react';
 
 interface PlanCardProps {
   plan: PlanAnalytics | null;
 }
 
 export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
+  const [showInfo, setShowInfo] = useState(false);
   if (!plan) return null;
 
   const weightToLose = Math.max(0, plan.currentWeight - plan.targetWeight);
+  // Same 7,700 kcal/kg basis the server uses for progressPercent
+  const kgLost = Math.max(0, plan.totalCalorieDeficit / 7700);
 
   return (
     <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/40 border border-emerald-500/30 rounded-2xl p-4 shadow-xl space-y-3.5 relative overflow-hidden">
@@ -37,21 +40,6 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
               (-{weightToLose} kg target)
             </span>
           </div>
-        </div>
-
-        {/* Projected Completion Badge */}
-        <div className="shrink-0 bg-slate-950/80 border border-emerald-500/40 rounded-xl px-2.5 py-1.5 text-right shadow-inner">
-          <div className="text-[10px] text-slate-400 font-semibold flex items-center justify-end gap-1">
-            <Calendar className="w-3 h-3 text-emerald-400" /> Projected
-          </div>
-          <div className="text-xs font-black text-emerald-300 tracking-tight">
-            {plan.projectedDate}
-          </div>
-          {plan.daysRemaining > 0 && (
-            <div className="text-[9px] text-slate-400">
-              ~{plan.daysRemaining} days remaining
-            </div>
-          )}
         </div>
       </div>
 
@@ -166,17 +154,71 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
         </div>
       </div>
 
-      {/* Progress towards 75 kg Goal */}
-      <div className="space-y-1.5 pt-0.5 relative z-10">
-        <div className="flex items-center justify-between text-[11px] font-medium">
-          <span className="text-slate-400">Target Deficit Progress</span>
-          <span className="text-emerald-400 font-bold">{plan.progressPercent}%</span>
+      {/* Goal progress with projected completion date */}
+      <div className="relative z-10 pt-0.5" style={{ fontFamily: 'var(--font-manrope), sans-serif' }}>
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.08em] text-slate-400 font-semibold">Goal progress</p>
+            <p className="mt-1 text-4xl font-extrabold leading-none text-emerald-400">
+              {plan.progressPercent}
+              <span className="text-xl text-emerald-400/70">%</span>
+            </p>
+          </div>
+          <p className="text-[11px] text-slate-400 text-right leading-tight">
+            {kgLost.toFixed(1)} kg
+            <br />
+            of {weightToLose} kg
+          </p>
         </div>
-        <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
+        <div className="mt-3 w-full bg-slate-950 rounded-full h-2.5 overflow-hidden border border-slate-800">
           <div
             className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-700"
             style={{ width: `${Math.max(2, plan.progressPercent)}%` }}
           />
+        </div>
+        <div className="mt-3 pt-3 border-t border-slate-800 grid grid-cols-2 gap-3">
+          <div className="min-w-0">
+            <div className="relative flex items-center gap-1">
+              <p className="text-[10px] uppercase tracking-[0.08em] text-slate-400 font-semibold">Projected finish</p>
+              <button
+                type="button"
+                aria-label="About the projected date"
+                aria-expanded={showInfo}
+                onClick={() => setShowInfo((v) => !v)}
+                onMouseEnter={() => setShowInfo(true)}
+                onMouseLeave={() => setShowInfo(false)}
+                onBlur={() => setShowInfo(false)}
+                className="block text-slate-500 hover:text-emerald-400 focus:text-emerald-400 outline-none"
+              >
+                <Info className="w-3 h-3" />
+              </button>
+              {showInfo && (
+                <span
+                  role="tooltip"
+                  className="absolute left-0 bottom-full mb-2.5 w-60 rounded-lg border border-emerald-500/30 bg-slate-950 px-3 py-2.5 text-left text-[11px] font-normal normal-case tracking-normal leading-relaxed text-slate-300 shadow-xl z-20"
+                >
+                  Projected date based on your average daily deficit so far. Increasing your average
+                  deficit will help you reach your goal earlier.
+                  <span className="absolute left-[118px] -bottom-[5px] w-2.5 h-2.5 rotate-45 border-r border-b border-emerald-500/30 bg-slate-950" />
+                </span>
+              )}
+            </div>
+            <p
+              className={`mt-0.5 text-sm font-extrabold truncate ${
+                plan.daysRemaining > 0 || plan.projectedDate === 'Target achieved'
+                  ? 'text-emerald-300'
+                  : 'text-amber-400'
+              }`}
+            >
+              {plan.projectedDate}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] uppercase tracking-[0.08em] text-slate-400 font-semibold">Time left</p>
+            <p className="mt-0.5 text-sm font-extrabold text-white">
+              {plan.daysRemaining > 0 ? `~${plan.daysRemaining} days` : '—'}
+            </p>
+          </div>
         </div>
       </div>
     </div>

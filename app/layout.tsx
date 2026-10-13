@@ -1,5 +1,8 @@
 import type { Metadata, Viewport } from 'next';
+import { Manrope } from 'next/font/google';
 import './globals.css';
+
+const manrope = Manrope({ subsets: ['latin'], variable: '--font-manrope', display: 'swap' });
 
 export const metadata: Metadata = {
   title: 'Primate Fuel - Food & Nutrition Tracker',
@@ -27,7 +30,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-[#090d16] text-slate-100 min-h-screen antialiased flex justify-center">
+      <body className={`${manrope.variable} bg-[#090d16] text-slate-100 min-h-screen antialiased flex justify-center`}>
         <main className="w-full max-w-md min-h-screen flex flex-col pb-32 shadow-2xl bg-[#0b101b] border-x border-slate-900/60 relative">
           {children}
         </main>
