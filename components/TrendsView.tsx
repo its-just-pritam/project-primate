@@ -365,7 +365,15 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData} margin={CHART_MARGIN}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                  <XAxis dataKey="date" tick={<DayTick />} interval={0} height={40} tickLine={false} axisLine={{ stroke: '#334155' }} />
+                  <XAxis
+                    dataKey="date"
+                    tick={<DayTick />}
+                    interval={0}
+                    height={40}
+                    tickLine={false}
+                    axisLine={{ stroke: '#334155' }}
+                    padding={{ left: 16, right: 16 }}
+                  />
                   <YAxis
                     stroke="#64748b"
                     fontSize={10}

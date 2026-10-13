@@ -6,6 +6,7 @@ const PROTEIN_FIRST_PASS_OXIDATION = 0.35;
 const BASAL_PROTEIN_LOSS_PER_KG = 0.34;
 const EXERCISE_PROTEIN_OXIDATION_PER_KCAL = 0.0125;
 const DEFICIT_PROTEIN_CATABOLISM_PER_KCAL = 0.05;
+const MAX_DEFICIT_PROTEIN_CATABOLISM_G = 20;
 const WET_MUSCLE_MASS_PER_DRY_PROTEIN = 5;
 
 export interface DailyBodyCompositionInputs {
@@ -68,7 +69,10 @@ export const calculateDailyWetMuscleMassChangeGrams = ({
     EXERCISE_PROTEIN_OXIDATION_PER_KCAL *
     workoutCalories *
     (1 + workoutCalories / restingCalories);
-  const deficitProteinCatabolism = DEFICIT_PROTEIN_CATABOLISM_PER_KCAL * energyDeficit;
+  const deficitProteinCatabolism = Math.min(
+    DEFICIT_PROTEIN_CATABOLISM_PER_KCAL * energyDeficit,
+    MAX_DEFICIT_PROTEIN_CATABOLISM_G
+  );
   const dryProteinMassChange =
     availableProtein - basalProteinLoss - exerciseProteinOxidation - deficitProteinCatabolism;
 

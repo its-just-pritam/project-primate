@@ -191,14 +191,14 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2">
           <div className="rounded-lg border border-slate-800 bg-slate-950/60 px-2.5 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">Fat change</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">Body Fat</p>
             <p className={`mt-0.5 text-sm font-extrabold ${fatMassDeltaKg > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
               {fatMassDeltaKg > 0 ? '+' : ''}
               {fatMassDeltaKg.toFixed(2)} kg
             </p>
           </div>
           <div className="rounded-lg border border-slate-800 bg-slate-950/60 px-2.5 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">Muscle change</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">Muscle Mass</p>
             <p className={`mt-0.5 text-sm font-extrabold ${muscleMassDeltaKg >= 0 ? 'text-sky-400' : 'text-orange-400'}`}>
               {muscleMassDeltaKg > 0 ? '+' : ''}
               {muscleMassDeltaKg.toFixed(2)} kg
