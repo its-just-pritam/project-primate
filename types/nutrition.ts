@@ -105,6 +105,11 @@ export interface PlanAnalytics {
   totalCalorieConsumed: number;
   totalCalorieDeficit: number;
   averageCalorieDeficit: number;
+  totalFatMassChangeGrams: number;
+  averageDailyFatMassChangeGrams: number;
+  totalMuscleMassChangeGrams: number;
+  totalWeightChangeGrams: number;
+  averageDailyWeightChangeGrams: number;
   projectedDate: string;
   daysElapsed: number;
   daysRemaining: number;

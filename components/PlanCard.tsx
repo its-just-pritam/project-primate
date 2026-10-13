@@ -13,8 +13,11 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
   if (!plan) return null;
 
   const weightToLose = Math.max(0, plan.currentWeight - plan.targetWeight);
-  // Same 7,700 kcal/kg basis the server uses for progressPercent
-  const kgLost = Math.max(0, plan.totalCalorieDeficit / 7700);
+  const weightDeltaKg = plan.totalWeightChangeGrams / 1000;
+  const fatMassDeltaKg = plan.totalFatMassChangeGrams / 1000;
+  const muscleMassDeltaKg = plan.totalMuscleMassChangeGrams / 1000;
+  const isWeightGain = weightDeltaKg > 0;
+  const progressBarWidth = Math.min(100, Math.abs(plan.progressPercent));
 
   return (
     <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/40 border border-emerald-500/30 rounded-2xl p-4 shadow-xl space-y-3.5 relative overflow-hidden">
@@ -159,22 +162,48 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
         <div className="flex items-end justify-between gap-3">
           <div>
             <p className="text-[10px] uppercase tracking-[0.08em] text-slate-400 font-semibold">Goal progress</p>
-            <p className="mt-1 text-4xl font-extrabold leading-none text-emerald-400">
+            <p
+              className={`mt-1 text-4xl font-extrabold leading-none ${
+                isWeightGain ? 'text-rose-400' : 'text-emerald-400'
+              }`}
+            >
               {plan.progressPercent}
-              <span className="text-xl text-emerald-400/70">%</span>
+              <span className={`text-xl ${isWeightGain ? 'text-rose-400/70' : 'text-emerald-400/70'}`}>%</span>
             </p>
           </div>
           <p className="text-[11px] text-slate-400 text-right leading-tight">
-            {kgLost.toFixed(1)} kg
+            {weightDeltaKg > 0 ? '+' : ''}
+            {weightDeltaKg.toFixed(2)} kg
             <br />
-            of {weightToLose} kg
+            {isWeightGain ? 'weight gained' : weightDeltaKg < 0 ? 'weight lost' : 'net weight change'}
           </p>
         </div>
-        <div className="mt-3 w-full bg-slate-950 rounded-full h-2.5 overflow-hidden border border-slate-800">
+
+        <div className="relative mt-3 h-2.5 w-full overflow-hidden rounded-full border border-slate-800 bg-slate-950">
           <div
-            className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-700"
-            style={{ width: `${Math.max(2, plan.progressPercent)}%` }}
+            className={`absolute inset-y-0 left-0 rounded-r-full transition-all duration-700 ${
+              plan.progressPercent >= 0
+                ? 'bg-gradient-to-r from-emerald-500 to-teal-400'
+                : 'bg-gradient-to-r from-rose-500 to-orange-400'
+            }`}
+            style={{ width: `${progressBarWidth}%` }}
           />
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <div className="rounded-lg border border-slate-800 bg-slate-950/60 px-2.5 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">Fat change</p>
+            <p className={`mt-0.5 text-sm font-extrabold ${fatMassDeltaKg > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+              {fatMassDeltaKg > 0 ? '+' : ''}
+              {fatMassDeltaKg.toFixed(2)} kg
+            </p>
+          </div>
+          <div className="rounded-lg border border-slate-800 bg-slate-950/60 px-2.5 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">Muscle change</p>
+            <p className={`mt-0.5 text-sm font-extrabold ${muscleMassDeltaKg >= 0 ? 'text-sky-400' : 'text-orange-400'}`}>
+              {muscleMassDeltaKg > 0 ? '+' : ''}
+              {muscleMassDeltaKg.toFixed(2)} kg
+            </p>
+          </div>
         </div>
         <div className="mt-3 pt-3 border-t border-slate-800 grid grid-cols-2 gap-3">
           <div className="min-w-0">
@@ -197,8 +226,8 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
                   role="tooltip"
                   className="absolute left-0 bottom-full mb-2.5 w-60 rounded-lg border border-emerald-500/30 bg-slate-950 px-3 py-2.5 text-left text-[11px] font-normal normal-case tracking-normal leading-relaxed text-slate-300 shadow-xl z-20"
                 >
-                  Projected date based on your average daily deficit so far. Increasing your average
-                  deficit will help you reach your goal earlier.
+                  Progress is the signed cumulative body-weight delta relative to your target. It
+                  combines predicted fat change with wet muscle-mass change from protein balance.
                   <span className="absolute left-[118px] -bottom-[5px] w-2.5 h-2.5 rotate-45 border-r border-b border-emerald-500/30 bg-slate-950" />
                 </span>
               )}
