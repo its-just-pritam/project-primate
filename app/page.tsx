@@ -349,7 +349,7 @@ export default function Home() {
         userName={plan?.userName}
       />
 
-      <div className="flex-1 px-4 py-4 space-y-4 overflow-y-auto">
+      <div className="flex-1 px-4 md:px-8 py-4 space-y-4 overflow-y-auto">
         {/* Tab 1: Today Dashboard */}
         {activeTab === 'today' && (
           <div className="space-y-4 animate-in fade-in duration-200">
@@ -437,14 +437,17 @@ export default function Home() {
             </div>
 
             {initialLoading ? (
-              <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                 <MacroRingsSkeleton />
-                <ListSkeleton label="Loading meals" rows={2} />
-                <ListSkeleton label="Loading workouts" rows={1} />
-              </>
+                <div className="space-y-4">
+                  <ListSkeleton label="Loading meals" rows={2} />
+                  <ListSkeleton label="Loading workouts" rows={1} />
+                </div>
+              </div>
             ) : (
-              <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
             <MacroRings totals={dailyTotals} targets={targets} />
+            <div className="space-y-4 min-w-0">
             <DailyLogList
               logs={filteredLogs}
               onDelete={(l) =>
@@ -457,7 +460,8 @@ export default function Home() {
                 setPendingDelete({ kind: 'workout', id: w.id!, name: w.name, timestamp: w.timestamp })
               }
             />
-              </>
+            </div>
+              </div>
             )}
             </div>
           </div>
@@ -465,7 +469,7 @@ export default function Home() {
 
         {/* Tab 2: Log Meal Form */}
         {activeTab === 'log' && (
-          <div className="space-y-4 animate-in fade-in duration-200">
+          <div className="space-y-4 animate-in fade-in duration-200 md:max-w-xl md:mx-auto">
             <div className="flex bg-slate-900/90 p-1 rounded-xl border border-slate-800">
               {(['meal', 'workout'] as const).map((m) => (
                 <button
