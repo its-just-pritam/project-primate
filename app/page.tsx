@@ -3,6 +3,14 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Header } from '@/components/Header';
 import { AVATARS, DEFAULT_AVATAR } from '@/lib/avatars';
+import {
+  PlanCardSkeleton,
+  MacroRingsSkeleton,
+  ListSkeleton,
+  ChartSkeleton,
+  ProfileSkeleton,
+  LogFormSkeleton,
+} from '@/components/Skeletons';
 import { BottomNav, TabType } from '@/components/BottomNav';
 import { MacroRings } from '@/components/MacroRings';
 import { DailyLogList } from '@/components/DailyLogList';
@@ -48,6 +56,8 @@ export default function Home() {
   const [ingredientNames, setIngredientNames] = useState<string[]>([]);
   const [isLive, setIsLive] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const initialLoading = isLoading && !hasLoaded;
   const [targets, setTargets] = useState<DailyTargets>(DEFAULT_TARGETS);
   const [plan, setPlan] = useState<PlanAnalytics | null>(null);
   const [activePlans, setActivePlans] = useState<PlanAnalytics[]>([]);
@@ -110,6 +120,7 @@ export default function Home() {
       console.error('Error fetching data:', err);
     } finally {
       setIsLoading(false);
+      setHasLoaded(true);
     }
   };
 
@@ -307,6 +318,10 @@ export default function Home() {
     }
   };
 
+  if (showProfile && initialLoading) {
+    return <ProfileSkeleton onClose={() => setShowProfile(false)} />;
+  }
+
   if (showProfile) {
     return (
       <ProfileScreen
@@ -338,8 +353,12 @@ export default function Home() {
         {/* Tab 1: Today Dashboard */}
         {activeTab === 'today' && (
           <div className="space-y-4 animate-in fade-in duration-200">
-            <PlanCarousel plans={activePlans} index={planIdx} onIndexChange={setPlanIdx} />
-            {plan && !plan.hasPlan && (
+            {initialLoading ? (
+              <PlanCardSkeleton />
+            ) : (
+              <PlanCarousel plans={activePlans} index={planIdx} onIndexChange={setPlanIdx} />
+            )}
+            {!initialLoading && plan && !plan.hasPlan && (
               <div className="flex flex-col items-center gap-3 py-3">
                 <p className="text-sm text-slate-400">No active plan right now.</p>
                 <button
@@ -417,6 +436,14 @@ export default function Home() {
               </div>
             </div>
 
+            {initialLoading ? (
+              <>
+                <MacroRingsSkeleton />
+                <ListSkeleton label="Loading meals" rows={2} />
+                <ListSkeleton label="Loading workouts" rows={1} />
+              </>
+            ) : (
+              <>
             <MacroRings totals={dailyTotals} targets={targets} />
             <DailyLogList
               logs={filteredLogs}
@@ -430,6 +457,8 @@ export default function Home() {
                 setPendingDelete({ kind: 'workout', id: w.id!, name: w.name, timestamp: w.timestamp })
               }
             />
+              </>
+            )}
             </div>
           </div>
         )}
@@ -453,7 +482,9 @@ export default function Home() {
                 </button>
               ))}
             </div>
-            {logMode === 'meal' ? (
+            {initialLoading ? (
+              <LogFormSkeleton />
+            ) : logMode === 'meal' ? (
               <QuickLogger
                 recipes={recipes}
                 userName={plan?.userName}
@@ -473,13 +504,20 @@ export default function Home() {
         {/* Tab 3: Recipes Catalog */}
         {activeTab === 'recipes' && (
           <div className="animate-in fade-in duration-200">
-            <RecipeManager recipes={recipes} ingredientNames={ingredientNames} onAddRecipe={handleAddRecipe} onUpdateRecipe={handleUpdateRecipe} />
+            {initialLoading ? (
+              <ListSkeleton label="Loading recipes" rows={3} />
+            ) : (
+              <RecipeManager recipes={recipes} ingredientNames={ingredientNames} onAddRecipe={handleAddRecipe} onUpdateRecipe={handleUpdateRecipe} />
+            )}
           </div>
         )}
 
         {/* Tab 4: Trends & Analytics */}
         {activeTab === 'trends' && (
           <div className="space-y-4 animate-in fade-in duration-200">
+            {initialLoading ? (
+              <ChartSkeleton />
+            ) : (
             <TrendsView
               logs={logs}
               targets={targets}
@@ -487,6 +525,7 @@ export default function Home() {
               restingCalories={currentPlan?.hasPlan ? currentPlan.restingCalories : undefined}
               workoutCaloriesByDate={workoutCaloriesByDate}
             />
+            )}
           </div>
         )}
       </div>
