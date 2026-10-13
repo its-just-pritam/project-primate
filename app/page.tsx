@@ -14,6 +14,7 @@ import { TrendsView } from '@/components/TrendsView';
 import { PlanCarousel } from '@/components/PlanCarousel';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Plus } from 'lucide-react';
+import { toLocalDateKey, parseLocalDateKey } from '@/lib/localDate';
 import { ProfileScreen } from '@/components/ProfileScreen';
 import {
   MealLogEntry,
@@ -52,7 +53,7 @@ export default function Home() {
   const [activePlans, setActivePlans] = useState<PlanAnalytics[]>([]);
   const [planIdx, setPlanIdx] = useState(0);
   const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().split('T')[0]
+    toLocalDateKey(new Date())
   );
 
   // Fetch initial data
@@ -117,15 +118,24 @@ export default function Home() {
   // Filter logs for selected date
   const filteredLogs = useMemo(() => {
     return logs.filter((log) => {
-      const logDate = log.timestamp.split('T')[0];
-      return logDate === selectedDate;
+      return toLocalDateKey(log.timestamp) === selectedDate;
     });
   }, [logs, selectedDate]);
 
   const filteredWorkouts = useMemo(
-    () => workouts.filter((w) => w.timestamp.split('T')[0] === selectedDate),
+    () => workouts.filter((w) => toLocalDateKey(w.timestamp) === selectedDate),
     [workouts, selectedDate]
   );
+
+  const workoutCaloriesByDate = useMemo(() => {
+    const byDate: Record<string, number> = {};
+    workouts.forEach((w) => {
+      if (Number.isNaN(new Date(w.timestamp).getTime())) return;
+      const key = toLocalDateKey(w.timestamp);
+      byDate[key] = (byDate[key] || 0) + (Number(w.caloriesBurnt) || 0);
+    });
+    return byDate;
+  }, [workouts]);
 
   const workoutNames = useMemo(() => Array.from(new Set(workouts.map((w) => w.name))), [workouts]);
 
@@ -346,9 +356,9 @@ export default function Home() {
                   Daily Nutrition
                 </p>
                 <h2 className="text-lg font-extrabold text-white">
-                  {selectedDate === new Date().toISOString().split('T')[0]
+                  {selectedDate === toLocalDateKey(new Date())
                     ? 'Today'
-                    : new Date(selectedDate).toLocaleDateString([], {
+                    : parseLocalDateKey(selectedDate).toLocaleDateString([], {
                         month: 'short',
                         day: 'numeric',
                       })}
@@ -430,7 +440,7 @@ export default function Home() {
               targets={targets}
               daysElapsed={currentPlan?.hasPlan ? currentPlan.daysElapsed : undefined}
               restingCalories={currentPlan?.hasPlan ? currentPlan.restingCalories : undefined}
-              workoutCaloriesByDate={currentPlan?.hasPlan ? currentPlan.workoutCaloriesByDate : undefined}
+              workoutCaloriesByDate={workoutCaloriesByDate}
             />
           </div>
         )}

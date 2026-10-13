@@ -14,6 +14,7 @@ import {
   CartesianGrid,
 } from 'recharts';
 import { TrendingUp, Award, CalendarDays } from 'lucide-react';
+import { toLocalDateKey } from '@/lib/localDate';
 
 interface TrendsViewProps {
   logs: MealLogEntry[];
@@ -86,7 +87,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
   for (let i = CHART_DAYS - 1; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
-    const dateStr = d.toISOString().split('T')[0];
+    const dateStr = toLocalDateKey(d);
     const displayDate = d.toLocaleDateString([], { weekday: 'short', month: 'numeric', day: 'numeric' });
     dateMap[dateStr] = {
       date: dateStr,
@@ -101,7 +102,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
   }
 
   logs.forEach((log) => {
-    const dateStr = log.timestamp.split('T')[0];
+    const dateStr = toLocalDateKey(log.timestamp);
     const day = dateMap[dateStr];
     if (day) {
       day.calories += log.calories;
@@ -123,7 +124,12 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
         day.deficit = null;
         return;
       }
-      day.resting = restingCalories;
+      // Today's resting burn accrues in proportion to the time elapsed so far.
+      const isToday = idx === chartData.length - 1;
+      const dayFraction = isToday
+        ? (today.getHours() * 3600 + today.getMinutes() * 60 + today.getSeconds()) / 86400
+        : 1;
+      day.resting = Math.round(restingCalories * dayFraction);
       day.workout = workoutCaloriesByDate[day.date] || 0;
       day.burnt = day.resting + day.workout;
       day.deficit = day.burnt - day.calories;
@@ -162,7 +168,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
             <span className="text-xs text-slate-500">kcal/day</span>
           </div>
           <p className="text-[10px] text-emerald-400 mt-1 flex items-center gap-1">
-            <Award className="w-3 h-3" /> Target: {targets.calories} kcal
+            <Award className="w-3 h-3" /> Limit: {targets.calories} kcal
           </p>
         </div>
 
