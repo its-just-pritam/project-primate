@@ -332,11 +332,6 @@ export default function Home() {
         onRefresh={loadData}
         isLoading={isLoading}
         userName={plan?.userName}
-        avatar={avatar}
-        onOpenProfile={() => {
-          setOpenNewPlan(false);
-          setShowProfile(true);
-        }}
       />
 
       <div className="flex-1 px-4 py-4 space-y-4 overflow-y-auto">
@@ -496,7 +491,15 @@ export default function Home() {
         )}
       </div>
 
-      <BottomNav currentTab={activeTab} onChangeTab={setActiveTab} />
+      <BottomNav
+        currentTab={activeTab}
+        onChangeTab={setActiveTab}
+        avatar={avatar}
+        onOpenProfile={() => {
+          setOpenNewPlan(false);
+          setShowProfile(true);
+        }}
+      />
 
       {pendingDelete && (
         <ConfirmDialog

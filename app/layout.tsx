@@ -8,6 +8,13 @@ export const metadata: Metadata = {
   title: 'Primate Fuel - Food & Nutrition Tracker',
   description: 'Fast mobile food intake tracker and visual nutrition planner',
   manifest: '/manifest.json',
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    apple: [{ url: '/icon-180.png', sizes: '180x180', type: 'image/png' }],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
