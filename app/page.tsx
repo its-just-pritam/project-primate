@@ -8,7 +8,6 @@ import {
   MacroRingsSkeleton,
   ListSkeleton,
   ChartSkeleton,
-  ProfileSkeleton,
   LogFormSkeleton,
 } from '@/components/Skeletons';
 import { BottomNav, TabType } from '@/components/BottomNav';
@@ -24,6 +23,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toLocalDateKey, parseLocalDateKey } from '@/lib/localDate';
 import { ProfileScreen } from '@/components/ProfileScreen';
+import { StartupSplash } from '@/components/StartupSplash';
 import {
   MealLogEntry,
   WorkoutEntry,
@@ -318,8 +318,8 @@ export default function Home() {
     }
   };
 
-  if (showProfile && initialLoading) {
-    return <ProfileSkeleton onClose={() => setShowProfile(false)} />;
+  if (initialLoading) {
+    return <StartupSplash />;
   }
 
   if (showProfile) {

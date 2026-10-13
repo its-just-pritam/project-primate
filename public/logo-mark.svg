@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title>Primate Fuel logo mark</title>
+  <defs>
+    <linearGradient id="flame" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5eead4"/>
+      <stop offset="1" stop-color="#10b981"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#flame)" d="M256 70c-48 0-74 52-86 110-8 38-34 66-34 120 0 76 56 142 120 142s120-66 120-142c0-54-26-82-34-120-12-58-38-110-86-110z"/>
+  <path fill="#a7f3d0" d="M256 106c-36 0-56 42-66 90-8 36-32 62-32 106 0 62 44 118 98 118s98-56 98-118c0-44-24-70-32-106-10-48-30-90-66-90z"/>
+  <circle cx="256" cy="338" r="56" fill="#b45309"/>
+  <circle cx="256" cy="338" r="56" fill="none" stroke="#92400e" stroke-width="6"/>
+  <ellipse cx="238" cy="318" rx="14" ry="10" fill="#d97706" transform="rotate(-30 238 318)"/>
+</svg>
