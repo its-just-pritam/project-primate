@@ -119,7 +119,9 @@ export function scaleIngredients(ingredients: DishIngredient[], portion: number)
 async function getDishCatalog(sheets: any): Promise<{
   dishMap: Record<string, DishNutrition>;
   recipes: Recipe[];
+  packaged: Recipe[];
   ingredientNames: string[];
+  ingredientUnits: Record<string, { baseQuantity: number; unit: string }>;
 }> {
   try {
     const [ingRes, recRes] = await Promise.all([
@@ -219,7 +221,64 @@ async function getDishCatalog(sheets: any): Promise<{
       };
     });
 
-    return { dishMap, recipes, ingredientNames: Object.keys(ingMap).sort((a, b) => a.localeCompare(b)) };
+    // Packaged items carry their nutrition directly; values are for `Quantity` servings.
+    const packaged: Recipe[] = [];
+    try {
+      const pkgRes = await sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range: 'Packaged!A2:N',
+      });
+      (pkgRes.data.values || []).forEach((r: any[]) => {
+        const name = String(r[0] || '').trim();
+        if (!name || dishMap[name]) return;
+        const qty = parseFloat(r[1]) > 0 ? parseFloat(r[1]) : 1;
+        const micros = scaleMicros(
+          {
+            calcium: parseFloat(r[7]) || 0,
+            iron: parseFloat(r[8]) || 0,
+            potassium: parseFloat(r[9]) || 0,
+            sodium: parseFloat(r[10]) || 0,
+            vitaminC: parseFloat(r[11]) || 0,
+            vitaminB12: parseFloat(r[12]) || 0,
+            vitaminD: parseFloat(r[13]) || 0,
+          },
+          1 / qty
+        );
+        const nutrition: DishNutrition = {
+          calories: (parseFloat(r[3]) || 0) / qty,
+          protein: (parseFloat(r[4]) || 0) / qty,
+          carbs: (parseFloat(r[5]) || 0) / qty,
+          fats: (parseFloat(r[6]) || 0) / qty,
+          micros,
+          ingredients: [],
+        };
+        dishMap[name] = nutrition;
+        packaged.push({
+          id: `packaged-${packaged.length + 1}`,
+          name,
+          servingUnit: '1 serving',
+          calories: Math.round(nutrition.calories),
+          protein: round1(nutrition.protein),
+          carbs: round1(nutrition.carbs),
+          fats: round1(nutrition.fats),
+          isPackaged: true,
+          micros,
+          ingredients: [],
+        });
+      });
+    } catch (err) {
+      console.error('Error reading Packaged sheet:', err);
+    }
+
+    return {
+      dishMap,
+      recipes,
+      packaged,
+      ingredientNames: Object.keys(ingMap).sort((a, b) => a.localeCompare(b)),
+      ingredientUnits: Object.fromEntries(
+        Object.entries(ingMap).map(([n, i]) => [n, { baseQuantity: i.baseQuantity, unit: i.unit }])
+      ),
+    };
   } catch (err) {
     console.error('Error resolving dish catalog from Recipe & Ingredients:', err);
     // Fallback to defaults
@@ -234,23 +293,27 @@ async function getDishCatalog(sheets: any): Promise<{
         ingredients: [],
       };
     });
-    return { dishMap: fallbackMap, recipes: DEFAULT_RECIPES, ingredientNames: [] };
+    return { dishMap: fallbackMap, recipes: DEFAULT_RECIPES, packaged: [], ingredientNames: [], ingredientUnits: {} };
   }
 }
 
 export async function fetchRecipes(): Promise<{
   recipes: Recipe[];
+  packaged: Recipe[];
   ingredientNames: string[];
+  ingredientUnits: Record<string, { baseQuantity: number; unit: string }>;
   isLive: boolean;
 }> {
   const sheets = getGoogleSheetsClient();
 
   if (!sheets) {
-    return { recipes: DEFAULT_RECIPES, ingredientNames: [], isLive: false };
+    return { recipes: DEFAULT_RECIPES, packaged: [], ingredientNames: [], ingredientUnits: {}, isLive: false };
   }
 
-  const { recipes, ingredientNames } = await getDishCatalog(sheets);
+  const { recipes, packaged, ingredientNames, ingredientUnits } = await getDishCatalog(sheets);
   return {
+    packaged,
+    ingredientUnits,
     recipes: recipes.length > 0 ? recipes : DEFAULT_RECIPES,
     ingredientNames,
     isLive: true,
@@ -376,6 +439,50 @@ export async function appendRecipe(
     valueInputOption: 'USER_ENTERED',
     requestBody: {
       values: items.map((i) => [dish, i.ingredient, i.quantity]),
+    },
+  });
+  return { success: true, isLive: true };
+}
+
+export async function appendPackaged(p: {
+  dish: string;
+  quantity: number;
+  user: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  micros: Micronutrients;
+}): Promise<{ success: boolean; isLive: boolean }> {
+  const sheets = getGoogleSheetsClient();
+  if (!sheets) {
+    return { success: true, isLive: false };
+  }
+
+  // Dish | Quantity | User | Calories | Protein | Carbs | Fat | Calcium | Iron | Potassium | Sodium | Vit C | Vit B12 | Vit D
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SPREADSHEET_ID,
+    range: 'Packaged!A:N',
+    valueInputOption: 'USER_ENTERED',
+    requestBody: {
+      values: [
+        [
+          p.dish,
+          p.quantity,
+          p.user,
+          p.calories,
+          p.protein,
+          p.carbs,
+          p.fats,
+          p.micros.calcium,
+          p.micros.iron,
+          p.micros.potassium,
+          p.micros.sodium,
+          p.micros.vitaminC,
+          p.micros.vitaminB12,
+          p.micros.vitaminD,
+        ],
+      ],
     },
   });
   return { success: true, isLive: true };

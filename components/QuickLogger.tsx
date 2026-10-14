@@ -118,11 +118,16 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
                     >
                       <div>
                         <p
-                          className={`text-sm font-semibold ${
+                          className={`text-sm font-semibold flex items-center gap-2 ${
                             isSelected ? 'text-white' : 'text-slate-200'
                           }`}
                         >
                           {r.name}
+                          {r.isPackaged && (
+                            <span className="shrink-0 px-1 py-px rounded border border-amber-500/30 bg-amber-500/10 text-amber-400 text-[8px] font-semibold uppercase leading-none tracking-wide">
+                              Pkg
+                            </span>
+                          )}
                         </p>
                         <p className="text-[11px] text-slate-400">
                           {r.calories} kcal · {r.protein}g protein ({r.servingUnit})
@@ -197,6 +202,29 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
                 ))}
               </div>
             </div>
+
+            {/* Ingredients of the selected recipe, scaled to the chosen portion */}
+            {selectedRecipe?.ingredients && selectedRecipe.ingredients.length > 0 && (
+              <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 space-y-2">
+                <span className="text-xs font-semibold text-slate-300">
+                  Ingredients ({selectedRecipe.ingredients.length})
+                </span>
+                <ul className="space-y-1">
+                  {selectedRecipe.ingredients.map((ing, i) => (
+                    <li
+                      key={`${ing.name}-${i}`}
+                      className="flex items-center justify-between text-[11px]"
+                    >
+                      <span className="text-slate-300">{ing.name}</span>
+                      <span className="text-slate-400 font-medium">
+                        {Math.round(ing.amount * portion * 100) / 100}
+                        {ing.unit ? ` ${ing.unit}` : ''}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
         {/* Live Calculation Preview Card */}
         <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-3.5 space-y-2">

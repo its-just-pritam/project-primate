@@ -64,6 +64,7 @@ export interface Recipe {
   carbs: number;
   fats: number;
   category?: 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'drink';
+  isPackaged?: boolean;
   micros?: Micronutrients;
   ingredients?: DishIngredient[];
 }

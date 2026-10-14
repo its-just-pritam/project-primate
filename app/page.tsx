@@ -17,6 +17,7 @@ import { QuickLogger } from '@/components/QuickLogger';
 import { WorkoutLogger } from '@/components/WorkoutLogger';
 import { WorkoutList } from '@/components/WorkoutList';
 import { RecipeManager } from '@/components/RecipeManager';
+import type { PackagedInput } from '@/components/PackagedForm';
 import { TrendsView } from '@/components/TrendsView';
 import { PlanCarousel } from '@/components/PlanCarousel';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
@@ -53,7 +54,9 @@ export default function Home() {
   const [openNewPlan, setOpenNewPlan] = useState(false);
   const [logMode, setLogMode] = useState<'meal' | 'workout'>('meal');
   const [recipes, setRecipes] = useState<Recipe[]>(DEFAULT_RECIPES);
+  const [packaged, setPackaged] = useState<Recipe[]>([]);
   const [ingredientNames, setIngredientNames] = useState<string[]>([]);
+  const [ingredientUnits, setIngredientUnits] = useState<Record<string, { baseQuantity: number; unit: string }>>({});
   const [isLive, setIsLive] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [hasLoaded, setHasLoaded] = useState(false);
@@ -102,6 +105,8 @@ export default function Home() {
       if (recipesRes.ok) {
         const recipesData = await recipesRes.json();
         setIngredientNames(recipesData.ingredientNames || []);
+        setPackaged(recipesData.packaged || []);
+        setIngredientUnits(recipesData.ingredientUnits || {});
         if (recipesData.recipes && recipesData.recipes.length > 0) {
           setRecipes(recipesData.recipes);
         }
@@ -282,6 +287,22 @@ export default function Home() {
         body: JSON.stringify({ dish, items }),
       });
       if (!res.ok) throw new Error('Failed to save recipe');
+      await loadData();
+      return true;
+    } catch (err) {
+      console.error(err);
+      return false;
+    }
+  };
+
+  const handleAddPackaged = async (p: PackagedInput): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/packaged', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...p, user: plan?.userName }),
+      });
+      if (!res.ok) throw new Error('Failed to save packaged food');
       await loadData();
       return true;
     } catch (err) {
@@ -490,7 +511,7 @@ export default function Home() {
               <LogFormSkeleton />
             ) : logMode === 'meal' ? (
               <QuickLogger
-                recipes={recipes}
+                recipes={[...recipes, ...packaged]}
                 userName={plan?.userName}
                 onLogMeal={handleLogMeal}
                 onNavigateToRecipes={() => setActiveTab('recipes')}
@@ -511,7 +532,7 @@ export default function Home() {
             {initialLoading ? (
               <ListSkeleton label="Loading recipes" rows={3} />
             ) : (
-              <RecipeManager recipes={recipes} ingredientNames={ingredientNames} onAddRecipe={handleAddRecipe} onUpdateRecipe={handleUpdateRecipe} />
+              <RecipeManager recipes={recipes} packaged={packaged} ingredientNames={ingredientNames} ingredientUnits={ingredientUnits} onAddRecipe={handleAddRecipe} onAddPackaged={handleAddPackaged} onUpdateRecipe={handleUpdateRecipe} />
             )}
           </div>
         )}
