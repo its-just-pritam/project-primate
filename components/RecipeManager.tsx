@@ -2,17 +2,22 @@
 
 import React, { useState } from 'react';
 import { Recipe, MICRO_FIELDS } from '@/types/nutrition';
-import { Plus, BookOpen, Check, ChefHat, ChevronDown, Trash2, Pencil } from 'lucide-react';
+import { Plus, BookOpen, Check, ChefHat, ChevronDown, Trash2, Pencil, Package } from 'lucide-react';
 import { IngredientBreakdown } from './IngredientBreakdown';
+import { PackagedForm, PackagedInput } from './PackagedForm';
 
 interface RecipeManagerProps {
   recipes: Recipe[];
+  packaged?: Recipe[];
   ingredientNames: string[];
+  ingredientUnits?: Record<string, { baseQuantity: number; unit: string }>;
+  onAddPackaged: (p: PackagedInput) => Promise<boolean>;
   onAddRecipe: (dish: string, items: { ingredient: string; quantity: number }[]) => Promise<boolean>;
   onUpdateRecipe: (dish: string, items: { ingredient: string; quantity: number }[]) => Promise<boolean>;
 }
 
-export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, ingredientNames, onAddRecipe, onUpdateRecipe }) => {
+export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged = [], ingredientNames, ingredientUnits = {}, onAddPackaged, onAddRecipe, onUpdateRecipe }) => {
+  const [showPackagedForm, setShowPackagedForm] = useState(false);
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingName, setEditingName] = useState<string | null>(null);
@@ -90,16 +95,40 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, ingredien
           <p className="text-xs text-slate-400">Pre-saved meals with standard macro values</p>
         </div>
 
-        {!showAddForm && (
-          <button
-            onClick={() => setShowAddForm(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md active:scale-95 transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add</span>
-          </button>
+        {!showAddForm && !showPackagedForm && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowPackagedForm(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 text-xs font-semibold active:scale-95 transition-all"
+            >
+              <Package className="w-4 h-4" />
+              <span>Packaged</span>
+            </button>
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md active:scale-95 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add</span>
+            </button>
+          </div>
         )}
       </div>
+
+      {showPackagedForm && (
+        <PackagedForm
+          onCancel={() => setShowPackagedForm(false)}
+          onSubmit={async (p) => {
+            const ok = await onAddPackaged(p);
+            if (ok) {
+              setShowPackagedForm(false);
+              setSuccessToast(`Saved "${p.dish}" as packaged food!`);
+              setTimeout(() => setSuccessToast(null), 3000);
+            }
+            return ok;
+          }}
+        />
+      )}
 
       {/* Add Recipe Form Modal / Card */}
       {showAddForm && (
@@ -131,8 +160,16 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, ingredien
                 <span>Quantity</span>
                 <span />
               </div>
-              {items.map((it, idx) => (
-                <div key={idx} className="grid grid-cols-[1fr_80px_32px] gap-2 items-center">
+              {items.map((it, idx) => {
+                const info = ingredientUnits[it.ingredient.trim()];
+                const qty = parseFloat(it.quantity);
+                const unitHint = info
+                  ? `1 qty = ${info.baseQuantity}${info.unit ? ` ${info.unit}` : ''}` +
+                    (qty > 0 ? ` · ${Math.round(qty * info.baseQuantity * 100) / 100}${info.unit ? ` ${info.unit}` : ''} total` : '')
+                  : '';
+                return (
+                <div key={idx} className="space-y-1">
+                <div className="grid grid-cols-[1fr_80px_32px] gap-2 items-center">
                   <input
                     type="text"
                     list="known-ingredients"
@@ -162,7 +199,10 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, ingredien
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
-              ))}
+                {unitHint && <p className="text-[10px] text-slate-500 pl-1">{unitHint}</p>}
+                </div>
+                );
+              })}
               <datalist id="known-ingredients">
                 {knownIngredients.map((n) => (
                   <option key={n} value={n} />
@@ -198,7 +238,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, ingredien
 
       {/* Recipe List Cards */}
       <div className="space-y-2.5">
-        {recipes.map((r) => {
+        {[...recipes, ...packaged].map((r) => {
           const isOpen = !!expandedIds[r.id];
           return (
           <div
@@ -208,7 +248,14 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, ingredien
           >
             <div className="flex items-center justify-between">
               <div>
-                <h4 className="text-sm font-bold text-white tracking-tight">{r.name}</h4>
+                <h4 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
+                  {r.name}
+                  {r.isPackaged && (
+                    <span className="shrink-0 px-1 py-px rounded border border-amber-500/30 bg-amber-500/10 text-amber-400 text-[8px] font-semibold uppercase leading-none tracking-wide">
+                      Pkg
+                    </span>
+                  )}
+                </h4>
                 <p className="text-[11px] text-slate-400 font-medium">
                   Unit: {r.servingUnit}
                 </p>
@@ -217,6 +264,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, ingredien
                 <span className="text-base font-black text-white">
                   {r.calories} <span className="text-xs font-normal text-slate-400">kcal</span>
                 </span>
+                {!r.isPackaged && (
                 <button
                   type="button"
                   aria-label={`Edit ${r.name}`}
@@ -228,6 +276,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, ingredien
                 >
                   <Pencil className="w-3.5 h-3.5" />
                 </button>
+                )}
               </div>
             </div>
 
@@ -265,7 +314,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, ingredien
                     </div>
                   </div>
                 )}
-                <IngredientBreakdown ingredients={r.ingredients} />
+                {!r.isPackaged && <IngredientBreakdown ingredients={r.ingredients} />}
               </div>
             )}
           </div>
