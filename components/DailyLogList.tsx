@@ -39,7 +39,7 @@ export const DailyLogList: React.FC<DailyLogListProps> = ({ logs, onDelete }) =>
     <div className="space-y-2.5">
       <div className="flex items-center justify-between px-1">
         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-          Today's Meals ({logs.length})
+          Meals ({logs.length})
         </h3>
         <span className="text-[11px] text-slate-500">
           {logs.reduce((sum, item) => sum + item.calories, 0)} kcal total

@@ -46,13 +46,21 @@ export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel }
     if (!file) return;
     setScanState({ busy: true, msg: 'Reading label…' });
     try {
-      const [{ createWorker }, { parseNutritionLabel }] = await Promise.all([
+      const [{ createWorker }, { parseNutritionLabel, guessProductName }] = await Promise.all([
         import('tesseract.js'),
         import('@/lib/nutritionLabel'),
       ]);
       const worker = await createWorker('eng');
-      const { data } = await worker.recognize(file);
+      const { data } = await worker.recognize(file, {}, { text: true, blocks: true });
       await worker.terminate();
+
+      const ocrLines = (data.blocks || []).flatMap((b) =>
+        b.paragraphs.flatMap((p) =>
+          p.lines.map((l) => ({ text: l.text, height: l.bbox.y1 - l.bbox.y0 }))
+        )
+      );
+      const productName = guessProductName(ocrLines);
+      if (productName) setName(productName);
 
       const parsed = parseNutritionLabel(data.text);
       const toStr = (o: Record<string, number | undefined>) =>
@@ -68,9 +76,10 @@ export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel }
       const count = Object.keys(m).length + Object.keys(mi).length;
       setScanState({
         busy: false,
-        msg: count
-          ? `Filled ${count} value${count === 1 ? '' : 's'}. Please check them before saving.`
-          : 'Could not find nutrition values. Try a clearer, flatter photo.',
+        msg:
+          count || productName
+            ? `Filled ${productName ? 'name and ' : ''}${count} value${count === 1 ? '' : 's'}. Please check them before saving.`
+            : 'Could not read the label. Try a clearer, flatter photo.',
       });
     } catch (err) {
       console.error(err);

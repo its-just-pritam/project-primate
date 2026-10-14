@@ -27,6 +27,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: 'cover',
   themeColor: '#090d16',
 };
 
@@ -37,7 +38,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${manrope.variable} bg-[#090d16] text-slate-100 min-h-screen antialiased flex justify-center`}>
+      <body className={`${manrope.variable} bg-[#090d16] text-slate-100 min-h-dvh antialiased flex justify-center`}>
         <main className="w-full max-w-md md:max-w-3xl lg:max-w-5xl min-h-screen flex flex-col pb-32 shadow-2xl bg-[#0b101b] border-x border-slate-900/60 relative">
           {children}
         </main>

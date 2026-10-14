@@ -490,7 +490,7 @@ export default function Home() {
 
         {/* Tab 2: Log Meal Form */}
         {activeTab === 'log' && (
-          <div className="space-y-4 animate-in fade-in duration-200 md:max-w-xl md:mx-auto">
+          <div className="space-y-4 animate-in fade-in duration-200 md:max-w-2xl md:mx-auto">
             <div className="flex bg-slate-900/90 p-1 rounded-xl border border-slate-800">
               {(['meal', 'workout'] as const).map((m) => (
                 <button

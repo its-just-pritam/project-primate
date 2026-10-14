@@ -189,8 +189,8 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
       : 0;
 
   return (
-    <div className="space-y-4">
-      <div>
+    <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 md:gap-4 md:items-stretch [&>*]:min-w-0">
+      <div className="md:col-span-2">
         <h2 className="text-base font-bold text-white flex items-center gap-2">
           <TrendingUp className="w-5 h-5 text-emerald-400" /> Nutrition Analytics
         </h2>
@@ -198,7 +198,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
       </div>
 
       {/* KPI Stats */}
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className="grid grid-cols-2 gap-2.5 md:col-span-2">
         <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5">
           <span className="text-[11px] font-semibold text-slate-400 block mb-1">
             {daysToShow}-Day Avg Calories
@@ -227,7 +227,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
       </div>
 
       {/* Calorie Consumed vs Burnt Chart Card */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-3">
+      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-3 flex flex-col md:h-full">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
             <CalendarDays className="w-3.5 h-3.5 text-orange-400" /> Calories Consumed vs Burnt
@@ -242,7 +242,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
           )}
         </p>
 
-        <div className="h-44 w-full">
+        <div className="h-48 w-full mt-auto">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={CHART_MARGIN} {...BAR_CHART_PROPS}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
@@ -267,7 +267,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
         </div>
       </div>
       {/* Daily Calorie Deficit Chart */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-3">
+      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-3 flex flex-col md:h-full">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
             <TrendingUp className="w-3.5 h-3.5 text-emerald-400" /> Daily Calorie Deficit
@@ -294,7 +294,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
                 <span className="w-2 h-2 rounded-full bg-emerald-500" /> Surplus
               </span>
             </div>
-            <div className="h-44 w-full">
+            <div className="h-48 w-full mt-auto">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} margin={CHART_MARGIN} {...BAR_CHART_PROPS}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
@@ -338,7 +338,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
       </div>
 
       {/* Daily Body Composition Change Chart */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-3">
+      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-3 flex flex-col md:h-full">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
             <TrendingUp className="w-3.5 h-3.5 text-violet-400" /> Daily Fat &amp; Muscle Change
@@ -361,7 +361,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
                 <span className="w-2 h-2 rounded-full bg-sky-400" /> Muscle
               </span>
             </div>
-            <div className="h-48 w-full">
+            <div className="h-48 w-full mt-auto">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData} margin={CHART_MARGIN}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
@@ -415,7 +415,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
       </div>
 
       {/* Protein Intake Chart Card */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-3">
+      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-3 flex flex-col md:h-full">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
             <Award className="w-3.5 h-3.5 text-emerald-400" /> Daily Protein Intake
@@ -423,7 +423,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
           <span className="text-[10px] text-slate-400">Target: {targets.protein}g</span>
         </div>
 
-        <div className="h-44 w-full">
+        <div className="h-48 w-full mt-auto">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={CHART_MARGIN} {...BAR_CHART_PROPS}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
