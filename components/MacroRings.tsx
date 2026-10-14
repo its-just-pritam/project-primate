@@ -27,6 +27,8 @@ export const MacroRings: React.FC<MacroRingsProps> = ({ totals, targets }) => {
   const calSurplus = Math.max(0, -calDiff);
 
   return (
+    <section className="space-y-2 min-w-0">
+    <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider px-1">Nutrients</h3>
     <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-4">
       {/* Top Banner: Calories */}
       <div className="flex items-center justify-between">
@@ -136,5 +138,6 @@ export const MacroRings: React.FC<MacroRingsProps> = ({ totals, targets }) => {
         </div>
       </div>
     </div>
+    </section>
   );
 };

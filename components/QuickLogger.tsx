@@ -102,7 +102,7 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 gap-2 max-h-56 overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-56 md:max-h-72 overflow-y-auto pr-1">
                 {recipes.map((r) => {
                   const isSelected = selectedRecipeId === r.id;
                   return (
