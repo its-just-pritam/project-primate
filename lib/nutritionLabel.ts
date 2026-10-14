@@ -3,7 +3,9 @@ export interface ParsedLabel {
   micros: Partial<Record<'calcium' | 'iron' | 'potassium' | 'sodium' | 'vitaminC' | 'vitaminB12' | 'vitaminD', number>>;
 }
 
-const NUM = String.raw`(\d+(?:[.,]\d+)?)\s*(kcal|kj|cal|mg|mcg|µg|μg|ug|iu|g)?`;
+const UNITS = 'kcal|kj|cal|mg|mcg|µg|μg|ug|iu|gms|gm|g';
+const NUM = String.raw`(\d+(?:[.,]\d+)?)(?:\s*(${UNITS})(?![a-z]))?`;
+const LABELS = String.raw`energy|calories|protein|carbohydrates?|carbs|fat\b|calcium|\biron\b|potassium|sodium|vitamin\s*[a-z]\d*|b[\s-]?12|cobalamin|ascorbic`;
 
 const toNumber = (s: string) => parseFloat(s.replace(',', '.'));
 
@@ -11,11 +13,31 @@ const toNumber = (s: string) => parseFloat(s.replace(',', '.'));
 const cleanLine = (line: string) =>
   line.replace(/(?<=\d)[Oo](?=\d|\b)/g, '0').replace(/(?<=\d)[lI](?=\d)/g, '1');
 
-// First "<number> <unit>" found after the label on that line.
-function valueAfter(line: string, labelEnd: number): { value: number; unit: string } | null {
-  const m = new RegExp(NUM, 'i').exec(line.slice(labelEnd));
-  if (!m) return null;
-  return { value: toNumber(m[1]), unit: (m[2] || '').toLowerCase() };
+const normalizeUnit = (u?: string) => {
+  const unit = (u || '').toLowerCase();
+  return unit === 'gm' || unit === 'gms' ? 'g' : unit;
+};
+
+// Finds the number belonging to the label at [start, end). Labels written as
+// "Protein 13 g" take the number after; "13 g protein" lines take the number before.
+function valueForLabel(
+  line: string,
+  start: number,
+  end: number
+): { value: number; unit: string } | null {
+  const labelRe = new RegExp(LABELS, 'ig');
+  const labels = Array.from(line.matchAll(labelRe)).map((l) => ({ start: l.index!, end: l.index! + l[0].length }));
+  const valueFirst = labels.length > 0 && /\d/.test(line.slice(0, labels[0].start));
+
+  if (valueFirst) {
+    const prevEnd = labels.filter((l) => l.end <= start).reduce((mx, l) => Math.max(mx, l.end), 0);
+    const nums = Array.from(line.slice(prevEnd, start).matchAll(new RegExp(NUM, 'ig')));
+    const last = nums[nums.length - 1];
+    return last ? { value: toNumber(last[1]), unit: normalizeUnit(last[2]) } : null;
+  }
+
+  const m = new RegExp(NUM, 'i').exec(line.slice(end));
+  return m ? { value: toNumber(m[1]), unit: normalizeUnit(m[2]) } : null;
 }
 
 // Converts to the unit the app stores (mg, mcg or IU), based on the printed unit.
@@ -40,6 +62,37 @@ const toGrams = (v: { value: number; unit: string }) =>
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
+const NON_NAME =
+  /nutrition|energy|calori|protein|carbo|\bfat\b|sugar|fibre|fiber|sodium|salt|calcium|iron|potassium|vitamin|serving|per\s*100|ingredients|allergen|net\s*(wt|weight)|\bmrp\b|batch|best before|expiry|manufactur|fssai|www\.|\.com|%/i;
+
+export interface OcrLine {
+  text: string;
+  height: number;
+}
+
+// Guesses the product name as the largest-printed line that isn't nutrition-table text.
+export function guessProductName(lines: OcrLine[]): string {
+  const cleaned = lines
+    .map((l) => ({ text: l.text.replace(/[^A-Za-z0-9&'’\-\s]/g, ' ').replace(/\s+/g, ' ').trim(), height: l.height }))
+    .filter((l) => {
+      const letters = (l.text.match(/[A-Za-z]/g) || []).length;
+      return letters >= 3 && letters / l.text.replace(/\s/g, '').length > 0.7 && !NON_NAME.test(l.text);
+    });
+  if (cleaned.length === 0) return '';
+
+  const idx = cleaned.reduce((best, l, i) => (l.height > cleaned[best].height ? i : best), 0);
+  const parts = [cleaned[idx].text];
+  // Names often wrap onto a second line of similar size.
+  const next = cleaned[idx + 1];
+  if (next && next.height >= cleaned[idx].height * 0.8) parts.push(next.text);
+
+  return parts
+    .join(' ')
+    .split(' ')
+    .map((w) => (w === w.toUpperCase() || w === w.toLowerCase() ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : w))
+    .join(' ');
+}
+
 // Reads the first (usually "per serving" or first-column) values from nutrition label text.
 export function parseNutritionLabel(text: string): ParsedLabel {
   const out: ParsedLabel = { macros: {}, micros: {} };
@@ -51,19 +104,23 @@ export function parseNutritionLabel(text: string): ParsedLabel {
   ): { value: number; unit: string; line: string } | null => {
     for (const line of lines) {
       const m = include.exec(line);
-      if (!m || (exclude && exclude.test(line))) continue;
-      const v = valueAfter(line, m.index + m[0].length);
+      if (!m) continue;
+      if (exclude && exclude.test(line.slice(Math.max(0, m.index - 12), m.index + m[0].length))) continue;
+      const v = valueForLabel(line, m.index, m.index + m[0].length);
       if (v && Number.isFinite(v.value)) return { ...v, line };
     }
     return null;
   };
 
-  const energy = find(/energy|calories/i);
-  if (energy) {
-    const kcal = /(\d+(?:[.,]\d+)?)\s*kcal/i.exec(energy.line);
-    if (kcal) out.macros.calories = toNumber(kcal[1]);
-    else if (energy.unit === 'kj') out.macros.calories = round2(energy.value / 4.184);
-    else out.macros.calories = energy.value;
+  // Unit-tagged calories anywhere ("282 kCal") win over label-based lookups.
+  const kcal = /(\d+(?:[.,]\d+)?)\s*k?cal(?![a-z])/i.exec(text);
+  if (kcal) {
+    out.macros.calories = toNumber(kcal[1]);
+  } else {
+    const energy = find(/energy|calories/i);
+    if (energy) {
+      out.macros.calories = energy.unit === 'kj' ? round2(energy.value / 4.184) : energy.value;
+    }
   }
 
   const protein = find(/protein/i);
