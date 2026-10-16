@@ -13,6 +13,7 @@ interface WorkoutLoggerProps {
 export const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ workoutNames, userName, onLogWorkout }) => {
   const [name, setName] = useState('');
   const [calories, setCalories] = useState('');
+  const [timestamp, setTimestamp] = useState(getLocalDateTime());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +28,7 @@ export const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ workoutNames, user
     const ok = await onLogWorkout({
       name: name.trim(),
       caloriesBurnt: kcal,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date(timestamp).toISOString(),
       user: userName || 'Pritam Mallick',
     });
     setIsSubmitting(false);
@@ -41,6 +42,13 @@ export const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ workoutNames, user
       setError('Could not save the workout. Please try again.');
     }
   };
+
+  function getLocalDateTime(): string {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    const localDateTime = now.toISOString().slice(0, 16);
+    return localDateTime;
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -83,6 +91,17 @@ export const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ workoutNames, user
             value={calories}
             onChange={(e) => setCalories(e.target.value)}
             required
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+          />
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-white block mb-1">Timestamp</label>
+          <input
+            type="datetime-local"
+            value={timestamp}
+            onChange={(e) => setTimestamp(e.target.value)}
+            required
+            max={getLocalDateTime()}
             className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
           />
         </div>

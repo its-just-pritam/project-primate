@@ -23,6 +23,7 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
   const [portion, setPortion] = useState<number>(1);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
+  const [timestamp, setTimestamp] = useState(getLocalDateTime());
 
   const selectedRecipe = recipes.find((r) => r.id === selectedRecipeId);
 
@@ -36,6 +37,13 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
   const totalProtein = Math.round(proteinPerUnit * portion * 10) / 10;
   const totalCarbs = Math.round(carbsPerUnit * portion * 10) / 10;
   const totalFats = Math.round(fatsPerUnit * portion * 10) / 10;
+
+  function getLocalDateTime(): string {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    const localDateTime = now.toISOString().slice(0, 16);
+    return localDateTime;
+  }
 
   const handleAdjustPortion = (delta: number) => {
     setPortion((prev) => Math.max(0.25, Math.round((prev + delta) * 100) / 100));
@@ -60,7 +68,7 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
       protein: totalProtein,
       carbs: totalCarbs,
       fats: totalFats,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date(timestamp).toISOString(),
       user: userName || 'Pritam Mallick',
     };
 
@@ -200,6 +208,18 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
                     {val}x
                   </button>
                 ))}
+              </div>
+
+              <div className="flex items-center justify-center gap-4 pt-3">
+                <label className="text-xs font-semibold text-slate-300">Timestamp</label>
+                <input
+                  type="datetime-local"
+                  value={timestamp}
+                  onChange={(e) => setTimestamp(e.target.value)}
+                  required
+                  max={getLocalDateTime()}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                />
               </div>
             </div>
 
