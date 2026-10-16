@@ -45,7 +45,9 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
+    // `dish` is the new (desired) name; `originalDish` is the current name used to locate rows.
     const dish = String(body.dish || '').trim();
+    const originalDish = String(body.originalDish || dish).trim();
     const items = (Array.isArray(body.items) ? body.items : [])
       .map((i: any) => ({
         ingredient: String(i?.ingredient || '').trim(),
@@ -60,7 +62,7 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    const result = await updateRecipe(dish, items);
+    const result = await updateRecipe(originalDish, items, dish !== originalDish ? dish : undefined);
     return NextResponse.json({ success: true, isLive: result.isLive });
   } catch (error: any) {
     return NextResponse.json(

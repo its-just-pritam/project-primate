@@ -545,12 +545,15 @@ export async function updatePackaged(p: {
 
 export async function updateRecipe(
   dish: string,
-  items: { ingredient: string; quantity: number }[]
+  items: { ingredient: string; quantity: number }[],
+  newDish?: string
 ): Promise<{ success: boolean; isLive: boolean }> {
   const sheets = getGoogleSheetsClient();
   if (!sheets) {
     return { success: true, isLive: false };
   }
+
+  const targetName = (newDish ?? dish).trim() || dish;
 
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
@@ -563,7 +566,8 @@ export async function updateRecipe(
   }
 
   // Replace the dish's rows in place, keeping every other recipe untouched.
-  const newRows = items.map((i) => [dish, i.ingredient, i.quantity]);
+  // Use targetName so a rename is applied to every row of the dish.
+  const newRows = items.map((i) => [targetName, i.ingredient, i.quantity]);
   const result: any[][] = [];
   rows.forEach((r, idx) => {
     if (String(r[0] || '').trim() === dish) {

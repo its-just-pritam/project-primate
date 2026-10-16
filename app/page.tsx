@@ -337,6 +337,7 @@ export default function Home() {
   };
 
   const handleUpdateRecipe = async (
+    originalDish: string,
     dish: string,
     items: { ingredient: string; quantity: number }[]
   ): Promise<boolean> => {
@@ -344,7 +345,7 @@ export default function Home() {
       const res = await fetch('/api/recipes', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dish, items }),
+        body: JSON.stringify({ originalDish, dish, items }),
       });
       if (!res.ok) throw new Error('Failed to update recipe');
       await loadData();

@@ -14,7 +14,7 @@ interface RecipeManagerProps {
   onAddPackaged: (p: PackagedInput) => Promise<boolean>;
   onUpdatePackaged: (p: PackagedInput) => Promise<boolean>;
   onAddRecipe: (dish: string, items: { ingredient: string; quantity: number }[]) => Promise<boolean>;
-  onUpdateRecipe: (dish: string, items: { ingredient: string; quantity: number }[]) => Promise<boolean>;
+  onUpdateRecipe: (originalDish: string, newDish: string, items: { ingredient: string; quantity: number }[]) => Promise<boolean>;
 }
 
 export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged = [], ingredientNames, ingredientUnits = {}, onAddPackaged, onUpdatePackaged, onAddRecipe, onUpdateRecipe }) => {
@@ -44,12 +44,12 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
 
     setIsSubmitting(true);
     const ok = editingName
-      ? await onUpdateRecipe(editingName, cleaned)
+      ? await onUpdateRecipe(editingName, name.trim(), cleaned)
       : await onAddRecipe(name.trim(), cleaned);
     setIsSubmitting(false);
 
     if (ok) {
-      setSuccessToast(editingName ? `Updated "${editingName}"!` : `Saved "${name.trim()}" to recipes!`);
+      setSuccessToast(editingName ? `Updated "${name.trim()}"!` : `Saved "${name.trim()}" to recipes!`);
       setTimeout(() => setSuccessToast(null), 3000);
       setName('');
       setItems([{ ingredient: '', quantity: '' }]);
@@ -183,8 +183,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                disabled={!!editingName}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 disabled:opacity-60"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
               />
             </div>
 
