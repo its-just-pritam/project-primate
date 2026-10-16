@@ -111,14 +111,12 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 text-xs font-semibold active:scale-95 transition-all"
             >
               <Package className="w-4 h-4" />
-              <span>Packaged</span>
             </button>
             <button
               onClick={() => setShowAddForm(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md active:scale-95 transition-all"
             >
               <Plus className="w-4 h-4" />
-              <span>Add</span>
             </button>
           </div>
         )}
@@ -284,7 +282,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
                 <h4 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
                   {r.name}
                   {r.isPackaged && (
-                    <span className="shrink-0 px-1 py-px rounded border border-amber-500/30 bg-amber-500/10 text-amber-400 text-[8px] font-semibold uppercase leading-none tracking-wide">
+                    <span className="shrink-0 px-1 py-px rounded border border-amber-500/30 bg-amber-500/10 text-amber-400 text-[10px] font-semibold uppercase leading-none tracking-wide">
                       Pkg
                     </span>
                   )}

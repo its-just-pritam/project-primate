@@ -132,7 +132,7 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
                         >
                           {r.name}
                           {r.isPackaged && (
-                            <span className="shrink-0 px-1 py-px rounded border border-amber-500/30 bg-amber-500/10 text-amber-400 text-[8px] font-semibold uppercase leading-none tracking-wide">
+                            <span className="shrink-0 px-1 py-px rounded border border-amber-500/30 bg-amber-500/10 text-amber-400 text-[10px] font-semibold uppercase leading-none tracking-wide">
                               Pkg
                             </span>
                           )}
