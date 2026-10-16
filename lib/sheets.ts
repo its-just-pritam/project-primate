@@ -488,14 +488,72 @@ export async function appendPackaged(p: {
   return { success: true, isLive: true };
 }
 
+export async function updatePackaged(p: {
+  dish: string;
+  quantity: number;
+  user: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  micros: Micronutrients;
+}): Promise<{ success: boolean; isLive: boolean }> {
+  const sheets = getGoogleSheetsClient();
+  if (!sheets) {
+    return { success: true, isLive: false };
+  }
+
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: 'Packaged!A2:N',
+  });
+  const rows: any[][] = res.data.values || [];
+  const rowIdx = rows.findIndex((r) => String(r[0] || '').trim() === p.dish);
+  if (rowIdx === -1) {
+    throw new Error(`Packaged item "${p.dish}" was not found`);
+  }
+
+  // Sheet rows are 1-indexed; data starts at row 2, so sheet row = rowIdx + 2
+  const sheetRow = rowIdx + 2;
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `Packaged!A${sheetRow}:N${sheetRow}`,
+    valueInputOption: 'USER_ENTERED',
+    requestBody: {
+      values: [
+        [
+          p.dish,
+          p.quantity,
+          p.user,
+          p.calories,
+          p.protein,
+          p.carbs,
+          p.fats,
+          p.micros.calcium,
+          p.micros.iron,
+          p.micros.potassium,
+          p.micros.sodium,
+          p.micros.vitaminC,
+          p.micros.vitaminB12,
+          p.micros.vitaminD,
+        ],
+      ],
+    },
+  });
+  return { success: true, isLive: true };
+}
+
 export async function updateRecipe(
   dish: string,
-  items: { ingredient: string; quantity: number }[]
+  items: { ingredient: string; quantity: number }[],
+  newDish?: string
 ): Promise<{ success: boolean; isLive: boolean }> {
   const sheets = getGoogleSheetsClient();
   if (!sheets) {
     return { success: true, isLive: false };
   }
+
+  const targetName = (newDish ?? dish).trim() || dish;
 
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
@@ -508,7 +566,8 @@ export async function updateRecipe(
   }
 
   // Replace the dish's rows in place, keeping every other recipe untouched.
-  const newRows = items.map((i) => [dish, i.ingredient, i.quantity]);
+  // Use targetName so a rename is applied to every row of the dish.
+  const newRows = items.map((i) => [targetName, i.ingredient, i.quantity]);
   const result: any[][] = [];
   rows.forEach((r, idx) => {
     if (String(r[0] || '').trim() === dish) {

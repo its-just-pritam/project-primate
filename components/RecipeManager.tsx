@@ -12,12 +12,14 @@ interface RecipeManagerProps {
   ingredientNames: string[];
   ingredientUnits?: Record<string, { baseQuantity: number; unit: string }>;
   onAddPackaged: (p: PackagedInput) => Promise<boolean>;
+  onUpdatePackaged: (p: PackagedInput) => Promise<boolean>;
   onAddRecipe: (dish: string, items: { ingredient: string; quantity: number }[]) => Promise<boolean>;
-  onUpdateRecipe: (dish: string, items: { ingredient: string; quantity: number }[]) => Promise<boolean>;
+  onUpdateRecipe: (originalDish: string, newDish: string, items: { ingredient: string; quantity: number }[]) => Promise<boolean>;
 }
 
-export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged = [], ingredientNames, ingredientUnits = {}, onAddPackaged, onAddRecipe, onUpdateRecipe }) => {
+export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged = [], ingredientNames, ingredientUnits = {}, onAddPackaged, onUpdatePackaged, onAddRecipe, onUpdateRecipe }) => {
   const [showPackagedForm, setShowPackagedForm] = useState(false);
+  const [editingPackaged, setEditingPackaged] = useState<Recipe | null>(null);
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingName, setEditingName] = useState<string | null>(null);
@@ -42,12 +44,12 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
 
     setIsSubmitting(true);
     const ok = editingName
-      ? await onUpdateRecipe(editingName, cleaned)
+      ? await onUpdateRecipe(editingName, name.trim(), cleaned)
       : await onAddRecipe(name.trim(), cleaned);
     setIsSubmitting(false);
 
     if (ok) {
-      setSuccessToast(editingName ? `Updated "${editingName}"!` : `Saved "${name.trim()}" to recipes!`);
+      setSuccessToast(editingName ? `Updated "${name.trim()}"!` : `Saved "${name.trim()}" to recipes!`);
       setTimeout(() => setSuccessToast(null), 3000);
       setName('');
       setItems([{ ingredient: '', quantity: '' }]);
@@ -74,6 +76,13 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
     setShowAddForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  const startEditPackaged = (r: Recipe) => {
+    setEditingPackaged(r);
+    setShowPackagedForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="space-y-4">
       {/* Toast Notification */}
@@ -102,14 +111,12 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 text-xs font-semibold active:scale-95 transition-all"
             >
               <Package className="w-4 h-4" />
-              <span>Packaged</span>
             </button>
             <button
               onClick={() => setShowAddForm(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md active:scale-95 transition-all"
             >
               <Plus className="w-4 h-4" />
-              <span>Add</span>
             </button>
           </div>
         )}
@@ -117,12 +124,37 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
 
       {showPackagedForm && (
         <PackagedForm
-          onCancel={() => setShowPackagedForm(false)}
+          editingName={editingPackaged?.name}
+          initialValues={
+            editingPackaged
+              ? {
+                  dish: editingPackaged.name,
+                  // The stored per-serving values are scaled back; the form saves as-is for 1 serving
+                  calories: editingPackaged.calories,
+                  protein: editingPackaged.protein,
+                  carbs: editingPackaged.carbs,
+                  fats: editingPackaged.fats,
+                  quantity: 1,
+                  micros: editingPackaged.micros,
+                }
+              : undefined
+          }
+          onCancel={() => {
+            setShowPackagedForm(false);
+            setEditingPackaged(null);
+          }}
           onSubmit={async (p) => {
-            const ok = await onAddPackaged(p);
+            const ok = editingPackaged
+              ? await onUpdatePackaged(p)
+              : await onAddPackaged(p);
             if (ok) {
               setShowPackagedForm(false);
-              setSuccessToast(`Saved "${p.dish}" as packaged food!`);
+              setEditingPackaged(null);
+              setSuccessToast(
+                editingPackaged
+                  ? `Updated "${p.dish}"!`
+                  : `Saved "${p.dish}" as packaged food!`
+              );
               setTimeout(() => setSuccessToast(null), 3000);
             }
             return ok;
@@ -149,8 +181,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                disabled={!!editingName}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 disabled:opacity-60"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
               />
             </div>
 
@@ -251,7 +282,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
                 <h4 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
                   {r.name}
                   {r.isPackaged && (
-                    <span className="shrink-0 px-1 py-px rounded border border-amber-500/30 bg-amber-500/10 text-amber-400 text-[8px] font-semibold uppercase leading-none tracking-wide">
+                    <span className="shrink-0 px-1 py-px rounded border border-amber-500/30 bg-amber-500/10 text-amber-400 text-[10px] font-semibold uppercase leading-none tracking-wide">
                       Pkg
                     </span>
                   )}
@@ -273,6 +304,19 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
                     startEdit(r);
                   }}
                   className="h-7 w-7 -mr-1 flex items-center justify-center rounded-lg text-slate-500 hover:text-emerald-400 hover:bg-slate-800"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+                )}
+                {r.isPackaged && (
+                <button
+                  type="button"
+                  aria-label={`Edit ${r.name}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    startEditPackaged(r);
+                  }}
+                  className="h-7 w-7 -mr-1 flex items-center justify-center rounded-lg text-slate-500 hover:text-amber-400 hover:bg-slate-800"
                 >
                   <Pencil className="w-3.5 h-3.5" />
                 </button>

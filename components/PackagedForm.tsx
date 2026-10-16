@@ -17,6 +17,10 @@ export interface PackagedInput {
 interface PackagedFormProps {
   onSubmit: (p: PackagedInput) => Promise<boolean>;
   onCancel: () => void;
+  /** When set, the form operates in edit mode (dish name is locked). */
+  editingName?: string;
+  /** Pre-populated values when editing an existing item. */
+  initialValues?: Partial<PackagedInput>;
 }
 
 const inputCls =
@@ -29,11 +33,27 @@ const MACROS = [
   { key: 'fats', label: 'Fat (g)' },
 ] as const;
 
-export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel }) => {
-  const [name, setName] = useState('');
-  const [quantity, setQuantity] = useState('1');
-  const [macros, setMacros] = useState<Record<string, string>>({});
-  const [micros, setMicros] = useState<Record<string, string>>({});
+export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel, editingName, initialValues }) => {
+  const [name, setName] = useState(initialValues?.dish ?? '');
+  const [quantity, setQuantity] = useState(initialValues?.quantity != null ? String(initialValues.quantity) : '1');
+  const [macros, setMacros] = useState<Record<string, string>>(() => {
+    if (!initialValues) return {};
+    const { calories, protein, carbs, fats } = initialValues;
+    return {
+      ...(calories != null ? { calories: String(calories) } : {}),
+      ...(protein != null ? { protein: String(protein) } : {}),
+      ...(carbs != null ? { carbs: String(carbs) } : {}),
+      ...(fats != null ? { fats: String(fats) } : {}),
+    };
+  });
+  const [micros, setMicros] = useState<Record<string, string>>(() => {
+    if (!initialValues?.micros) return {};
+    return Object.fromEntries(
+      Object.entries(initialValues.micros)
+        .filter(([, v]) => v != null)
+        .map(([k, v]) => [k, String(v)])
+    );
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [scanState, setScanState] = useState<{ busy: boolean; msg: string | null }>({
     busy: false,
@@ -114,7 +134,7 @@ export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel }
       className="bg-slate-900 border border-amber-500/30 rounded-2xl p-4 space-y-3.5 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200"
     >
       <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
-        <Package className="w-4 h-4 text-amber-400" /> New Packaged Food
+        <Package className="w-4 h-4 text-amber-400" /> {editingName ? 'Edit Packaged Food' : 'New Packaged Food'}
       </h3>
 
       <div className="space-y-1.5">
@@ -169,7 +189,8 @@ export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel }
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
-            className={inputCls}
+            disabled={!!editingName}
+            className={`${inputCls} disabled:opacity-60`}
           />
         </div>
         <div>
@@ -242,7 +263,7 @@ export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel }
           disabled={isSubmitting}
           className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs disabled:opacity-50"
         >
-          {isSubmitting ? 'Saving...' : 'Save Packaged Food'}
+          {isSubmitting ? 'Saving...' : editingName ? 'Update Packaged Food' : 'Save Packaged Food'}
         </button>
       </div>
     </form>
