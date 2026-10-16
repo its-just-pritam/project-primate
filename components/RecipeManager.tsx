@@ -12,12 +12,14 @@ interface RecipeManagerProps {
   ingredientNames: string[];
   ingredientUnits?: Record<string, { baseQuantity: number; unit: string }>;
   onAddPackaged: (p: PackagedInput) => Promise<boolean>;
+  onUpdatePackaged: (p: PackagedInput) => Promise<boolean>;
   onAddRecipe: (dish: string, items: { ingredient: string; quantity: number }[]) => Promise<boolean>;
   onUpdateRecipe: (dish: string, items: { ingredient: string; quantity: number }[]) => Promise<boolean>;
 }
 
-export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged = [], ingredientNames, ingredientUnits = {}, onAddPackaged, onAddRecipe, onUpdateRecipe }) => {
+export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged = [], ingredientNames, ingredientUnits = {}, onAddPackaged, onUpdatePackaged, onAddRecipe, onUpdateRecipe }) => {
   const [showPackagedForm, setShowPackagedForm] = useState(false);
+  const [editingPackaged, setEditingPackaged] = useState<Recipe | null>(null);
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingName, setEditingName] = useState<string | null>(null);
@@ -74,6 +76,13 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
     setShowAddForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  const startEditPackaged = (r: Recipe) => {
+    setEditingPackaged(r);
+    setShowPackagedForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="space-y-4">
       {/* Toast Notification */}
@@ -117,12 +126,37 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
 
       {showPackagedForm && (
         <PackagedForm
-          onCancel={() => setShowPackagedForm(false)}
+          editingName={editingPackaged?.name}
+          initialValues={
+            editingPackaged
+              ? {
+                  dish: editingPackaged.name,
+                  // The stored per-serving values are scaled back; the form saves as-is for 1 serving
+                  calories: editingPackaged.calories,
+                  protein: editingPackaged.protein,
+                  carbs: editingPackaged.carbs,
+                  fats: editingPackaged.fats,
+                  quantity: 1,
+                  micros: editingPackaged.micros,
+                }
+              : undefined
+          }
+          onCancel={() => {
+            setShowPackagedForm(false);
+            setEditingPackaged(null);
+          }}
           onSubmit={async (p) => {
-            const ok = await onAddPackaged(p);
+            const ok = editingPackaged
+              ? await onUpdatePackaged(p)
+              : await onAddPackaged(p);
             if (ok) {
               setShowPackagedForm(false);
-              setSuccessToast(`Saved "${p.dish}" as packaged food!`);
+              setEditingPackaged(null);
+              setSuccessToast(
+                editingPackaged
+                  ? `Updated "${p.dish}"!`
+                  : `Saved "${p.dish}" as packaged food!`
+              );
               setTimeout(() => setSuccessToast(null), 3000);
             }
             return ok;
@@ -273,6 +307,19 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
                     startEdit(r);
                   }}
                   className="h-7 w-7 -mr-1 flex items-center justify-center rounded-lg text-slate-500 hover:text-emerald-400 hover:bg-slate-800"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
+                )}
+                {r.isPackaged && (
+                <button
+                  type="button"
+                  aria-label={`Edit ${r.name}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    startEditPackaged(r);
+                  }}
+                  className="h-7 w-7 -mr-1 flex items-center justify-center rounded-lg text-slate-500 hover:text-amber-400 hover:bg-slate-800"
                 >
                   <Pencil className="w-3.5 h-3.5" />
                 </button>

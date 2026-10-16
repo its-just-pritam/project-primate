@@ -311,6 +311,22 @@ export default function Home() {
     }
   };
 
+  const handleUpdatePackaged = async (p: PackagedInput): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/packaged', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...p, user: plan?.userName }),
+      });
+      if (!res.ok) throw new Error('Failed to update packaged food');
+      await loadData();
+      return true;
+    } catch (err) {
+      console.error(err);
+      return false;
+    }
+  };
+
   const handleAvatarChange = (next: string) => {
     setAvatar(next);
     fetch('/api/profile', {
@@ -532,7 +548,7 @@ export default function Home() {
             {initialLoading ? (
               <ListSkeleton label="Loading recipes" rows={3} />
             ) : (
-              <RecipeManager recipes={recipes} packaged={packaged} ingredientNames={ingredientNames} ingredientUnits={ingredientUnits} onAddRecipe={handleAddRecipe} onAddPackaged={handleAddPackaged} onUpdateRecipe={handleUpdateRecipe} />
+              <RecipeManager recipes={recipes} packaged={packaged} ingredientNames={ingredientNames} ingredientUnits={ingredientUnits} onAddRecipe={handleAddRecipe} onAddPackaged={handleAddPackaged} onUpdateRecipe={handleUpdateRecipe} onUpdatePackaged={handleUpdatePackaged} />
             )}
           </div>
         )}
