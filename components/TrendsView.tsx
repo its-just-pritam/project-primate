@@ -151,7 +151,8 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
       const dayFraction = isToday
         ? (today.getHours() * 3600 + today.getMinutes() * 60 + today.getSeconds()) / 86400
         : 1;
-      day.resting = Math.round(restingCalories * dayFraction);
+      const restingBurn = restingCalories * dayFraction;
+      day.resting = Math.round(restingBurn);
       day.workout = workoutCaloriesByDate[day.date] || 0;
       day.burnt = day.resting + day.workout;
       day.deficit = day.burnt - day.calories;
@@ -163,7 +164,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
           dietaryFatG: day.fats,
           calorieIntake: day.calories,
           workoutCalories: day.workout ?? 0,
-          restingCalories,
+          restingCalories: restingBurn,
         };
         day.fatChange = calculateDailyFatMassChangeGrams(compositionInputs);
         day.muscleChange = calculateDailyWetMuscleMassChangeGrams(compositionInputs);
