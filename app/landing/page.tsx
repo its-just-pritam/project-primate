@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { Activity, ArrowRight, Check, Cookie, Dumbbell, Leaf, Scale, Target, TrendingUp, Utensils } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Primate Fuel | Eat well, understand your nutrition',
-  description: 'Log meals, follow your nutrition plan, and explore calorie, macro, and body-composition trends with Primate Fuel.',
+  title: 'Primate Fuel | Nutrition, energy, and body composition',
+  description: 'Track meals and macros, see how resting energy, TEF, and workouts shape daily balance, and follow estimated fat and muscle changes.',
 };
 
 const features = [
@@ -19,14 +19,14 @@ const features = [
   {
     icon: Scale,
     title: 'Your active plan',
-    body: 'Follow a weight goal and review calorie and body-composition estimates in one place.',
-    details: ['See total body fat change across your plan', 'Track muscle mass change beside weight progress', 'Review calories, deficit, and projected target date'],
+    body: 'Follow a weight goal with daily energy balance and estimated body-composition changes in one place.',
+    details: ['See estimated fat and muscle changes separately', 'See how protein availability, baseline needs, workouts, and a calorie deficit inform muscle estimates', 'Compare intake with resting, workout, and digestion energy'],
     color: 'text-violet-300 bg-violet-400/10 border-violet-300/15',
   },
   {
     icon: TrendingUp,
     title: 'Follow your trends',
-    body: 'Review daily charts across nutrition, energy, and body composition.',
+    body: 'Review daily charts across nutrition, energy, and estimated body-composition change.',
     details: ['Compare intake with resting, workout, and TEF burn', 'Track deficit and surplus beside protein intake', 'Start with seven days, then scroll through your history'],
     color: 'text-sky-300 bg-sky-400/10 border-sky-300/15',
   },
@@ -37,6 +37,7 @@ const trendPreviews = [
     kind: 'calories' as const,
     title: 'Calories consumed vs burnt',
     description: 'Compare food intake with resting, TEF, and workout burn.',
+    method: 'Daily balance = intake − resting energy − digestion (TEF) − workouts',
     bars: [
       { consumed: 58, resting: 53, tef: 8, workout: 13 }, { consumed: 71, resting: 53, tef: 9, workout: 20 },
       { consumed: 62, resting: 53, tef: 8, workout: 8 }, { consumed: 82, resting: 53, tef: 10, workout: 18 },
@@ -49,6 +50,7 @@ const trendPreviews = [
     kind: 'deficit' as const,
     title: 'Daily calorie deficit',
     description: 'Positive values show a deficit; negative values show a surplus.',
+    method: 'Deficit = resting energy + workouts + TEF − intake',
     bars: [62, -34, 78, 28, -48, 54, 84],
     legend: [{ label: 'Deficit', color: '#ef4444' }, { label: 'Surplus', color: '#10b981' }],
   },
@@ -56,6 +58,7 @@ const trendPreviews = [
     kind: 'protein' as const,
     title: 'Protein intake',
     description: 'Compare daily protein intake with your target.',
+    method: 'Daily intake shown against your protein target',
     bars: [38, 68, 56, 82, 62, 74, 90],
     target: 65,
     legend: [{ label: 'Protein', color: '#10b981' }, { label: 'Target', color: '#10b981', line: true }],
@@ -63,7 +66,8 @@ const trendPreviews = [
   {
     kind: 'composition' as const,
     title: 'Fat & muscle change',
-    description: 'Follow modelled daily changes for fat and muscle mass.',
+    description: 'Follow estimated daily changes for fat and muscle mass.',
+    method: 'Fat: energy balance ÷ 7.7 kcal/g · Muscle: net protein after baseline, exercise, and deficit costs',
     fat: '0,25 116,34 233,29 350,42 466,36 583,49 700,44',
     muscle: '0,55 116,48 233,52 350,45 466,50 583,40 700,44',
     legend: [{ label: 'Fat', color: '#fb7185' }, { label: 'Muscle', color: '#38bdf8' }],
@@ -109,20 +113,21 @@ export default function LandingPage() {
               <span className="block bg-gradient-to-r from-emerald-300 via-teal-200 to-cyan-300 bg-clip-text pb-[0.12em] text-transparent">Feel your progress.</span>
             </h1>
             <p className="mt-6 max-w-xl text-base leading-7 text-slate-400 sm:text-lg sm:leading-8 lg:mt-8">
-              Log meals, calories, and macros. Follow your plan and see how your nutrition and activity change over time.
+              Log meals, calories, and macros. See how your intake compares with resting needs, workouts, and the energy used to digest food (TEF). Then follow estimated fat and muscle changes—not just the scale.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link href="/signup" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-400 px-6 text-sm font-extrabold text-slate-950 shadow-xl shadow-emerald-500/15 transition hover:-translate-y-0.5 hover:bg-emerald-300">
-                Create your account <ArrowRight className="h-4 w-4" />
+                Start tracking your nutrition <ArrowRight className="h-4 w-4" />
               </Link>
-              <a href="#features" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900/50 px-6 text-sm font-semibold text-slate-200 transition hover:border-slate-600 hover:bg-slate-900">
-                Explore the features
+              <a href="#trends-heading" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900/50 px-6 text-sm font-semibold text-slate-200 transition hover:border-slate-600 hover:bg-slate-900">
+                Explore the trends
               </a>
             </div>
             <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-slate-500">
               <span className="inline-flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-400" /> Meals and macros</span>
-              <span className="inline-flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-400" /> Plan and trend tracking</span>
+              <span className="inline-flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-emerald-400" /> Energy balance and body-composition estimates</span>
             </div>
+            <p className="mt-4 text-xs leading-5 text-slate-500">For data-minded eaters: clear numbers, flexible food, and no guilt.</p>
           </div>
 
           <div className="relative mx-auto w-full max-w-[560px] lg:ml-auto">
@@ -135,10 +140,10 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <p className="text-sm font-bold text-white">Nutrition at a glance</p>
-                    <p className="mt-0.5 text-[11px] text-slate-500">Food log + active plan</p>
+                    <p className="mt-0.5 text-[11px] text-slate-500">Your food log and active plan</p>
                   </div>
                 </div>
-                <span className="rounded-full border border-emerald-300/15 bg-emerald-300/[0.08] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-300">Sample</span>
+                <span className="rounded-full border border-emerald-300/15 bg-emerald-300/[0.08] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-300">Example</span>
               </div>
 
               <div className="mt-6 grid grid-cols-2 gap-3">
@@ -181,15 +186,15 @@ export default function LandingPage() {
                 <div className="rounded-2xl border border-violet-300/15 bg-violet-400/[0.06] p-4">
                   <p className="text-[10px] font-semibold text-slate-400">BODY FAT CHANGE</p>
                   <p className="mt-2 text-xl font-black tracking-tight text-violet-200">−0.6 <span className="text-xs font-semibold text-violet-200/60">kg</span></p>
-                  <p className="mt-1 text-[10px] text-slate-500">Modelled · active plan</p>
+                  <p className="mt-1 text-[10px] text-slate-500">Calculated from your plan</p>
                 </div>
                 <div className="rounded-2xl border border-sky-300/15 bg-sky-400/[0.06] p-4">
                   <p className="text-[10px] font-semibold text-slate-400">MUSCLE MASS CHANGE</p>
                   <p className="mt-2 text-xl font-black tracking-tight text-sky-200">+0.2 <span className="text-xs font-semibold text-sky-200/60">kg</span></p>
-                  <p className="mt-1 text-[10px] text-slate-500">Modelled · active plan</p>
+                  <p className="mt-1 text-[10px] text-slate-500">Calculated from your plan</p>
                 </div>
               </div>
-              <p className="mt-4 text-center text-[10px] text-slate-600">Illustrative preview · Body-composition changes are modelled</p>
+              <p className="mt-4 text-center text-[10px] text-slate-600">Example figures. Your dashboard uses your own food log and active plan.</p>
             </div>
           </div>
         </section>
@@ -237,7 +242,7 @@ export default function LandingPage() {
               <article className={cardClass}>
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-violet-300/15 bg-violet-400/10 text-violet-300"><Dumbbell className="h-5 w-5" /></div>
                 <h3 className="mt-5 text-lg font-bold text-white">Track more than weight</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-400">Follow modelled fat-mass and muscle-mass changes separately, alongside scale weight, to see what your plan estimates is changing.</p>
+                <p className="mt-2 text-sm leading-6 text-slate-400">Follow estimated fat-mass and muscle-mass changes separately, alongside scale weight, to understand how your plan is progressing.</p>
               </article>
               <article className={cardClass}>
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-amber-300/15 bg-amber-400/10 text-amber-300"><Cookie className="h-5 w-5" /></div>
@@ -330,10 +335,11 @@ export default function LandingPage() {
                     )}
                   </div>
                   <div aria-hidden="true" className="mt-2 flex justify-between px-1 text-[10px] font-medium text-slate-600"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+                  <p className="mt-3 border-t border-white/[0.05] pt-3 text-[10px] leading-4 text-slate-500">{preview.method}</p>
                 </article>
               ))}
             </div>
-            <p className="mt-4 text-center text-[10px] text-slate-600">Illustrative chart previews · Your trends use your own logged data and active plan.</p>
+            <p className="mt-4 text-center text-[10px] text-slate-600">Chart data shown as an example; your trends use your own logs and plan.</p>
           </div>
         </section>
 
@@ -342,15 +348,15 @@ export default function LandingPage() {
             <article id="about" className={`${cardClass} scroll-mt-8 sm:p-8`}>
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">About us</p>
               <h2 className="mt-3 text-2xl font-black tracking-tight text-white">About Primate Fuel</h2>
-              <p className="mt-4 text-sm leading-7 text-slate-400">Primate Fuel helps you track what you eat and see how your habits change over time. We’re building it for people who want a practical approach to nutrition, and we’d love you to join us and share ideas for making it better.</p>
+              <p className="mt-4 text-sm leading-7 text-slate-400">Created by Pritam Mallick, Primate Fuel brings meal logs, daily energy, and body-composition trends into one clear view. It’s for people who want to understand their habits without turning food into a test. If that sounds like you, come join us and help shape what comes next.</p>
               <Link href="/signup" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-emerald-300 transition hover:text-emerald-200">Join Primate Fuel <ArrowRight className="h-4 w-4" /></Link>
             </article>
             <article id="contact" className={`${cardClass} scroll-mt-8 sm:p-8`}>
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Contact</p>
               <h2 className="mt-3 text-2xl font-black tracking-tight text-white">Get in touch.</h2>
-              <p className="mt-4 text-sm leading-7 text-slate-400">For questions or feedback, contact the developer.</p>
+              <p className="mt-4 text-sm leading-7 text-slate-400">Questions, feedback, or ideas? We’d be glad to hear from you.</p>
               <div className="mt-6 border-t border-white/[0.06] pt-5">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Developer</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Created by</p>
                 <p className="mt-1 text-sm font-bold text-white">Pritam Mallick</p>
                 <div className="mt-3 flex flex-col items-start gap-2">
                   <a href="mailto:mallickpritam1407@gmail.com" className="text-sm font-semibold text-emerald-300 transition hover:text-emerald-200">mallickpritam1407@gmail.com</a>
@@ -372,8 +378,8 @@ export default function LandingPage() {
             <div className="relative mx-auto max-w-2xl">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-200">Get started</p>
               <h2 className="mt-4 text-3xl font-black tracking-tight text-white sm:text-4xl">Start with your next meal.</h2>
-              <p className="mt-4 text-sm leading-6 text-slate-300 sm:text-base">Create an account to log meals and follow your trends.</p>
-              <Link href="/signup" className="mt-7 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-300 px-6 text-sm font-extrabold text-slate-950 transition hover:-translate-y-0.5 hover:bg-emerald-200">Get started <ArrowRight className="h-4 w-4" /></Link>
+              <p className="mt-4 text-sm leading-6 text-slate-300 sm:text-base">Track what you eat. Understand what changes.</p>
+              <Link href="/signup" className="mt-7 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-300 px-6 text-sm font-extrabold text-slate-950 transition hover:-translate-y-0.5 hover:bg-emerald-200">Start tracking <ArrowRight className="h-4 w-4" /></Link>
             </div>
           </div>
         </section>
