@@ -921,7 +921,11 @@ export async function updateRecipe(
     await appendRowsForUser(
       sheets,
       'Recipe',
-      result.slice(scopedRows.length),
+      result.slice(scopedRows.length).map(([dishName, ingredient, quantity]) => ({
+        dish: dishName,
+        ingredient,
+        quantity,
+      })),
       userName,
       userEmail
     );
