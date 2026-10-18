@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { PlanAnalytics, PlanInput, PlanSummary, ProfileUpdate } from '@/types/nutrition';
-import { ArrowLeft, ChevronDown, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, ChevronDown, LogOut, Plus, Trash2 } from 'lucide-react';
 import { AVATARS } from '@/lib/avatars';
 
 interface ProfileScreenProps {
@@ -14,6 +14,7 @@ interface ProfileScreenProps {
   onSave: (profile: ProfileUpdate) => Promise<boolean>;
   onAddPlan: (plan: PlanInput) => Promise<boolean>;
   onDeletePlan: (rowNumber: number, comment: string) => Promise<boolean>;
+  onSignOut: () => void;
 }
 
 const inputCls =
@@ -197,6 +198,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   onSave,
   onAddPlan,
   onDeletePlan,
+  onSignOut,
 }) => {
   const [userName, setUserName] = useState(plan?.userName || '');
   const [weight, setWeight] = useState(String(plan?.currentWeight ?? ''));
@@ -486,6 +488,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
           {planError && <p className="text-xs text-red-400">{planError}</p>}
         </section>
+        <button
+          type="button"
+          onClick={onSignOut}
+          className="w-full flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-medium text-slate-300 hover:border-rose-500/50 hover:bg-rose-500/10 hover:text-rose-300 transition-colors"
+        >
+          <LogOut className="h-4 w-4" />
+          Sign out
+        </button>
       </div>
       {deleting && (
         <div
