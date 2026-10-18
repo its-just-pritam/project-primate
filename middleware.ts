@@ -24,9 +24,10 @@ async function validSession(token: string | undefined) {
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
   if (path.startsWith('/_next/') || /\.[a-z0-9]+$/i.test(path)) return NextResponse.next();
-  if (path === '/login' || path === '/signup' || path.startsWith('/api/auth/')) return NextResponse.next();
+  if (path === '/login' || path === '/signup' || path === '/landing' || path.startsWith('/api/auth/')) return NextResponse.next();
   if (await validSession(request.cookies.get(COOKIE)?.value)) return NextResponse.next();
   if (path.startsWith('/api/')) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+  if (path === '/') return NextResponse.rewrite(new URL('/landing', request.url));
   return NextResponse.redirect(new URL('/login', request.url));
 }
 

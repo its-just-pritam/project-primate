@@ -374,7 +374,7 @@ export default function Home() {
         onDeletePlan={(rowNumber, comment) => handlePlanRequest('DELETE', { rowNumber, comment })}
         onSignOut={async () => {
           await fetch('/api/auth/logout', { method: 'POST' });
-          window.location.assign('/login');
+          window.location.assign('/');
         }}
       />
     );
