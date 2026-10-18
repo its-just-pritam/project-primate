@@ -7,7 +7,7 @@ export async function GET() {
   try {
     const session = await getCurrentSession();
     if (!session) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-    const data = await fetchMealLogs(session.name);
+    const data = await fetchMealLogs(session.username);
     return NextResponse.json(data);
   } catch (error: any) {
     return NextResponse.json(
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
       user: session.name,
     };
 
-    const result = await appendMealLog(entry);
+    const result = await appendMealLog(entry, session.username);
     return NextResponse.json({ success: true, entry, isLive: result.isLive });
   } catch (error: any) {
     return NextResponse.json(
@@ -54,7 +54,7 @@ export async function DELETE(req: NextRequest) {
     if (!b.id || !b.dish) {
       return NextResponse.json({ error: 'id and dish are required' }, { status: 400 });
     }
-    const result = await deleteMealLog(String(b.id), String(b.dish), String(b.timestamp || ''), session.name);
+    const result = await deleteMealLog(String(b.id), String(b.dish), String(b.timestamp || ''), session.name, session.username);
     return NextResponse.json({ success: true, isLive: result.isLive });
   } catch (error: any) {
     return NextResponse.json(

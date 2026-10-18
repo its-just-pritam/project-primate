@@ -7,7 +7,7 @@ export async function GET() {
   try {
     const session = await getCurrentSession();
     if (!session) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-    const data = await fetchRecipes(session.name);
+    const data = await fetchRecipes(session.username);
     return NextResponse.json(data);
   } catch (error: any) {
     return NextResponse.json(
@@ -20,6 +20,8 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    const session = await getCurrentSession();
+    if (!session) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     const dish = String(body.dish || '').trim();
     const items = (Array.isArray(body.items) ? body.items : [])
       .map((i: any) => ({
@@ -35,7 +37,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = await appendRecipe(dish, items);
+    const result = await appendRecipe(dish, items, session.name, session.username);
     return NextResponse.json({ success: true, isLive: result.isLive });
   } catch (error: any) {
     return NextResponse.json(
@@ -48,6 +50,8 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
+    const session = await getCurrentSession();
+    if (!session) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     // `dish` is the new (desired) name; `originalDish` is the current name used to locate rows.
     const dish = String(body.dish || '').trim();
     const originalDish = String(body.originalDish || dish).trim();
@@ -65,7 +69,7 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    const result = await updateRecipe(originalDish, items, dish !== originalDish ? dish : undefined);
+    const result = await updateRecipe(originalDish, items, dish !== originalDish ? dish : undefined, session.name, session.username);
     return NextResponse.json({ success: true, isLive: result.isLive });
   } catch (error: any) {
     return NextResponse.json(

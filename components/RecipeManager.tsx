@@ -107,12 +107,18 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
         {!showAddForm && !showPackagedForm && (
           <div className="flex items-center gap-2">
             <button
+              type="button"
+              aria-label="Add packaged food"
+              title="Add packaged food with its nutrition information"
               onClick={() => setShowPackagedForm(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 text-xs font-semibold active:scale-95 transition-all"
             >
               <Package className="w-4 h-4" />
             </button>
             <button
+              type="button"
+              aria-label="Add new recipe"
+              title="Create a new recipe from ingredients"
               onClick={() => setShowAddForm(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md active:scale-95 transition-all"
             >
@@ -177,7 +183,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
               <label className="text-xs font-medium text-slate-300 block mb-1">Dish</label>
               <input
                 type="text"
-                placeholder="e.g. Egg Dosa"
+                placeholder="e.g. your recipe name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
@@ -269,6 +275,16 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
 
       {/* Recipe List Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 items-start">
+        {recipes.length === 0 && packaged.length === 0 && (
+          <div className="md:col-span-2 rounded-2xl border border-slate-800 bg-slate-900/60 px-5 py-8 text-center">
+            <p className="text-sm font-semibold text-slate-100">Let’s add your first favorites</p>
+            <p className="mt-1 text-xs text-slate-400">Build a personal food catalog to make logging meals quicker.</p>
+            <div className="mt-3 space-y-2 text-left text-xs text-slate-400 sm:mx-auto sm:w-fit">
+              <p className="flex items-center gap-2"><Plus className="h-4 w-4 shrink-0 text-emerald-400" /><span><strong className="text-slate-200">New recipe:</strong> combine ingredients into a meal you make.</span></p>
+              <p className="flex items-center gap-2"><Package className="h-4 w-4 shrink-0 text-amber-400" /><span><strong className="text-slate-200">Packaged:</strong> add a ready-made food using its nutrition label.</span></p>
+            </div>
+          </div>
+        )}
         {[...recipes, ...packaged].map((r) => {
           const isOpen = !!expandedIds[r.id];
           return (

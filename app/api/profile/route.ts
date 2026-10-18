@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid profile or plan values' }, { status: 400 });
     }
 
-    const result = await updateProfile(profile);
+    const result = await updateProfile(profile, session.username);
     return NextResponse.json({ success: true, isLive: result.isLive });
   } catch (error: any) {
     return NextResponse.json(
@@ -92,7 +92,7 @@ export async function PUT(req: NextRequest) {
     ) {
       return NextResponse.json({ error: 'Invalid plan values' }, { status: 400 });
     }
-    const result = await addPlan(plan);
+    const result = await addPlan(plan, session.username);
     return NextResponse.json({ success: true, isLive: result.isLive });
   } catch (error: any) {
     return NextResponse.json({ error: error?.message || 'Failed to add plan' }, { status: 500 });
@@ -110,7 +110,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'rowNumber is required' }, { status: 400 });
     }
     const comment = typeof b.comment === 'string' ? b.comment.trim() : undefined;
-    const result = await deletePlan(rowNumber, comment, session.name);
+    const result = await deletePlan(rowNumber, comment, session.name, session.username);
     return NextResponse.json({ success: true, isLive: result.isLive });
   } catch (error: any) {
     return NextResponse.json({ error: error?.message || 'Failed to delete plan' }, { status: 500 });

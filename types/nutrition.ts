@@ -144,40 +144,6 @@ export const DEFAULT_TARGETS: DailyTargets = {
   fats: 70,
 };
 
-// Initial seeded recipes from your Google Sheet
-export const DEFAULT_RECIPES: Recipe[] = [
-  {
-    id: 'egg-dosa',
-    name: 'Egg Dosa',
-    servingUnit: '1 dosa',
-    calories: 325,
-    protein: 19,
-    carbs: 24,
-    fats: 17.5,
-    category: 'breakfast',
-  },
-  {
-    id: 'chicken-keema-potatoes',
-    name: 'Chicken Keema and Baked Potatoes',
-    servingUnit: '1 portion',
-    calories: 724,
-    protein: 74.75,
-    carbs: 45.75,
-    fats: 24.9,
-    category: 'dinner',
-  },
-  {
-    id: 'protein-shake',
-    name: 'Protein Shake',
-    servingUnit: '1 scoop / shake',
-    calories: 320,
-    protein: 60,
-    carbs: 4,
-    fats: 6,
-    category: 'snack',
-  },
-];
-
 export interface WorkoutEntry {
   id?: string;
   name: string;
