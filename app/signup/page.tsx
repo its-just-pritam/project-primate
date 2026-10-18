@@ -3,7 +3,7 @@
 import React, { FormEvent, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { UserPlus } from 'lucide-react';
+import { Eye, EyeOff, UserPlus } from 'lucide-react';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -12,6 +12,8 @@ export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -66,12 +68,22 @@ export default function SignupPage() {
         </label>
         <label className="block text-sm text-slate-300 space-y-1.5">
           Password
-          <input type="password" autoComplete="new-password" required minLength={12} maxLength={256} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-white outline-none focus:border-emerald-500" />
+          <span className="relative block">
+            <input type={showPassword ? 'text' : 'password'} autoComplete="new-password" required minLength={12} maxLength={256} value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 pr-11 text-white outline-none focus:border-emerald-500" />
+            <button type="button" onClick={() => setShowPassword((shown) => !shown)} aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-white">
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </span>
           <span className="block text-xs text-slate-500">Use at least 12 characters.</span>
         </label>
         <label className="block text-sm text-slate-300 space-y-1.5">
           Confirm password
-          <input type="password" autoComplete="new-password" required minLength={12} maxLength={256} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-white outline-none focus:border-emerald-500" />
+          <span className="relative block">
+            <input type={showConfirmPassword ? 'text' : 'password'} autoComplete="new-password" required minLength={12} maxLength={256} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 pr-11 text-white outline-none focus:border-emerald-500" />
+            <button type="button" onClick={() => setShowConfirmPassword((shown) => !shown)} aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'} aria-pressed={showConfirmPassword} className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-white">
+              {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </span>
         </label>
         {error && <p role="alert" className="text-sm text-rose-400">{error}</p>}
         <button disabled={busy} className="w-full rounded-lg bg-emerald-500 px-4 py-2.5 font-semibold text-slate-950 hover:bg-emerald-400 disabled:opacity-60">
