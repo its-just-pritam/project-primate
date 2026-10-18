@@ -9,6 +9,7 @@ interface QuickLoggerProps {
   userName?: string;
   onLogMeal: (entry: MealLogEntry) => Promise<boolean>;
   onNavigateToRecipes: () => void;
+  onboardingHighlight?: boolean;
 }
 
 export const QuickLogger: React.FC<QuickLoggerProps> = ({
@@ -16,6 +17,7 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
   userName,
   onLogMeal,
   onNavigateToRecipes,
+  onboardingHighlight = false,
 }) => {
   const [selectedRecipeId, setSelectedRecipeId] = useState<string>(
     recipes[0]?.id || ''
@@ -110,7 +112,7 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-56 md:max-h-72 overflow-y-auto pr-1">
+              <div className={`grid grid-cols-1 md:grid-cols-2 gap-2 max-h-56 md:max-h-72 overflow-y-auto pr-1 ${onboardingHighlight ? 'onboarding-glow-fields' : ''}`}>
                 {recipes.map((r) => {
                   const isSelected = selectedRecipeId === r.id;
                   return (
@@ -157,7 +159,7 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
             </div>
 
             {/* Portion Control */}
-            <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 space-y-3">
+              <div className={`bg-slate-900/70 border border-slate-800 rounded-2xl p-4 space-y-3 ${onboardingHighlight ? 'onboarding-glow-fields' : ''}`}>
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-slate-300">
                   Portion / Servings
@@ -171,7 +173,7 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
                 <button
                   type="button"
                   onClick={() => handleAdjustPortion(-0.5)}
-                  className="w-11 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-white flex items-center justify-center border border-slate-700 transition-transform"
+                  className={`w-11 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-white flex items-center justify-center border border-slate-700 transition-transform ${onboardingHighlight ? 'onboarding-glow' : ''}`}
                 >
                   <Minus className="w-5 h-5" />
                 </button>
@@ -186,7 +188,7 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
                 <button
                   type="button"
                   onClick={() => handleAdjustPortion(0.5)}
-                  className="w-11 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-white flex items-center justify-center border border-slate-700 transition-transform"
+                  className={`w-11 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-white flex items-center justify-center border border-slate-700 transition-transform ${onboardingHighlight ? 'onboarding-glow' : ''}`}
                 >
                   <Plus className="w-5 h-5" />
                 </button>

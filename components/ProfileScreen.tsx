@@ -7,10 +7,15 @@ import { AVATARS } from '@/lib/avatars';
 
 interface ProfileScreenProps {
   avatar: string;
-  onAvatarChange: (avatar: string) => void;
+  onAvatarChange: (avatar: string) => Promise<void> | void;
   plan: PlanAnalytics | null;
   onClose: () => void;
   startWithNewPlan?: boolean;
+  onboardingHighlight?: 'profile' | 'plan' | null;
+  onboardingGuide?: React.ReactNode;
+  successToast?: React.ReactNode;
+  onProfileSaveSuccess?: (message: string) => void;
+  keepOpenDuringOnboarding?: boolean;
   onSave: (profile: ProfileUpdate) => Promise<boolean>;
   onAddPlan: (plan: PlanInput) => Promise<boolean>;
   onDeletePlan: (rowNumber: number, comment: string) => Promise<boolean>;
@@ -20,16 +25,22 @@ interface ProfileScreenProps {
 const inputCls =
   'w-full h-10 bg-slate-950 border border-slate-800 rounded-xl px-3 text-sm text-white focus:outline-none focus:border-emerald-500';
 
-const isoDay = (offset = 0) => {
-  const d = new Date();
-  d.setDate(d.getDate() + offset);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const localDateTimeInputValue = (timestamp?: string) => {
+  const parsed = timestamp ? new Date(timestamp) : new Date();
+  const date = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  const datePart = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  const timePart = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
+  return `${datePart}T${timePart}`;
 };
-const today = () => isoDay(0);
+
+const localDateTimeToUtc = (value: string) => {
+  return new Date(value).toISOString().replace(/\.\d{3}Z$/, 'Z');
+};
 
 const describeDate = (iso: string) => {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return '';
-  const [y, m, d] = iso.split('-').map(Number);
+  const datePart = iso.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return '';
+  const [y, m, d] = datePart.split('-').map(Number);
   const date = new Date(y, m - 1, d);
   const label = date.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
   const days = Math.round((date.getTime() - new Date(new Date().setHours(0, 0, 0, 0)).getTime()) / 86400000);
@@ -45,7 +56,8 @@ const DateField: React.FC<{ label: string; value: string; onChange: (v: string) 
   <div>
     <label className="text-xs font-medium text-slate-300 block mb-1">{label}</label>
     <input
-      type="date"
+      type="datetime-local"
+      step="1"
       value={value}
       onChange={(e) => onChange(e.target.value)}
       required
@@ -117,7 +129,7 @@ const PlanCard: React.FC<{
   const [name, setName] = useState(plan.name);
   const [target, setTarget] = useState(String(plan.targetWeight));
   const [resting, setResting] = useState(String(plan.restingCalories));
-  const [start, setStart] = useState(plan.startDate.slice(0, 10));
+  const [start, setStart] = useState(localDateTimeInputValue(plan.startDate));
   const [comment, setComment] = useState(plan.comment);
   const [error, setError] = useState<string | null>(null);
 
@@ -129,7 +141,7 @@ const PlanCard: React.FC<{
       userName: '',
       targetWeightKg: parseFloat(target),
       restingCalories: parseFloat(resting),
-      startDate: `${start}T00:00:00Z`,
+      startDate: localDateTimeToUtc(start),
       comment: comment.trim(),
     });
     if (!ok) setError('Could not save the plan. Please check the values.');
@@ -162,7 +174,7 @@ const PlanCard: React.FC<{
             </span>
           </p>
           <p className="text-[11px] text-slate-400">
-            Target {plan.targetWeight} kg · {plan.restingCalories} kcal/d · from {plan.startDate.slice(0, 10)}
+            Target {plan.targetWeight} kg · {plan.restingCalories} kcal/d · from {localDateTimeInputValue(plan.startDate).slice(0, 10)}
           </p>
           {plan.comment && <p className="text-[11px] text-slate-500 italic mt-0.5">{plan.comment}</p>}
         </div>
@@ -226,6 +238,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   plan,
   onClose,
   startWithNewPlan = false,
+  onboardingHighlight = null,
+  onboardingGuide,
+  successToast,
+  onProfileSaveSuccess,
+  keepOpenDuringOnboarding = false,
   avatar,
   onAvatarChange,
   onSave,
@@ -261,7 +278,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const [newName, setNewName] = useState('');
   const [newTarget, setNewTarget] = useState('');
   const [newResting, setNewResting] = useState(String(plan?.restingCalories ?? ''));
-  const [newStart, setNewStart] = useState(today());
+  const [newStart, setNewStart] = useState(localDateTimeInputValue());
   const [newComment, setNewComment] = useState('');
   const [planBusy, setPlanBusy] = useState(false);
   const [planError, setPlanError] = useState<string | null>(null);
@@ -285,14 +302,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
   const handleSaveUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (avatarDirty) onAvatarChange(draftAvatar);
+    if (avatarDirty) await onAvatarChange(draftAvatar);
     const detailsDirty =
       userName.trim() !== savedUser.userName ||
       (parseFloat(weight) || 0) !== savedUser.weightKg ||
       (parseFloat(height) || 0) !== savedUser.heightCm ||
       (parseFloat(perWeek) || 0) !== savedUser.workoutsPerWeek;
     if (!detailsDirty) {
-      onClose();
+      if (!keepOpenDuringOnboarding) onClose();
       return;
     }
     setSaving(true);
@@ -308,8 +325,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       startDate: '',
     });
     setSaving(false);
-    if (ok) onClose();
-    else setError('Could not save. Please check the values and try again.');
+    if (ok) {
+      if (!keepOpenDuringOnboarding) onClose();
+    } else {
+      setError('Could not save. Please check the values and try again.');
+    }
   };
 
   const handleChangePassword = async (e: React.FormEvent) => {
@@ -332,6 +352,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       setNewPassword('');
       setConfirmNewPassword('');
       setPasswordSuccess('Password changed successfully.');
+      onProfileSaveSuccess?.('Password changed');
     } catch (changeError) {
       setPasswordError(changeError instanceof Error ? changeError.message : 'Could not change password.');
     } finally {
@@ -351,7 +372,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       planRow: p.rowNumber,
     });
     setPlanBusy(false);
-    if (ok) onClose();
+    if (ok && !keepOpenDuringOnboarding) onClose();
     return ok;
   };
 
@@ -364,12 +385,20 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       userName: savedUser.userName,
       targetWeightKg: parseFloat(newTarget),
       restingCalories: parseFloat(newResting),
-      startDate: `${newStart}T00:00:00Z`,
+      startDate: localDateTimeToUtc(newStart),
       comment: newComment.trim(),
     });
     setPlanBusy(false);
-    if (ok) onClose();
-    else setPlanError('Could not add the plan. Please check the values.');
+    if (ok) {
+      if (keepOpenDuringOnboarding) {
+        setShowNew(false);
+        setNewName('');
+        setNewTarget('');
+        setNewComment('');
+      } else {
+        onClose();
+      }
+    } else setPlanError('Could not add the plan. Please check the values.');
   };
 
   const [deleting, setDeleting] = useState<PlanSummary | null>(null);
@@ -386,7 +415,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     setPlanBusy(true);
     const ok = await onDeletePlan(deleting.rowNumber, deleteComment.trim());
     setPlanBusy(false);
-    if (ok) onClose();
+    if (ok && !keepOpenDuringOnboarding) onClose();
     else setPlanError('Could not delete the plan.');
     setDeleting(null);
   };
@@ -404,6 +433,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         </button>
         <h1 className="text-base font-bold tracking-tight text-white">Profile</h1>
       </header>
+      {successToast}
+      {onboardingGuide}
 
       <div className="flex-1 px-4 py-5 space-y-6">
         <section className="space-y-2.5">
@@ -444,7 +475,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           </div>
         </section>
 
-        <form id="user-form" onSubmit={handleSaveUser} className="space-y-2.5">
+        <form id="user-form" onSubmit={handleSaveUser} className={`space-y-2.5 ${onboardingHighlight === 'profile' ? 'onboarding-glow-fields' : ''}`}>
           <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">User</h3>
           <FormField label="Name" value={userName} onChange={setUserName} props={{ type: 'text' }} />
           <div className="grid grid-cols-3 gap-2.5">
@@ -520,7 +551,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               <button
                 type="button"
                 onClick={() => setShowNew(true)}
-                className="flex items-center gap-1.5 text-sm font-medium text-emerald-300 hover:text-emerald-200 active:scale-95 transition-all"
+                className={`flex items-center gap-1.5 text-sm font-medium text-emerald-300 hover:text-emerald-200 active:scale-95 transition-all ${onboardingHighlight === 'plan' ? 'onboarding-text-glow' : ''}`}
               >
                 <Plus className="w-4 h-4" /> Add Plan
               </button>
@@ -530,7 +561,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           {showNew && (
             <form
               onSubmit={handleAddPlan}
-              className="bg-slate-900 border border-emerald-500/30 rounded-2xl p-4 space-y-2.5"
+              className={`bg-slate-900 border border-emerald-500/30 rounded-2xl p-4 space-y-2.5 ${onboardingHighlight === 'plan' ? 'onboarding-glow-fields' : ''}`}
             >
               <h4 className="text-sm font-semibold text-white">New Plan</h4>
               <FormField

@@ -22,7 +22,7 @@ async function createPlanShareImage(plan: PlanAnalytics): Promise<File> {
   const weightDeltaKg = plan.totalWeightChangeGrams / 1000;
   const fatDeltaKg = plan.totalFatMassChangeGrams / 1000;
   const muscleDeltaKg = plan.totalMuscleMassChangeGrams / 1000;
-  const weightToLose = Math.max(0, plan.currentWeight - plan.targetWeight);
+  const targetWeightDelta = plan.targetWeight - plan.currentWeight;
   const formatKg = (value: number) => `${value > 0 ? '+' : ''}${value.toFixed(2)} kg`;
   const metric = (x: number, y: number, label: string, value: string, color: string, width = 420) => `
     <rect x="${x}" y="${y}" width="${width}" height="142" rx="24" fill="#101a28" stroke="#263548" stroke-width="2"/>
@@ -47,7 +47,7 @@ async function createPlanShareImage(plan: PlanAnalytics): Promise<File> {
       <text x="112" y="478" fill="#ffffff" font-family="Arial, sans-serif" font-size="48" font-weight="700">${escapeSvgText(String(plan.currentWeight))} kg</text>
       <path d="M410 461h54m-14-14 14 14-14 14" fill="none" stroke="#34d399" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
       <text x="520" y="478" fill="#6ee7b7" font-family="Arial, sans-serif" font-size="48" font-weight="700">${escapeSvgText(String(plan.targetWeight))} kg</text>
-      <text x="112" y="509" fill="#94a3b8" font-family="Arial, sans-serif" font-size="20">-${escapeSvgText(String(weightToLose))} kg target</text>
+      <text x="112" y="509" fill="#94a3b8" font-family="Arial, sans-serif" font-size="20">${targetWeightDelta > 0 ? '+' : ''}${escapeSvgText(String(targetWeightDelta))} kg to target</text>
       <rect x="72" y="550" width="936" height="158" rx="28" fill="#0b1723" stroke="#1e3a35" stroke-width="2"/>
       <text x="108" y="600" fill="#94a3b8" font-family="Arial, sans-serif" font-size="21" font-weight="600" letter-spacing="2">GOAL PROGRESS</text>
       <text x="108" y="664" fill="#6ee7b7" font-family="Arial, sans-serif" font-size="48" font-weight="700">${escapeSvgText(String(plan.progressPercent))}%</text>
@@ -103,7 +103,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
   const [sharing, setSharing] = useState(false);
   if (!plan) return null;
 
-  const weightToLose = Math.max(0, plan.currentWeight - plan.targetWeight);
+  const targetWeightDelta = plan.targetWeight - plan.currentWeight;
   const weightDeltaKg = plan.totalWeightChangeGrams / 1000;
   const fatMassDeltaKg = plan.totalFatMassChangeGrams / 1000;
   const muscleMassDeltaKg = plan.totalMuscleMassChangeGrams / 1000;
@@ -170,7 +170,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
               <span className="text-emerald-400">{plan.targetWeight} kg</span>
             </h3>
             <span className="text-xs text-slate-400 font-medium">
-              (-{weightToLose} kg target)
+              ({targetWeightDelta > 0 ? '+' : ''}{targetWeightDelta} kg to target)
             </span>
           </div>
         </div>
@@ -305,11 +305,11 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
             <p className="text-[10px] uppercase tracking-[0.08em] text-slate-400 font-semibold">Goal progress</p>
             <p
               className={`mt-1 text-4xl font-extrabold leading-none ${
-                isWeightGain ? 'text-rose-400' : 'text-emerald-400'
+                plan.progressPercent < 0 ? 'text-rose-400' : 'text-emerald-400'
               }`}
             >
               {plan.progressPercent}
-              <span className={`text-xl ${isWeightGain ? 'text-rose-400/70' : 'text-emerald-400/70'}`}>%</span>
+              <span className={`text-xl ${plan.progressPercent < 0 ? 'text-rose-400/70' : 'text-emerald-400/70'}`}>%</span>
             </p>
           </div>
           <p className="text-[11px] text-slate-400 text-right leading-tight">

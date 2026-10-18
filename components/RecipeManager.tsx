@@ -15,9 +15,10 @@ interface RecipeManagerProps {
   onUpdatePackaged: (p: PackagedInput) => Promise<boolean>;
   onAddRecipe: (dish: string, items: { ingredient: string; quantity: number }[]) => Promise<boolean>;
   onUpdateRecipe: (originalDish: string, newDish: string, items: { ingredient: string; quantity: number }[]) => Promise<boolean>;
+  onboardingHighlight?: boolean;
 }
 
-export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged = [], ingredientNames, ingredientUnits = {}, onAddPackaged, onUpdatePackaged, onAddRecipe, onUpdateRecipe }) => {
+export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged = [], ingredientNames, ingredientUnits = {}, onAddPackaged, onUpdatePackaged, onAddRecipe, onUpdateRecipe, onboardingHighlight = false }) => {
   const [showPackagedForm, setShowPackagedForm] = useState(false);
   const [editingPackaged, setEditingPackaged] = useState<Recipe | null>(null);
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
@@ -111,7 +112,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
               aria-label="Add packaged food"
               title="Add packaged food with its nutrition information"
               onClick={() => setShowPackagedForm(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 text-xs font-semibold active:scale-95 transition-all"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 text-xs font-semibold active:scale-95 transition-all ${onboardingHighlight ? 'onboarding-glow onboarding-recipe-glow-a' : ''}`}
             >
               <Package className="w-4 h-4" />
             </button>
@@ -120,7 +121,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
               aria-label="Add new recipe"
               title="Create a new recipe from ingredients"
               onClick={() => setShowAddForm(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md active:scale-95 transition-all"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md active:scale-95 transition-all ${onboardingHighlight ? 'onboarding-glow onboarding-recipe-glow-b' : ''}`}
             >
               <Plus className="w-4 h-4" />
             </button>
@@ -172,7 +173,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
       {showAddForm && (
         <form
           onSubmit={handleSubmit}
-          className="bg-slate-900 border border-emerald-500/30 rounded-2xl p-4 space-y-3.5 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200"
+          className={`bg-slate-900 border border-emerald-500/30 rounded-2xl p-4 space-y-3.5 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 ${onboardingHighlight ? 'onboarding-glow-fields' : ''}`}
         >
           <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
             <BookOpen className="w-4 h-4 text-emerald-400" /> {editingName ? 'Edit Recipe' : 'New Recipe'}

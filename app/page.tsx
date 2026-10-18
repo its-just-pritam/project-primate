@@ -21,10 +21,11 @@ import type { PackagedInput } from '@/components/PackagedForm';
 import { TrendsView } from '@/components/TrendsView';
 import { PlanCarousel } from '@/components/PlanCarousel';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { toLocalDateKey, parseLocalDateKey } from '@/lib/localDate';
 import { ProfileScreen } from '@/components/ProfileScreen';
 import { StartupSplash } from '@/components/StartupSplash';
+import { OnboardingGuide } from '@/components/OnboardingGuide';
 import {
   MealLogEntry,
   WorkoutEntry,
@@ -35,6 +36,15 @@ import {
   PlanAnalytics,
   DEFAULT_TARGETS,
 } from '@/types/nutrition';
+
+type OnboardingTaskId = 'profile' | 'plan' | 'recipe' | 'meal' | 'workout';
+const ONBOARDING_TASKS: { id: OnboardingTaskId; title: string; description: string }[] = [
+  { id: 'profile', title: 'Complete your profile', description: 'Add your profile details, then select Save to personalize your nutrition targets.' },
+  { id: 'plan', title: 'Add a new plan', description: 'Enter a goal and start date, then select Add Plan to save it.' },
+  { id: 'recipe', title: 'Add a recipe', description: 'Add a dish and its ingredients, then save the recipe to your catalog.' },
+  { id: 'meal', title: 'Log a meal', description: 'Choose a dish and portion, then select Log This Meal to save your food log.' },
+  { id: 'workout', title: 'Log a workout', description: 'Enter a workout and calories, then select Log This Workout to save it.' },
+];
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('today');
@@ -51,6 +61,12 @@ export default function Home() {
   const [avatar, setAvatar] = useState(DEFAULT_AVATAR);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [openNewPlan, setOpenNewPlan] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState<number | null>(null);
+  const [onboardingIndex, setOnboardingIndex] = useState(0);
+  const [onboardingStarted, setOnboardingStarted] = useState(false);
+  const [profileSaveNotice, setProfileSaveNotice] = useState<string | null>(null);
+  const profileSaveNoticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [completedOnboardingTasks, setCompletedOnboardingTasks] = useState<OnboardingTaskId[]>([]);
   const [logMode, setLogMode] = useState<'meal' | 'workout'>('meal');
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [packaged, setPackaged] = useState<Recipe[]>([]);
@@ -69,6 +85,17 @@ export default function Home() {
   const todayKey = toLocalDateKey(new Date());
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
 
+  const announceProfileSave = (message: string) => {
+    setProfileSaveNotice(message);
+    if (profileSaveNoticeTimer.current) clearTimeout(profileSaveNoticeTimer.current);
+    profileSaveNoticeTimer.current = setTimeout(() => setProfileSaveNotice(null), 3000);
+  };
+  const profileSaveToast = profileSaveNotice ? (
+    <div role="status" aria-live="polite" className="mx-auto my-2 flex w-[calc(100%-2rem)] max-w-2xl items-center gap-2 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-2.5 text-sm font-medium text-emerald-300">
+      <CheckCircle2 className="h-4 w-4 shrink-0" /> {profileSaveNotice}
+    </div>
+  ) : null;
+
   // Moves the selected day by delta days, never past today.
   const shiftSelectedDate = (delta: number) => {
     const d = parseLocalDateKey(selectedDate);
@@ -82,12 +109,18 @@ export default function Home() {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [mealsRes, workoutsRes, recipesRes, planRes] = await Promise.all([
+      const [mealsRes, workoutsRes, recipesRes, planRes, onboardingRes] = await Promise.all([
         fetch('/api/meals'),
         fetch('/api/workouts'),
         fetch('/api/recipes'),
         fetch('/api/plan'),
+        fetch('/api/onboarding'),
       ]);
+
+      if (onboardingRes.ok) {
+        const onboardingData = await onboardingRes.json();
+        setOnboardingStep(Number(onboardingData.step) === 0 ? 0 : 1);
+      }
 
       if (mealsRes.ok) {
         const mealsData = await mealsRes.json();
@@ -123,6 +156,81 @@ export default function Home() {
       setHasLoaded(true);
     }
   };
+
+  const markOnboardingComplete = async (): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/onboarding', { method: 'POST' });
+      if (!response.ok) throw new Error('Unable to save onboarding status');
+      setOnboardingStep(1);
+      return true;
+    } catch (error) {
+      console.error(error);
+      return false;
+    }
+  };
+
+  const completeOnboardingTask = async (task: OnboardingTaskId) => {
+    const updated = new Set(completedOnboardingTasks);
+    updated.add(task);
+    setCompletedOnboardingTasks(Array.from(updated));
+    if (updated.size === ONBOARDING_TASKS.length) await markOnboardingComplete();
+  };
+
+  const goToOnboardingTask = (task: OnboardingTaskId) => {
+    switch (task) {
+      case 'profile':
+        setOpenNewPlan(false);
+        setShowProfile(true);
+        break;
+      case 'plan':
+        setOpenNewPlan(true);
+        setShowProfile(true);
+        break;
+      case 'recipe':
+        setShowProfile(false);
+        setOpenNewPlan(false);
+        setActiveTab('recipes');
+        break;
+      case 'meal':
+        setShowProfile(false);
+        setOpenNewPlan(false);
+        setLogMode('meal');
+        setActiveTab('log');
+        break;
+      case 'workout':
+        setShowProfile(false);
+        setOpenNewPlan(false);
+        setLogMode('workout');
+        setActiveTab('log');
+        break;
+    }
+  };
+
+  const activeOnboardingTask = ONBOARDING_TASKS[onboardingIndex];
+  const continueOnboarding = () => {
+    if (!activeOnboardingTask) return;
+    if (!onboardingStarted) {
+      setOnboardingStarted(true);
+      goToOnboardingTask(activeOnboardingTask.id);
+      return;
+    }
+    if (onboardingIndex >= ONBOARDING_TASKS.length - 1) {
+      void markOnboardingComplete();
+      return;
+    }
+    const nextIndex = onboardingIndex + 1;
+    setOnboardingIndex(nextIndex);
+    goToOnboardingTask(ONBOARDING_TASKS[nextIndex].id);
+  };
+  const onboardingGuide = onboardingStep === 0 && activeOnboardingTask ? (
+    <OnboardingGuide
+      step={onboardingIndex + 1}
+      title={activeOnboardingTask.title}
+      description={activeOnboardingTask.description}
+      actionLabel={onboardingIndex === ONBOARDING_TASKS.length - 1 ? 'Done' : onboardingStarted ? 'Next' : 'Get started'}
+      onContinue={continueOnboarding}
+    />
+  ) : null;
 
   useEffect(() => {
     loadData();
@@ -185,6 +293,7 @@ export default function Home() {
 
       if (!res.ok) throw new Error('Failed to log meal');
 
+      await completeOnboardingTask('meal');
       // Reload so the new entry carries its sheet row id (needed for deletion)
       await loadData();
       return true;
@@ -204,6 +313,7 @@ export default function Home() {
         body: JSON.stringify(entry),
       });
       if (!res.ok) throw new Error('Failed to log workout');
+      await completeOnboardingTask('workout');
       // Reload so the plan totals and trends include the new workout
       await loadData();
       return true;
@@ -247,7 +357,9 @@ export default function Home() {
         body: JSON.stringify(profile),
       });
       if (!res.ok) throw new Error('Failed to save profile');
+      announceProfileSave(profile.planRow ? 'Plan updated' : 'Profile saved');
       await loadData();
+      if (!profile.planRow) await completeOnboardingTask('profile');
       return true;
     } catch (err) {
       console.error(err);
@@ -263,7 +375,9 @@ export default function Home() {
         body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error('Plan request failed');
+      announceProfileSave(method === 'PUT' ? 'Plan added' : 'Plan deleted');
       await loadData();
+      if (method === 'PUT') await completeOnboardingTask('plan');
       return true;
     } catch (err) {
       console.error(err);
@@ -283,6 +397,7 @@ export default function Home() {
       });
       if (!res.ok) throw new Error('Failed to save recipe');
       await loadData();
+      await completeOnboardingTask('recipe');
       return true;
     } catch (err) {
       console.error(err);
@@ -322,13 +437,19 @@ export default function Home() {
     }
   };
 
-  const handleAvatarChange = (next: string) => {
+  const handleAvatarChange = async (next: string) => {
     setAvatar(next);
-    fetch('/api/profile', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ avatar: next }),
-    }).catch((err) => console.error(err));
+    try {
+      const response = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatar: next }),
+      });
+      if (!response.ok) throw new Error('Failed to save avatar');
+      announceProfileSave('Profile picture saved');
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleUpdateRecipe = async (
@@ -357,23 +478,32 @@ export default function Home() {
 
   if (showProfile) {
     return (
-      <ProfileScreen
-        avatar={avatar}
-        onAvatarChange={handleAvatarChange}
-        plan={plan}
-        startWithNewPlan={openNewPlan}
-        onClose={() => {
-          setShowProfile(false);
-          setOpenNewPlan(false);
-        }}
-        onSave={handleSaveProfile}
-        onAddPlan={(p: PlanInput) => handlePlanRequest('PUT', p)}
-        onDeletePlan={(rowNumber, comment) => handlePlanRequest('DELETE', { rowNumber, comment })}
-        onSignOut={async () => {
-          await fetch('/api/auth/logout', { method: 'POST' });
-          window.location.assign('/');
-        }}
-      />
+      <>
+        <ProfileScreen
+          avatar={avatar}
+          onAvatarChange={handleAvatarChange}
+          plan={plan}
+          startWithNewPlan={openNewPlan}
+          onboardingHighlight={onboardingStep === 0 ? (activeOnboardingTask?.id === 'profile' ? 'profile' : activeOnboardingTask?.id === 'plan' ? 'plan' : null) : null}
+          onboardingGuide={onboardingGuide}
+          successToast={profileSaveToast}
+          onProfileSaveSuccess={announceProfileSave}
+          keepOpenDuringOnboarding={onboardingStep === 0}
+          onClose={() => {
+            if (onboardingStep === 0) void markOnboardingComplete();
+            setShowProfile(false);
+            setOpenNewPlan(false);
+          }}
+          onSave={handleSaveProfile}
+          onAddPlan={(p: PlanInput) => handlePlanRequest('PUT', p)}
+          onDeletePlan={(rowNumber, comment) => handlePlanRequest('DELETE', { rowNumber, comment })}
+          onSignOut={async () => {
+            if (onboardingStep === 0) await fetch('/api/onboarding', { method: 'POST' });
+            await fetch('/api/auth/logout', { method: 'POST' });
+            window.location.assign('/');
+          }}
+        />
+      </>
     );
   }
 
@@ -384,6 +514,8 @@ export default function Home() {
         isLoading={isLoading}
         userName={plan?.userName}
       />
+      {profileSaveToast}
+      {onboardingGuide}
 
       <div className="flex-1 px-4 md:px-8 py-4 space-y-4 overflow-y-auto">
         {/* Tab 1: Today Dashboard */}
@@ -396,16 +528,16 @@ export default function Home() {
             )}
             {!initialLoading && plan && !plan.hasPlan && (
               <div className="flex flex-col items-center gap-3 py-3">
-                <p className="text-sm text-slate-400">No active plan right now.</p>
+                <p className="text-sm text-slate-400">Set a goal and start tracking your progress.</p>
                 <button
                   type="button"
                   onClick={() => {
                     setOpenNewPlan(true);
                     setShowProfile(true);
                   }}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-emerald-400 to-teal-400 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/20 hover:brightness-110 active:scale-95 transition-all"
+                  className="group inline-flex items-center gap-2.5 rounded-2xl border border-emerald-200/50 bg-gradient-to-br from-emerald-300 via-emerald-400 to-teal-400 px-5 py-3.5 text-sm font-bold text-slate-950 shadow-lg shadow-emerald-500/25 transition-all hover:-translate-y-0.5 hover:brightness-105 hover:shadow-xl hover:shadow-emerald-500/30 active:translate-y-0 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300"
                 >
-                  <Plus className="w-4 h-4" /> Add a new Plan
+                  <Plus className="h-7 w-7 rounded-full bg-white/25 p-1.5 transition-transform group-hover:rotate-90" /> Add Plan
                 </button>
               </div>
             )}
@@ -528,6 +660,7 @@ export default function Home() {
               <QuickLogger
                 recipes={[...recipes, ...packaged]}
                 userName={plan?.userName}
+                onboardingHighlight={onboardingStep === 0 && activeOnboardingTask?.id === 'meal'}
                 onLogMeal={handleLogMeal}
                 onNavigateToRecipes={() => setActiveTab('recipes')}
               />
@@ -535,6 +668,7 @@ export default function Home() {
               <WorkoutLogger
                 workoutNames={workoutNames}
                 userName={plan?.userName}
+                onboardingHighlight={onboardingStep === 0 && activeOnboardingTask?.id === 'workout'}
                 onLogWorkout={handleLogWorkout}
               />
             )}
@@ -547,7 +681,7 @@ export default function Home() {
             {initialLoading ? (
               <ListSkeleton label="Loading recipes" rows={3} />
             ) : (
-              <RecipeManager recipes={recipes} packaged={packaged} ingredientNames={ingredientNames} ingredientUnits={ingredientUnits} onAddRecipe={handleAddRecipe} onAddPackaged={handleAddPackaged} onUpdateRecipe={handleUpdateRecipe} onUpdatePackaged={handleUpdatePackaged} />
+              <RecipeManager recipes={recipes} packaged={packaged} ingredientNames={ingredientNames} ingredientUnits={ingredientUnits} onboardingHighlight={onboardingStep === 0 && activeOnboardingTask?.id === 'recipe'} onAddRecipe={handleAddRecipe} onAddPackaged={handleAddPackaged} onUpdateRecipe={handleUpdateRecipe} onUpdatePackaged={handleUpdatePackaged} />
             )}
           </div>
         )}
