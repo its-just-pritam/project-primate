@@ -528,16 +528,16 @@ export default function Home() {
             )}
             {!initialLoading && plan && !plan.hasPlan && (
               <div className="flex flex-col items-center gap-3 py-3">
-                <p className="text-sm text-slate-400">No active plan right now.</p>
+                <p className="text-sm text-slate-400">Set a goal and start tracking your progress.</p>
                 <button
                   type="button"
                   onClick={() => {
                     setOpenNewPlan(true);
                     setShowProfile(true);
                   }}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-emerald-400 to-teal-400 text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/20 hover:brightness-110 active:scale-95 transition-all"
+                  className="group inline-flex items-center gap-2.5 rounded-2xl border border-emerald-200/50 bg-gradient-to-br from-emerald-300 via-emerald-400 to-teal-400 px-5 py-3.5 text-sm font-bold text-slate-950 shadow-lg shadow-emerald-500/25 transition-all hover:-translate-y-0.5 hover:brightness-105 hover:shadow-xl hover:shadow-emerald-500/30 active:translate-y-0 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300"
                 >
-                  <Plus className="w-4 h-4" /> Add a new Plan
+                  <Plus className="h-7 w-7 rounded-full bg-white/25 p-1.5 transition-transform group-hover:rotate-90" /> Add Plan
                 </button>
               </div>
             )}
