@@ -2,6 +2,82 @@
 @tailwind components;
 @tailwind utilities;
 
+.onboarding-glow {
+  border: 1px solid rgb(52 211 153 / 85%);
+  animation: onboarding-green-glow 1.8s ease-in-out infinite;
+}
+
+@keyframes onboarding-green-glow {
+  0%, 100% { box-shadow: 0 0 3px rgb(16 185 129 / 28%); }
+  50% { box-shadow: 0 0 9px rgb(16 185 129 / 72%); }
+}
+
+@keyframes onboarding-yellow-glow {
+  0%, 100% { box-shadow: 0 0 3px rgb(245 158 11 / 28%); }
+  50% { box-shadow: 0 0 9px rgb(245 158 11 / 78%); }
+}
+
+@keyframes onboarding-orange-glow {
+  0%, 100% { box-shadow: 0 0 3px rgb(249 115 22 / 30%); }
+  50% { box-shadow: 0 0 9px rgb(249 115 22 / 78%); }
+}
+
+@keyframes onboarding-text-glow {
+  0%, 100% { text-shadow: 0 0 3px rgb(52 211 153 / 38%); }
+  50% { text-shadow: 0 0 7px rgb(52 211 153 / 95%), 0 0 14px rgb(16 185 129 / 62%); }
+}
+
+.onboarding-recipe-glow-a {
+  border-color: rgb(251 191 36 / 90%);
+  animation: onboarding-yellow-glow 2.4s ease-in-out infinite;
+}
+
+.onboarding-recipe-glow-b {
+  animation: onboarding-green-glow 2.4s ease-in-out -1.2s infinite;
+}
+
+.onboarding-glow-fields > button {
+  border: 1px solid rgb(52 211 153 / 85%);
+  animation: onboarding-green-glow 1.8s ease-in-out infinite;
+}
+
+.onboarding-glow-fields input,
+.onboarding-glow-fields select,
+.onboarding-glow-fields textarea {
+  border: 1px solid rgb(52 211 153 / 85%) !important;
+  animation: onboarding-green-glow 1.8s ease-in-out infinite;
+}
+
+.onboarding-workout-glow-fields input,
+.onboarding-workout-glow-fields select,
+.onboarding-workout-glow-fields textarea {
+  border: 1px solid rgb(251 146 60 / 90%) !important;
+  animation: onboarding-orange-glow 1.8s ease-in-out infinite;
+}
+
+.onboarding-workout-glow {
+  animation: onboarding-orange-glow 1.8s ease-in-out infinite;
+}
+
+.onboarding-text-glow {
+  animation: onboarding-text-glow 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onboarding-glow,
+  .onboarding-glow-fields > button,
+  .onboarding-glow-fields input,
+  .onboarding-glow-fields select,
+  .onboarding-glow-fields textarea,
+  .onboarding-workout-glow-fields input,
+  .onboarding-workout-glow-fields select,
+  .onboarding-workout-glow-fields textarea,
+  .onboarding-workout-glow,
+  .onboarding-text-glow {
+    animation-duration: 4s;
+  }
+}
+
 :root {
   --background: #090d16;
   --foreground: #f1f5f9;

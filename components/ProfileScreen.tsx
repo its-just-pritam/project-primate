@@ -7,10 +7,15 @@ import { AVATARS } from '@/lib/avatars';
 
 interface ProfileScreenProps {
   avatar: string;
-  onAvatarChange: (avatar: string) => void;
+  onAvatarChange: (avatar: string) => Promise<void> | void;
   plan: PlanAnalytics | null;
   onClose: () => void;
   startWithNewPlan?: boolean;
+  onboardingHighlight?: 'profile' | 'plan' | null;
+  onboardingGuide?: React.ReactNode;
+  successToast?: React.ReactNode;
+  onProfileSaveSuccess?: (message: string) => void;
+  keepOpenDuringOnboarding?: boolean;
   onSave: (profile: ProfileUpdate) => Promise<boolean>;
   onAddPlan: (plan: PlanInput) => Promise<boolean>;
   onDeletePlan: (rowNumber: number, comment: string) => Promise<boolean>;
@@ -226,6 +231,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   plan,
   onClose,
   startWithNewPlan = false,
+  onboardingHighlight = null,
+  onboardingGuide,
+  successToast,
+  onProfileSaveSuccess,
+  keepOpenDuringOnboarding = false,
   avatar,
   onAvatarChange,
   onSave,
@@ -285,14 +295,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
   const handleSaveUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (avatarDirty) onAvatarChange(draftAvatar);
+    if (avatarDirty) await onAvatarChange(draftAvatar);
     const detailsDirty =
       userName.trim() !== savedUser.userName ||
       (parseFloat(weight) || 0) !== savedUser.weightKg ||
       (parseFloat(height) || 0) !== savedUser.heightCm ||
       (parseFloat(perWeek) || 0) !== savedUser.workoutsPerWeek;
     if (!detailsDirty) {
-      onClose();
+      if (!keepOpenDuringOnboarding) onClose();
       return;
     }
     setSaving(true);
@@ -308,8 +318,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       startDate: '',
     });
     setSaving(false);
-    if (ok) onClose();
-    else setError('Could not save. Please check the values and try again.');
+    if (ok) {
+      if (!keepOpenDuringOnboarding) onClose();
+    } else {
+      setError('Could not save. Please check the values and try again.');
+    }
   };
 
   const handleChangePassword = async (e: React.FormEvent) => {
@@ -332,6 +345,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       setNewPassword('');
       setConfirmNewPassword('');
       setPasswordSuccess('Password changed successfully.');
+      onProfileSaveSuccess?.('Password changed');
     } catch (changeError) {
       setPasswordError(changeError instanceof Error ? changeError.message : 'Could not change password.');
     } finally {
@@ -351,7 +365,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       planRow: p.rowNumber,
     });
     setPlanBusy(false);
-    if (ok) onClose();
+    if (ok && !keepOpenDuringOnboarding) onClose();
     return ok;
   };
 
@@ -368,8 +382,16 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       comment: newComment.trim(),
     });
     setPlanBusy(false);
-    if (ok) onClose();
-    else setPlanError('Could not add the plan. Please check the values.');
+    if (ok) {
+      if (keepOpenDuringOnboarding) {
+        setShowNew(false);
+        setNewName('');
+        setNewTarget('');
+        setNewComment('');
+      } else {
+        onClose();
+      }
+    } else setPlanError('Could not add the plan. Please check the values.');
   };
 
   const [deleting, setDeleting] = useState<PlanSummary | null>(null);
@@ -386,7 +408,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     setPlanBusy(true);
     const ok = await onDeletePlan(deleting.rowNumber, deleteComment.trim());
     setPlanBusy(false);
-    if (ok) onClose();
+    if (ok && !keepOpenDuringOnboarding) onClose();
     else setPlanError('Could not delete the plan.');
     setDeleting(null);
   };
@@ -404,6 +426,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         </button>
         <h1 className="text-base font-bold tracking-tight text-white">Profile</h1>
       </header>
+      {successToast}
+      {onboardingGuide}
 
       <div className="flex-1 px-4 py-5 space-y-6">
         <section className="space-y-2.5">
@@ -444,7 +468,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           </div>
         </section>
 
-        <form id="user-form" onSubmit={handleSaveUser} className="space-y-2.5">
+        <form id="user-form" onSubmit={handleSaveUser} className={`space-y-2.5 ${onboardingHighlight === 'profile' ? 'onboarding-glow-fields' : ''}`}>
           <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">User</h3>
           <FormField label="Name" value={userName} onChange={setUserName} props={{ type: 'text' }} />
           <div className="grid grid-cols-3 gap-2.5">
@@ -520,7 +544,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               <button
                 type="button"
                 onClick={() => setShowNew(true)}
-                className="flex items-center gap-1.5 text-sm font-medium text-emerald-300 hover:text-emerald-200 active:scale-95 transition-all"
+                className={`flex items-center gap-1.5 text-sm font-medium text-emerald-300 hover:text-emerald-200 active:scale-95 transition-all ${onboardingHighlight === 'plan' ? 'onboarding-text-glow' : ''}`}
               >
                 <Plus className="w-4 h-4" /> Add Plan
               </button>
@@ -530,7 +554,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           {showNew && (
             <form
               onSubmit={handleAddPlan}
-              className="bg-slate-900 border border-emerald-500/30 rounded-2xl p-4 space-y-2.5"
+              className={`bg-slate-900 border border-emerald-500/30 rounded-2xl p-4 space-y-2.5 ${onboardingHighlight === 'plan' ? 'onboarding-glow-fields' : ''}`}
             >
               <h4 className="text-sm font-semibold text-white">New Plan</h4>
               <FormField

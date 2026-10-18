@@ -8,9 +8,10 @@ interface WorkoutLoggerProps {
   workoutNames: string[];
   userName?: string;
   onLogWorkout: (entry: WorkoutEntry) => Promise<boolean>;
+  onboardingHighlight?: boolean;
 }
 
-export const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ workoutNames, userName, onLogWorkout }) => {
+export const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ workoutNames, userName, onLogWorkout, onboardingHighlight = false }) => {
   const [name, setName] = useState('');
   const [calories, setCalories] = useState('');
   const [timestamp, setTimestamp] = useState(getLocalDateTime());
@@ -63,7 +64,7 @@ export const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ workoutNames, user
         </div>
       )}
 
-      <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 space-y-3">
+      <div className={`bg-slate-900/70 border border-slate-800 rounded-2xl p-4 space-y-3 ${onboardingHighlight ? 'onboarding-workout-glow-fields' : ''}`}>
         <div>
           <label className="text-xs font-semibold text-slate-300 block mb-1">Workout</label>
           <input
@@ -110,7 +111,7 @@ export const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ workoutNames, user
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full py-3.5 rounded-xl bg-gradient-to-r from-red-500 to-orange-400 hover:from-red-400 hover:to-orange-300 active:scale-[0.98] text-slate-950 font-bold text-sm shadow-lg shadow-red-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+        className={`w-full py-3.5 rounded-xl bg-gradient-to-r from-red-500 to-orange-400 hover:from-red-400 hover:to-orange-300 active:scale-[0.98] text-slate-950 font-bold text-sm shadow-lg shadow-red-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 ${onboardingHighlight ? 'onboarding-workout-glow' : ''}`}
       >
         <Dumbbell className="w-4 h-4 stroke-[2.5]" />
         {isSubmitting ? 'Recording to Sheet...' : 'Log This Workout'}

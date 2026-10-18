@@ -92,11 +92,25 @@ async function getEmailScopedRows(sheets: any, sheetName: string, email: string)
     .filter(({ row }) => String(row[emailColumn] || '').trim().toLowerCase() === normalizedEmail);
 }
 
-/** Build and append rows by column header so User and Email are always populated. */
+function normalizeSheetHeader(value: unknown) {
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+const SHEET_HEADER_ALIASES: Record<string, string[]> = {
+  user: ['user'], email: ['email'], name: ['name', 'workout', 'workoutname'],
+  dish: ['dish', 'name', 'food'], portion: ['portion', 'quantity'],
+  timestamp: ['timestamp', 'timestamputc', 'createdat', 'createdatutc', 'date'],
+  ingredient: ['ingredient'], quantity: ['quantity', 'amount'],
+  calories: ['calories', 'calorieskcal', 'caloriesburnt', 'caloriesburntkcal'], protein: ['protein'], carbs: ['carbs', 'carbohydrates'],
+  fats: ['fat', 'fats'], calcium: ['calcium'], iron: ['iron'], potassium: ['potassium'], sodium: ['sodium'],
+  vitaminc: ['vitaminc', 'vitamincmg'], vitaminb12: ['vitaminb12', 'vitaminb12mcg'], vitamind: ['vitamind', 'vitamindmcg'],
+};
+
+/** Build complete rows from named fields, placing every value under its matching header. */
 async function appendRowsForUser(
   sheets: any,
   sheetName: string,
-  rows: any[][],
+  records: Record<string, unknown>[],
   userName: string,
   email: string
 ) {
@@ -104,25 +118,16 @@ async function appendRowsForUser(
     spreadsheetId: SPREADSHEET_ID,
     range: `${sheetName}!A1:Z1`,
   });
-  const headers = (headerResult.data.values?.[0] || []).map((value: unknown) => String(value || '').trim().toLowerCase());
-  const userColumns = headers.flatMap((header: string, index: number) => header === 'user' ? [index] : []);
-  const emailColumns = headers.flatMap((header: string, index: number) => header === 'email' ? [index] : []);
-  if (userColumns.length !== 1 || emailColumns.length !== 1) {
-    throw new Error(`${sheetName} sheet must have distinct User and Email columns`);
-  }
-  const userColumn = userColumns[0];
-  const emailColumn = emailColumns[0];
-
-  const output = rows.map((values) => {
+  const headers: string[] = headerResult.data.values?.[0] || [];
+  const normalized = headers.map(normalizeSheetHeader);
+  const output = records.map((record) => {
+    const fields = { ...record, user: userName, email: email.trim().toLowerCase() };
     const row = new Array(headers.length).fill('');
-    let valueIndex = 0;
-    headers.forEach((_header: string, column: number) => {
-      if (column === userColumn) row[column] = userName;
-      else if (column === emailColumn) row[column] = email.trim().toLowerCase();
-      else row[column] = values[valueIndex++] ?? '';
-    });
-    if (valueIndex !== values.length) {
-      throw new Error(`${sheetName} columns do not match the expected record layout`);
+    for (const [key, value] of Object.entries(fields)) {
+      const aliases = SHEET_HEADER_ALIASES[normalizeSheetHeader(key)] || [normalizeSheetHeader(key)];
+      const matches = normalized.flatMap((header, index) => aliases.includes(header) ? [index] : []);
+      if (matches.length !== 1) throw new Error(`${sheetName} sheet must have exactly one column for ${key}`);
+      row[matches[0]] = value ?? '';
     }
     return row;
   });
@@ -131,6 +136,95 @@ async function appendRowsForUser(
     range: `${sheetName}!A:Z`,
     valueInputOption: 'USER_ENTERED',
     requestBody: { values: output },
+  });
+}
+
+type PlanSheetColumns = {
+  name: number;
+  user: number;
+  email: number;
+  targetWeight: number;
+  restingCalories: number;
+  startDate: number;
+  comment: number;
+  status: number;
+};
+
+async function readPlanSheet(sheets: any): Promise<{
+  headers: string[];
+  columns: PlanSheetColumns;
+  rows: { row: any[]; rowNumber: number }[];
+}> {
+  const result = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: 'Plan!A1:Z',
+  });
+  const rawRows: any[][] = result.data.values || [];
+  const headers = rawRows[0] || [];
+  const normalized = headers.map(normalizeSheetHeader);
+  const column = (key: string, aliases: string[]) => {
+    const matches = normalized.flatMap((header, index) => aliases.includes(header) ? [index] : []);
+    if (matches.length !== 1) throw new Error(`Plan sheet must have exactly one ${key} column`);
+    return matches[0];
+  };
+  const columns: PlanSheetColumns = {
+    name: column('Name', ['name', 'planname']),
+    user: column('User', ['user']),
+    email: column('Email', ['email']),
+    targetWeight: column('Target Weight', ['targetweight', 'targetweightkg']),
+    restingCalories: column('Resting Calories', ['restingcalories', 'restingcalorieskcal']),
+    startDate: column('Created At', ['createdat', 'createdatutc', 'startdate']),
+    comment: column('Comment', ['comment']),
+    status: column('Status', ['status']),
+  };
+  return {
+    headers,
+    columns,
+    rows: rawRows.slice(1).map((row, index) => ({ row, rowNumber: index + 2 })),
+  };
+}
+
+function normalizePlanRow(row: any[], columns: PlanSheetColumns) {
+  // Preserve the internal order used by plan analytics, independent of sheet column order.
+  return [
+    row[columns.name] ?? '',
+    row[columns.user] ?? '',
+    row[columns.targetWeight] ?? '',
+    row[columns.restingCalories] ?? '',
+    row[columns.startDate] ?? '',
+    row[columns.comment] ?? '',
+    row[columns.status] ?? '',
+  ];
+}
+
+async function getEmailScopedPlanRows(sheets: any, email: string) {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  if (!normalizedEmail) throw new Error('A user email is required to read the Plan sheet');
+  const planSheet = await readPlanSheet(sheets);
+  return {
+    ...planSheet,
+    rows: planSheet.rows
+      .filter(({ row, }) => String(row[planSheet.columns.email] || '').trim().toLowerCase() === normalizedEmail)
+      .map(({ row, rowNumber }) => ({ row: normalizePlanRow(row, planSheet.columns), rowNumber })),
+  };
+}
+
+async function appendPlanForUser(sheets: any, p: PlanInput, email: string) {
+  const { headers, columns } = await readPlanSheet(sheets);
+  const row = new Array(headers.length).fill('');
+  row[columns.name] = p.planName;
+  row[columns.user] = p.userName;
+  row[columns.email] = email.trim().toLowerCase();
+  row[columns.targetWeight] = p.targetWeightKg;
+  row[columns.restingCalories] = p.restingCalories;
+  row[columns.startDate] = p.startDate;
+  row[columns.comment] = p.comment || '';
+  row[columns.status] = planStatus(p.startDate);
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SPREADSHEET_ID,
+    range: 'Plan!A:Z',
+    valueInputOption: 'USER_ENTERED',
+    requestBody: { values: [row] },
   });
 }
 
@@ -158,17 +252,103 @@ export async function registerSheetUser(firstName: string, lastName: string, ema
   const passwordHash = await hashPassword(password);
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
-    range: 'User!F1:I1',
+    range: 'User!F1:J1',
     valueInputOption: 'RAW',
-    requestBody: { values: [['Email', 'Password Hash', 'First Name', 'Last Name']] },
+    requestBody: { values: [['Email', 'Password Hash', 'First Name', 'Last Name', 'Onboarding Step']] },
   });
+  const userHeadersResult = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'User!A1:J1' });
+  const userHeaders: string[] = userHeadersResult.data.values?.[0] || [];
+  const userFields: Record<string, unknown> = {
+    name, 'weight (kg)': 0, 'height (cm)': 0, 'workouts per week': 0, avatar: '🐻',
+    email: normalizedEmail, 'password hash': passwordHash, 'first name': first, 'last name': last, 'onboarding step': 0,
+  };
+  const userRecord = new Array(userHeaders.length).fill('');
+  for (const [field, value] of Object.entries(userFields)) {
+    const matches = userHeaders.flatMap((header, index) => normalizeSheetHeader(header) === normalizeSheetHeader(field) ? [index] : []);
+    if (matches.length !== 1) throw new Error(`User sheet must have exactly one ${field} column`);
+    userRecord[matches[0]] = value;
+  }
   await sheets.spreadsheets.values.append({
     spreadsheetId: SPREADSHEET_ID,
-    range: 'User!A:I',
+    range: 'User!A:J',
     valueInputOption: 'RAW',
-    requestBody: { values: [[name, 0, 0, 0, '🐻', normalizedEmail, passwordHash, first, last]] },
+    requestBody: { values: [userRecord] },
   });
   return { name, username: normalizedEmail, rowNumber: rows.length + 2 };
+}
+
+export async function getUserOnboardingStep(email: string): Promise<number> {
+  const sheets = getGoogleSheetsClient();
+  if (!sheets) throw new Error('Google Sheets is not configured');
+  const result = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: 'User!A1:J',
+  });
+  const rows: any[][] = result.data.values || [];
+  const headers = (rows[0] || []).map((value) => String(value || '').trim().toLowerCase());
+  const emailColumn = headers.indexOf('email');
+  let stepColumn = headers.indexOf('onboarding step');
+  if (emailColumn < 0) throw new Error('User sheet is missing its Email column');
+  if (stepColumn < 0) {
+    stepColumn = headers.length;
+    const col = columnLetters(stepColumn + 1);
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `User!${col}1`,
+      valueInputOption: 'RAW',
+      requestBody: { values: [['Onboarding Step']] },
+    });
+  }
+  const normalizedEmail = email.trim().toLowerCase();
+  const index = rows.slice(1).findIndex((row) => String(row[emailColumn] || '').trim().toLowerCase() === normalizedEmail);
+  if (index < 0) throw new Error('User record not found');
+  const rawStep = rows[index + 1]?.[stepColumn];
+  return String(rawStep).trim() === '0' ? 0 : 1;
+}
+
+export async function completeUserOnboarding(email: string): Promise<void> {
+  const sheets = getGoogleSheetsClient();
+  if (!sheets) throw new Error('Google Sheets is not configured');
+  const result = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: 'User!A1:J',
+  });
+  const rows: any[][] = result.data.values || [];
+  const headers = (rows[0] || []).map((value) => String(value || '').trim().toLowerCase());
+  const emailColumn = headers.indexOf('email');
+  let stepColumn = headers.indexOf('onboarding step');
+  if (emailColumn < 0) throw new Error('User sheet is missing its Email column');
+  if (stepColumn < 0) {
+    stepColumn = headers.length;
+    const col = columnLetters(stepColumn + 1);
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `User!${col}1`,
+      valueInputOption: 'RAW',
+      requestBody: { values: [['Onboarding Step']] },
+    });
+  }
+  const normalizedEmail = email.trim().toLowerCase();
+  const index = rows.slice(1).findIndex((row) => String(row[emailColumn] || '').trim().toLowerCase() === normalizedEmail);
+  if (index < 0) throw new Error('User record not found');
+  const col = columnLetters(stepColumn + 1);
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `User!${col}${index + 2}`,
+    valueInputOption: 'RAW',
+    requestBody: { values: [[1]] },
+  });
+}
+
+function columnLetters(columnNumber: number): string {
+  let result = '';
+  let n = columnNumber;
+  while (n > 0) {
+    const remainder = (n - 1) % 26;
+    result = String.fromCharCode(65 + remainder) + result;
+    n = Math.floor((n - 1) / 26);
+  }
+  return result;
 }
 
 export async function authenticateSheetUser(username: string, password: string): Promise<SheetUser | null> {
@@ -524,7 +704,7 @@ export async function appendMealLog(
   await appendRowsForUser(
     sheets,
     'Food',
-    [[entry.dish, entry.portion, entry.timestamp || new Date().toISOString()]],
+    [{ dish: entry.dish, portion: entry.portion, timestamp: entry.timestamp || new Date().toISOString() }],
     entry.user || 'Pritam Mallick',
     userEmail
   );
@@ -544,11 +724,11 @@ export async function appendRecipe(
     return { success: true, isLive: false };
   }
 
-  // One row per ingredient: Dish | Ingredient | Quantity
+  // One row per ingredient, with values matched to their named headers.
   await appendRowsForUser(
     sheets,
     'Recipe',
-    items.map((i) => [dish, i.ingredient, i.quantity]),
+    items.map((i) => ({ dish, ingredient: i.ingredient, quantity: i.quantity })),
     userName,
     userEmail
   );
@@ -571,22 +751,12 @@ export async function appendPackaged(p: {
     return { success: true, isLive: false };
   }
 
-  // Dish | Quantity | User | Calories | Protein | Carbs | Fat | Calcium | Iron | Potassium | Sodium | Vit C | Vit B12 | Vit D
-  await appendRowsForUser(sheets, 'Packaged', [[
-          p.dish,
-          p.quantity,
-          p.calories,
-          p.protein,
-          p.carbs,
-          p.fats,
-          p.micros.calcium,
-          p.micros.iron,
-          p.micros.potassium,
-          p.micros.sodium,
-          p.micros.vitaminC,
-          p.micros.vitaminB12,
-          p.micros.vitaminD,
-        ]], p.user, p.email);
+  await appendRowsForUser(sheets, 'Packaged', [{
+    dish: p.dish, quantity: p.quantity, calories: p.calories, protein: p.protein, carbs: p.carbs,
+    fats: p.fats, calcium: p.micros.calcium, iron: p.micros.iron, potassium: p.micros.potassium,
+    sodium: p.micros.sodium, vitaminC: p.micros.vitaminC, vitaminB12: p.micros.vitaminB12,
+    vitaminD: p.micros.vitaminD,
+  }], p.user, p.email);
   return { success: true, isLive: true };
 }
 
@@ -744,8 +914,8 @@ export async function fetchPlanAnalytics(userEmail: string, displayName?: string
   }
 
   try {
-    const [planRowsScoped, userRes, workoutRowsScoped, mealLogsData] = await Promise.all([
-      getEmailScopedRows(sheets, 'Plan', userEmail),
+    const [planSheetData, userRes, workoutRowsScoped, mealLogsData] = await Promise.all([
+      getEmailScopedPlanRows(sheets, userEmail),
       sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,
         range: 'User!A2:G',
@@ -754,7 +924,7 @@ export async function fetchPlanAnalytics(userEmail: string, displayName?: string
       fetchMealLogs(userEmail),
     ]);
 
-    const allPlanEntries = planRowsScoped;
+    const allPlanEntries = planSheetData.rows;
     const allPlanRows: any[][] = allPlanEntries.map(({ row }) => row);
     const planEntries = allPlanEntries
       .filter(({ row }) => String(row[6] || '').trim().toUpperCase() !== 'DELETED');
@@ -1054,7 +1224,7 @@ export async function appendWorkout(
   await appendRowsForUser(
     sheets,
     'Workouts',
-    [[entry.name, entry.timestamp, entry.caloriesBurnt]],
+    [{ name: entry.name, timestamp: entry.timestamp, calories: entry.caloriesBurnt }],
     entry.user,
     userEmail
   );
@@ -1073,11 +1243,25 @@ export async function updateProfile(
   const userIndex = userRows.findIndex((row) => String(row[0] || '').trim() === p.userName);
   if (userIndex < 0) throw new Error('User profile not found');
   const userRowNumber = userIndex + 2;
+  let planSheet: Awaited<ReturnType<typeof getEmailScopedPlanRows>> | undefined;
   if (p.planRow) {
-    const planRows = await getEmailScopedRows(sheets, 'Plan', userEmail);
-    const plan = planRows.find(({ rowNumber }) => rowNumber === p.planRow);
+    planSheet = await getEmailScopedPlanRows(sheets, userEmail);
+    const plan = planSheet.rows.find(({ rowNumber }) => rowNumber === p.planRow);
     if (!plan || String(plan.row[1] || '').trim() !== p.userName) throw new Error('Plan does not belong to this account');
   }
+  const planData = p.planRow && planSheet
+    ? [
+        [planSheet.columns.name, p.planName],
+        [planSheet.columns.targetWeight, p.targetWeightKg],
+        [planSheet.columns.restingCalories, p.restingCalories],
+        [planSheet.columns.startDate, p.startDate],
+        [planSheet.columns.comment, p.comment || ''],
+        [planSheet.columns.status, planStatus(p.startDate)],
+      ].map(([column, value]) => ({
+        range: `Plan!${columnLetters(Number(column) + 1)}${p.planRow}`,
+        values: [[value]],
+      }))
+    : [];
   await sheets.spreadsheets.values.batchUpdate({
     spreadsheetId: SPREADSHEET_ID,
     requestBody: {
@@ -1087,14 +1271,7 @@ export async function updateProfile(
           range: `User!A${userRowNumber}:D${userRowNumber}`,
           values: [[p.userName, p.weightKg, p.heightCm, p.workoutsPerWeek]],
         },
-        ...(p.planRow
-          ? [
-              {
-                range: `Plan!A${p.planRow}:G${p.planRow}`,
-                values: [[p.planName, p.userName, p.targetWeightKg, p.restingCalories, p.startDate, p.comment || '', planStatus(p.startDate)]],
-              },
-            ]
-          : []),
+        ...planData,
       ],
     },
   });
@@ -1127,13 +1304,7 @@ export async function addPlan(p: PlanInput, userEmail: string): Promise<{ succes
   const sheets = getGoogleSheetsClient();
   if (!sheets) return { success: true, isLive: false };
 
-  await appendRowsForUser(
-    sheets,
-    'Plan',
-    [[p.planName, p.targetWeightKg, p.restingCalories, p.startDate, p.comment || '', planStatus(p.startDate)]],
-    p.userName,
-    userEmail
-  );
+  await appendPlanForUser(sheets, p, userEmail);
   return { success: true, isLive: true };
 }
 
@@ -1147,17 +1318,21 @@ export async function deletePlan(
   const sheets = getGoogleSheetsClient();
   if (!sheets) return { success: true, isLive: false };
 
-  const rows = await getEmailScopedRows(sheets, 'Plan', userEmail || '');
-  const selected = rows.find(({ rowNumber: actual }) => actual === rowNumber);
+  const planSheet = await getEmailScopedPlanRows(sheets, userEmail || '');
+  const selected = planSheet.rows.find(({ rowNumber: actual }) => actual === rowNumber);
   if (!selected) throw new Error('Plan not found');
   if (userName && String(selected.row[1] || '').trim() !== userName) throw new Error('Plan does not belong to this account');
 
   const existingComment = String(selected.row[5] || '');
-  await sheets.spreadsheets.values.update({
+  await sheets.spreadsheets.values.batchUpdate({
     spreadsheetId: SPREADSHEET_ID,
-    range: `Plan!F${rowNumber}:G${rowNumber}`,
-    valueInputOption: 'USER_ENTERED',
-    requestBody: { values: [[comment === undefined ? existingComment : comment, 'DELETED']] },
+    requestBody: {
+      valueInputOption: 'USER_ENTERED',
+      data: [
+        { range: `Plan!${columnLetters(planSheet.columns.comment + 1)}${rowNumber}`, values: [[comment === undefined ? existingComment : comment]] },
+        { range: `Plan!${columnLetters(planSheet.columns.status + 1)}${rowNumber}`, values: [['DELETED']] },
+      ],
+    },
   });
   return { success: true, isLive: true };
 }
