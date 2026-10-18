@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { PlanAnalytics, PlanInput, PlanSummary, ProfileUpdate } from '@/types/nutrition';
-import { ArrowLeft, ChevronDown, Eye, EyeOff, LogOut, Mail, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Eye, EyeOff, Info, LogOut, Mail, Plus, Trash2 } from 'lucide-react';
 import { AVATARS } from '@/lib/avatars';
 
 interface ProfileScreenProps {
@@ -265,6 +265,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const [newComment, setNewComment] = useState('');
   const [planBusy, setPlanBusy] = useState(false);
   const [planError, setPlanError] = useState<string | null>(null);
+  const [showRestingCaloriesInfo, setShowRestingCaloriesInfo] = useState(false);
 
   // User details and a plan row are written together, so the other half is sent unchanged.
   const savedUser = {
@@ -545,12 +546,35 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                   onChange={setNewTarget}
                   props={{ type: 'number', step: 'any', min: '1' }}
                 />
-                <FormField
-                  label="Resting calories (kcal)"
-                  value={newResting}
-                  onChange={setNewResting}
-                  props={{ type: 'number', min: '1' }}
-                />
+                <div className="relative">
+                  <div className="flex h-4 items-center gap-2 mb-1">
+                    <label htmlFor="new-plan-resting-calories" className="text-xs font-medium leading-4 text-slate-300">Resting calories (kcal)</label>
+                    <button
+                      type="button"
+                      aria-label="Explain resting calories"
+                      aria-expanded={showRestingCaloriesInfo}
+                      aria-controls="resting-calories-tooltip"
+                      onClick={() => setShowRestingCaloriesInfo((shown) => !shown)}
+                      className="inline-flex h-4 w-4 items-center justify-center text-slate-500 hover:text-emerald-300 focus:text-emerald-300"
+                    >
+                      <Info className="h-3.5 w-3.5 shrink-0" />
+                    </button>
+                  </div>
+                  <input
+                    id="new-plan-resting-calories"
+                    type="number"
+                    min="1"
+                    required
+                    value={newResting}
+                    onChange={(e) => setNewResting(e.target.value)}
+                    className={inputCls}
+                  />
+                  {showRestingCaloriesInfo && (
+                    <div id="resting-calories-tooltip" role="tooltip" className="absolute right-0 top-full z-30 mt-2 w-64 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-[11px] leading-relaxed text-slate-300 shadow-xl">
+                      Enter your estimated calories burned per day at rest (BMR). This is the baseline for the plan&apos;s deficit calculations; workout calories and TEF are added separately.
+                    </div>
+                  )}
+                </div>
               </div>
               <DateField label="Start date" value={newStart} onChange={setNewStart} />
               <FormField
