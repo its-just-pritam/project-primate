@@ -492,6 +492,10 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
                 <XAxis dataKey="date" tick={<DayTick />} interval={0} height={40} tickLine={false} axisLine={{ stroke: '#334155' }} />
                 <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} width={40} />
                 <Tooltip
+                  formatter={(value, name) => [
+                    `${Number(value).toLocaleString(undefined, { maximumFractionDigits: 1 })} g`,
+                    name,
+                  ]}
                   {...TOOLTIP_PROPS}
                 />
                 <ReferenceLine y={targets.protein} stroke="#10b981" strokeDasharray="3 3" />
