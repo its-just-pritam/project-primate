@@ -25,16 +25,22 @@ interface ProfileScreenProps {
 const inputCls =
   'w-full h-10 bg-slate-950 border border-slate-800 rounded-xl px-3 text-sm text-white focus:outline-none focus:border-emerald-500';
 
-const isoDay = (offset = 0) => {
-  const d = new Date();
-  d.setDate(d.getDate() + offset);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const localDateTimeInputValue = (timestamp?: string) => {
+  const parsed = timestamp ? new Date(timestamp) : new Date();
+  const date = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  const datePart = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  const timePart = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
+  return `${datePart}T${timePart}`;
 };
-const today = () => isoDay(0);
+
+const localDateTimeToUtc = (value: string) => {
+  return new Date(value).toISOString().replace(/\.\d{3}Z$/, 'Z');
+};
 
 const describeDate = (iso: string) => {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return '';
-  const [y, m, d] = iso.split('-').map(Number);
+  const datePart = iso.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return '';
+  const [y, m, d] = datePart.split('-').map(Number);
   const date = new Date(y, m - 1, d);
   const label = date.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
   const days = Math.round((date.getTime() - new Date(new Date().setHours(0, 0, 0, 0)).getTime()) / 86400000);
@@ -50,7 +56,8 @@ const DateField: React.FC<{ label: string; value: string; onChange: (v: string) 
   <div>
     <label className="text-xs font-medium text-slate-300 block mb-1">{label}</label>
     <input
-      type="date"
+      type="datetime-local"
+      step="1"
       value={value}
       onChange={(e) => onChange(e.target.value)}
       required
@@ -122,7 +129,7 @@ const PlanCard: React.FC<{
   const [name, setName] = useState(plan.name);
   const [target, setTarget] = useState(String(plan.targetWeight));
   const [resting, setResting] = useState(String(plan.restingCalories));
-  const [start, setStart] = useState(plan.startDate.slice(0, 10));
+  const [start, setStart] = useState(localDateTimeInputValue(plan.startDate));
   const [comment, setComment] = useState(plan.comment);
   const [error, setError] = useState<string | null>(null);
 
@@ -134,7 +141,7 @@ const PlanCard: React.FC<{
       userName: '',
       targetWeightKg: parseFloat(target),
       restingCalories: parseFloat(resting),
-      startDate: `${start}T00:00:00Z`,
+      startDate: localDateTimeToUtc(start),
       comment: comment.trim(),
     });
     if (!ok) setError('Could not save the plan. Please check the values.');
@@ -167,7 +174,7 @@ const PlanCard: React.FC<{
             </span>
           </p>
           <p className="text-[11px] text-slate-400">
-            Target {plan.targetWeight} kg · {plan.restingCalories} kcal/d · from {plan.startDate.slice(0, 10)}
+            Target {plan.targetWeight} kg · {plan.restingCalories} kcal/d · from {localDateTimeInputValue(plan.startDate).slice(0, 10)}
           </p>
           {plan.comment && <p className="text-[11px] text-slate-500 italic mt-0.5">{plan.comment}</p>}
         </div>
@@ -271,7 +278,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const [newName, setNewName] = useState('');
   const [newTarget, setNewTarget] = useState('');
   const [newResting, setNewResting] = useState(String(plan?.restingCalories ?? ''));
-  const [newStart, setNewStart] = useState(today());
+  const [newStart, setNewStart] = useState(localDateTimeInputValue());
   const [newComment, setNewComment] = useState('');
   const [planBusy, setPlanBusy] = useState(false);
   const [planError, setPlanError] = useState<string | null>(null);
@@ -378,7 +385,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       userName: savedUser.userName,
       targetWeightKg: parseFloat(newTarget),
       restingCalories: parseFloat(newResting),
-      startDate: `${newStart}T00:00:00Z`,
+      startDate: localDateTimeToUtc(newStart),
       comment: newComment.trim(),
     });
     setPlanBusy(false);

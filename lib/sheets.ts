@@ -75,7 +75,7 @@ export function getGoogleSheetsClient() {
 export type SheetUser = { name: string; username: string; rowNumber: number };
 
 /** Read rows from a user-owned tab and fail closed unless its Email header exists. */
-async function getEmailScopedRows(sheets: any, sheetName: string, email: string) {
+async function getEmailScopedRowsWithHeaders(sheets: any, sheetName: string, email: string) {
   const normalizedEmail = String(email || '').trim().toLowerCase();
   if (!normalizedEmail) throw new Error('A user email is required to read this sheet');
   const result = await sheets.spreadsheets.values.get({
@@ -87,13 +87,27 @@ async function getEmailScopedRows(sheets: any, sheetName: string, email: string)
   const emailColumns = headers.flatMap((header, index) => header === 'email' ? [index] : []);
   if (emailColumns.length !== 1) throw new Error(`${sheetName} sheet must have exactly one Email column`);
   const emailColumn = emailColumns[0];
-  return rows.slice(1)
+  return {
+    headers: rows[0] || [],
+    rows: rows.slice(1)
     .map((row, index) => ({ row, rowNumber: index + 2 }))
-    .filter(({ row }) => String(row[emailColumn] || '').trim().toLowerCase() === normalizedEmail);
+    .filter(({ row }) => String(row[emailColumn] || '').trim().toLowerCase() === normalizedEmail),
+  };
+}
+
+async function getEmailScopedRows(sheets: any, sheetName: string, email: string) {
+  return (await getEmailScopedRowsWithHeaders(sheets, sheetName, email)).rows;
 }
 
 function normalizeSheetHeader(value: unknown) {
   return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function findUniqueHeaderIndex(headers: unknown[], label: string, aliases: string[], sheetName = 'Packaged') {
+  const accepted = aliases.map(normalizeSheetHeader);
+  const matches = headers.flatMap((header, index) => accepted.includes(normalizeSheetHeader(header)) ? [index] : []);
+  if (matches.length !== 1) throw new Error(`${sheetName} sheet must have exactly one ${label} column`);
+  return matches[0];
 }
 
 const SHEET_HEADER_ALIASES: Record<string, string[]> = {
@@ -555,28 +569,44 @@ async function getDishCatalog(sheets: any, userEmail: string): Promise<{
     // Packaged items carry their nutrition directly; values are for `Quantity` servings.
     const packaged: Recipe[] = [];
     try {
-      const pkgRows = await getEmailScopedRows(sheets, 'Packaged', userEmail);
+      const { headers, rows: pkgRows } = await getEmailScopedRowsWithHeaders(sheets, 'Packaged', userEmail);
+      const columns = {
+        dish: findUniqueHeaderIndex(headers, 'Dish', ['dish', 'name', 'food']),
+        quantity: findUniqueHeaderIndex(headers, 'Quantity', ['quantity', 'amount', 'portion']),
+        calories: findUniqueHeaderIndex(headers, 'Calories', ['calories', 'calorieskcal']),
+        protein: findUniqueHeaderIndex(headers, 'Protein', ['protein', 'proteing']),
+        carbs: findUniqueHeaderIndex(headers, 'Carbohydrates', ['carbohydrates', 'carbohydratesg', 'carbs']),
+        fats: findUniqueHeaderIndex(headers, 'Fat', ['fat', 'fatg', 'fats']),
+        calcium: findUniqueHeaderIndex(headers, 'Calcium', ['calcium', 'calciummg']),
+        iron: findUniqueHeaderIndex(headers, 'Iron', ['iron', 'ironmg']),
+        potassium: findUniqueHeaderIndex(headers, 'Potassium', ['potassium', 'potassiummg']),
+        sodium: findUniqueHeaderIndex(headers, 'Sodium', ['sodium', 'sodiummg']),
+        vitaminC: findUniqueHeaderIndex(headers, 'Vitamin C', ['vitaminc', 'vitamincmg']),
+        vitaminB12: findUniqueHeaderIndex(headers, 'Vitamin B12', ['vitaminb12', 'vitaminb12mcg']),
+        vitaminD: findUniqueHeaderIndex(headers, 'Vitamin D', ['vitamind', 'vitamindiu', 'vitamindmcg']),
+      };
       pkgRows.forEach(({ row: r }) => {
-        const name = String(r[0] || '').trim();
+        const name = String(r[columns.dish] || '').trim();
         if (!name || dishMap[name]) return;
-        const qty = parseFloat(r[1]) > 0 ? parseFloat(r[1]) : 1;
+        const qtyValue = parseFloat(r[columns.quantity]);
+        const qty = qtyValue > 0 ? qtyValue : 1;
         const micros = scaleMicros(
           {
-            calcium: parseFloat(r[7]) || 0,
-            iron: parseFloat(r[8]) || 0,
-            potassium: parseFloat(r[9]) || 0,
-            sodium: parseFloat(r[10]) || 0,
-            vitaminC: parseFloat(r[11]) || 0,
-            vitaminB12: parseFloat(r[12]) || 0,
-            vitaminD: parseFloat(r[13]) || 0,
+            calcium: parseFloat(r[columns.calcium]) || 0,
+            iron: parseFloat(r[columns.iron]) || 0,
+            potassium: parseFloat(r[columns.potassium]) || 0,
+            sodium: parseFloat(r[columns.sodium]) || 0,
+            vitaminC: parseFloat(r[columns.vitaminC]) || 0,
+            vitaminB12: parseFloat(r[columns.vitaminB12]) || 0,
+            vitaminD: parseFloat(r[columns.vitaminD]) || 0,
           },
           1 / qty
         );
         const nutrition: DishNutrition = {
-          calories: (parseFloat(r[3]) || 0) / qty,
-          protein: (parseFloat(r[4]) || 0) / qty,
-          carbs: (parseFloat(r[5]) || 0) / qty,
-          fats: (parseFloat(r[6]) || 0) / qty,
+          calories: (parseFloat(r[columns.calories]) || 0) / qty,
+          protein: (parseFloat(r[columns.protein]) || 0) / qty,
+          carbs: (parseFloat(r[columns.carbs]) || 0) / qty,
+          fats: (parseFloat(r[columns.fats]) || 0) / qty,
           micros,
           ingredients: [],
         };
@@ -646,16 +676,23 @@ export async function fetchMealLogs(userEmail: string): Promise<{ logs: MealLogE
   try {
     const [{ dishMap }, foodRes] = await Promise.all([
       getDishCatalog(sheets, userEmail),
-      getEmailScopedRows(sheets, 'Food', userEmail),
+      getEmailScopedRowsWithHeaders(sheets, 'Food', userEmail),
     ]);
 
-    const logs: MealLogEntry[] = foodRes
+    const columns = {
+      dish: findUniqueHeaderIndex(foodRes.headers, 'Dish', ['dish', 'name', 'food'], 'Food'),
+      portion: findUniqueHeaderIndex(foodRes.headers, 'Portion', ['portion', 'quantity'], 'Food'),
+      timestamp: findUniqueHeaderIndex(foodRes.headers, 'Timestamp', ['timestamp', 'timestamputc', 'createdat', 'createdatutc', 'date'], 'Food'),
+      user: findUniqueHeaderIndex(foodRes.headers, 'User', ['user'], 'Food'),
+    };
+
+    const logs: MealLogEntry[] = foodRes.rows
       .map(({ row, rowNumber }) => ({ row, index: rowNumber - 2 }))
       .map(({ row, index }) => {
-      const dish = String(row[0] || '').trim();
-      const portion = parseFloat(row[1]) || 1;
-      const timestamp = String(row[2] || new Date().toISOString());
-      const user = String(row[3] || 'Pritam Mallick');
+      const dish = String(row[columns.dish] || '').trim();
+      const portion = parseFloat(row[columns.portion]) || 1;
+      const timestamp = String(row[columns.timestamp] || new Date().toISOString());
+      const user = String(row[columns.user] || 'Pritam Mallick');
 
       // Calculate macros dynamically on the fly using Recipe & Ingredients
       const dishNutrition: DishNutrition = dishMap[dish] || {
@@ -776,37 +813,54 @@ export async function updatePackaged(p: {
     return { success: true, isLive: false };
   }
 
-  const rows = await getEmailScopedRows(sheets, 'Packaged', p.email);
-  const match = rows.find(({ row: r }) => String(r[0] || '').trim() === p.dish && String(r[2] || '').trim() === p.user);
+  const { headers, rows } = await getEmailScopedRowsWithHeaders(sheets, 'Packaged', p.email);
+  const columns = {
+    dish: findUniqueHeaderIndex(headers, 'Dish', ['dish', 'name', 'food']),
+    quantity: findUniqueHeaderIndex(headers, 'Quantity', ['quantity', 'amount', 'portion']),
+    user: findUniqueHeaderIndex(headers, 'User', ['user']),
+    email: findUniqueHeaderIndex(headers, 'Email', ['email']),
+    calories: findUniqueHeaderIndex(headers, 'Calories', ['calories', 'calorieskcal']),
+    protein: findUniqueHeaderIndex(headers, 'Protein', ['protein', 'proteing']),
+    carbs: findUniqueHeaderIndex(headers, 'Carbohydrates', ['carbohydrates', 'carbohydratesg', 'carbs']),
+    fats: findUniqueHeaderIndex(headers, 'Fat', ['fat', 'fatg', 'fats']),
+    calcium: findUniqueHeaderIndex(headers, 'Calcium', ['calcium', 'calciummg']),
+    iron: findUniqueHeaderIndex(headers, 'Iron', ['iron', 'ironmg']),
+    potassium: findUniqueHeaderIndex(headers, 'Potassium', ['potassium', 'potassiummg']),
+    sodium: findUniqueHeaderIndex(headers, 'Sodium', ['sodium', 'sodiummg']),
+    vitaminC: findUniqueHeaderIndex(headers, 'Vitamin C', ['vitaminc', 'vitamincmg']),
+    vitaminB12: findUniqueHeaderIndex(headers, 'Vitamin B12', ['vitaminb12', 'vitaminb12mcg']),
+    vitaminD: findUniqueHeaderIndex(headers, 'Vitamin D', ['vitamind', 'vitamindiu', 'vitamindmcg']),
+  };
+  const match = rows.find(({ row }) => String(row[columns.dish] || '').trim() === p.dish && String(row[columns.user] || '').trim() === p.user);
   if (!match) {
     throw new Error(`Packaged item "${p.dish}" was not found`);
   }
 
-  // Sheet rows are 1-indexed; data starts at row 2, so sheet row = rowIdx + 2
-  const sheetRow = match.rowNumber;
-  await sheets.spreadsheets.values.update({
+  const fields: Record<string, unknown> = {
+    [columns.dish]: p.dish,
+    [columns.quantity]: p.quantity,
+    [columns.user]: p.user,
+    [columns.email]: p.email.trim().toLowerCase(),
+    [columns.calories]: p.calories,
+    [columns.protein]: p.protein,
+    [columns.carbs]: p.carbs,
+    [columns.fats]: p.fats,
+    [columns.calcium]: p.micros.calcium,
+    [columns.iron]: p.micros.iron,
+    [columns.potassium]: p.micros.potassium,
+    [columns.sodium]: p.micros.sodium,
+    [columns.vitaminC]: p.micros.vitaminC,
+    [columns.vitaminB12]: p.micros.vitaminB12,
+    [columns.vitaminD]: p.micros.vitaminD,
+  };
+  await sheets.spreadsheets.values.batchUpdate({
     spreadsheetId: SPREADSHEET_ID,
-    range: `Packaged!A${sheetRow}:N${sheetRow}`,
-    valueInputOption: 'USER_ENTERED',
     requestBody: {
-      values: [
-        [
-          p.dish,
-          p.quantity,
-          p.user,
-          p.calories,
-          p.protein,
-          p.carbs,
-          p.fats,
-          p.micros.calcium,
-          p.micros.iron,
-          p.micros.potassium,
-          p.micros.sodium,
-          p.micros.vitaminC,
-          p.micros.vitaminB12,
-          p.micros.vitaminD,
-        ],
-      ],
+      valueInputOption: 'USER_ENTERED',
+      data: Object.entries(fields).map(([column, value]) => ({
+        range: `Packaged!${columnLetters(Number(column) + 1)}${match.rowNumber}`,
+        values: [[value]],
+      })),
     },
   });
   return { success: true, isLive: true };
@@ -914,13 +968,13 @@ export async function fetchPlanAnalytics(userEmail: string, displayName?: string
   }
 
   try {
-    const [planSheetData, userRes, workoutRowsScoped, mealLogsData] = await Promise.all([
+    const [planSheetData, userRes, workoutsData, mealLogsData] = await Promise.all([
       getEmailScopedPlanRows(sheets, userEmail),
       sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,
         range: 'User!A2:G',
       }),
-      getEmailScopedRows(sheets, 'Workouts', userEmail),
+      fetchWorkouts(userEmail),
       fetchMealLogs(userEmail),
     ]);
 
@@ -993,7 +1047,7 @@ export async function fetchPlanAnalytics(userEmail: string, displayName?: string
         isLive: true,
       };
     }
-    const workoutRows: any[][] = workoutRowsScoped.map(({ row }) => row);
+    const workoutEntries = workoutsData.workouts;
     const mealLogs = mealLogsData.logs || [];
 
     const buildPlan = (planRow: any[]): PlanAnalytics => {
@@ -1014,14 +1068,14 @@ export async function fetchPlanAnalytics(userEmail: string, displayName?: string
 
     // Only activity since the plan started counts towards the plan
     const startMs = startDate.getTime();
-    const totalWorkoutBurnt = workoutRows.reduce((sum: number, row: any[]) => {
-      const when = new Date(String(row[2] || '')).getTime();
+    const totalWorkoutBurnt = workoutEntries.reduce((sum, workout) => {
+      const when = new Date(workout.timestamp).getTime();
       if (Number.isNaN(when) || when < startMs) return sum;
-      return sum + (parseFloat(row[3]) || 0);
+      return sum + workout.caloriesBurnt;
     }, 0);
     const workoutCaloriesByDate: Record<string, number> = {};
-    workoutRows.forEach((row: any[]) => {
-      const dateValue = String(row[2] || '').trim();
+    workoutEntries.forEach((workout) => {
+      const dateValue = String(workout.timestamp || '').trim();
       if (!dateValue) return;
 
       const parsedDate = new Date(dateValue);
@@ -1033,7 +1087,7 @@ export async function fetchPlanAnalytics(userEmail: string, displayName?: string
       const date = /^\d{4}-\d{2}-\d{2}/.test(dateValue)
         ? dateValue.slice(0, 10)
         : parsedDate.toISOString().split('T')[0];
-      const calories = parseFloat(row[3]) || 0;
+      const calories = workout.caloriesBurnt;
       workoutCaloriesByDate[date] = (workoutCaloriesByDate[date] || 0) + calories;
     });
 
@@ -1129,29 +1183,29 @@ export async function fetchPlanAnalytics(userEmail: string, displayName?: string
     const totalWeightChangeGrams = totalFatMassChangeGrams + totalMuscleMassChangeGrams;
     const averageDailyWeightChangeGrams =
       totalWeightChangeGrams / Math.max(1, dailyMuscleMassChanges.length);
-    const targetFatLossGrams = Math.max(0, currentWeight - targetWeight) * 1000;
-    const weightLossGrams = Math.max(0, -totalWeightChangeGrams);
-    const remainingWeightLossGrams = Math.max(0, targetFatLossGrams - weightLossGrams);
+    // Infer the plan-start weight from the current profile weight and modeled
+    // change. Progress must follow the target direction: loss for cutting,
+    // gain for bulking.
+    const planStartWeightGrams = currentWeight * 1000 - totalWeightChangeGrams;
+    const goalWeightChangeGrams = targetWeight * 1000 - planStartWeightGrams;
+    const remainingGoalWeightChangeGrams = targetWeight * 1000 - currentWeight * 1000;
+    const goalDirection = Math.sign(goalWeightChangeGrams);
+    const progressPercent = goalWeightChangeGrams === 0
+      ? 100
+      : Math.min(100, Math.round((totalWeightChangeGrams / goalWeightChangeGrams) * 1000) / 10);
 
     let daysRemaining = 0;
-    let projectedDate = 'Target achieved';
+    let projectedDate = progressPercent >= 100 ? 'Target achieved' : 'Need Daily Weight Change';
 
-    if (remainingWeightLossGrams > 0 && averageDailyWeightChangeGrams < 0) {
-      daysRemaining = Math.ceil(remainingWeightLossGrams / -averageDailyWeightChangeGrams);
+    if (progressPercent < 100 && remainingGoalWeightChangeGrams * goalDirection > 0 && averageDailyWeightChangeGrams * goalDirection > 0) {
+      daysRemaining = Math.ceil(Math.abs(remainingGoalWeightChangeGrams) / Math.abs(averageDailyWeightChangeGrams));
       const projDateObj = new Date(Date.now() + daysRemaining * 86400000);
       projectedDate = projDateObj.toLocaleDateString([], {
         month: 'short',
         day: 'numeric',
         year: 'numeric',
       });
-    } else if (remainingWeightLossGrams > 0) {
-      projectedDate = 'Need Daily Weight Loss';
     }
-
-    const progressPercent =
-      targetFatLossGrams > 0
-        ? Math.round((-totalWeightChangeGrams / targetFatLossGrams) * 1000) / 10
-        : 100;
 
     const plan: PlanAnalytics = {
       planName,
@@ -1195,20 +1249,37 @@ export async function fetchWorkouts(userEmail: string): Promise<{ workouts: Work
   const sheets = getGoogleSheetsClient();
   if (!sheets) return { workouts: [], isLive: false };
 
-  // Columns: Name, User, Created At (UTC), Calories Burnt (kCal)
-  const scopedRows = await getEmailScopedRows(sheets, 'Workouts', userEmail);
+  const normalizedEmail = String(userEmail || '').trim().toLowerCase();
+  if (!normalizedEmail) throw new Error('A user email is required to read this sheet');
+  const result = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: 'Workouts!A1:Z',
+  });
+  const rows: any[][] = result.data.values || [];
+  const headers = (rows[0] || []).map(normalizeSheetHeader);
+  const column = (label: string, aliases: string[]) => {
+    const matches = headers.flatMap((header, index) => aliases.includes(header) ? [index] : []);
+    if (matches.length !== 1) throw new Error(`Workouts sheet must have exactly one ${label} column`);
+    return matches[0];
+  };
+  const nameColumn = column('Name', ['name', 'workout', 'workoutname']);
+  const userColumn = column('User', ['user']);
+  const emailColumn = column('Email', ['email']);
+  const timestampColumn = column('Created At', ['timestamp', 'timestamputc', 'createdat', 'createdatutc', 'date']);
+  const caloriesColumn = column('Calories Burnt', ['calories', 'calorieskcal', 'caloriesburnt', 'caloriesburntkcal']);
   const workouts: WorkoutEntry[] = [];
-  scopedRows.forEach(({ row, rowNumber }) => {
-    const name = String(row[0] || '').trim();
-    const timestamp = String(row[2] || '').trim();
+  rows.slice(1).forEach((row, index) => {
+    if (String(row[emailColumn] || '').trim().toLowerCase() !== normalizedEmail) return;
+    const name = String(row[nameColumn] || '').trim();
+    const timestamp = String(row[timestampColumn] || '').trim();
     if (!name || Number.isNaN(new Date(timestamp).getTime())) return;
-    const user = String(row[1] || '').trim();
+    const user = String(row[userColumn] || '').trim();
     workouts.push({
-      id: String(rowNumber - 1),
+      id: String(index + 1),
       name,
       user,
       timestamp: new Date(timestamp).toISOString(),
-      caloriesBurnt: parseFloat(row[3]) || 0,
+      caloriesBurnt: parseFloat(row[caloriesColumn]) || 0,
     });
   });
   return { workouts, isLive: true };
@@ -1355,13 +1426,17 @@ async function deleteLogRow(
     ?.sheetId;
   if (sheetId === undefined || sheetId === null) throw new Error(`${sheetTitle} sheet not found`);
 
-  const scopedRows = await getEmailScopedRows(sheets, sheetTitle, userEmail);
+  const { headers, rows: scopedRows } = await getEmailScopedRowsWithHeaders(sheets, sheetTitle, userEmail);
+  const isFood = sheetTitle === 'Food';
+  const nameColumn = findUniqueHeaderIndex(headers, isFood ? 'Dish' : 'Name', isFood ? ['dish', 'name', 'food'] : ['name', 'workout', 'workoutname'], sheetTitle);
+  const userColumn = findUniqueHeaderIndex(headers, 'User', ['user'], sheetTitle);
+  const timestampColumn = findUniqueHeaderIndex(headers, isFood ? 'Timestamp' : 'Created At', ['timestamp', 'timestamputc', 'createdat', 'createdatutc', 'date'], sheetTitle);
   const selected = scopedRows.find(({ rowNumber: actual }) => actual === rowNumber);
   if (!selected) throw new Error('This entry does not belong to this account. Refresh and try again.');
   const row: any[] = selected.row;
-  const sameName = String(row[0] || '').trim() === expectedName.trim();
-  const sameUser = !expectedUser || String(row[sheetTitle === 'Food' ? 3 : 1] || '').trim() === expectedUser;
-  const a = new Date(String(row[2] || '')).getTime();
+  const sameName = String(row[nameColumn] || '').trim() === expectedName.trim();
+  const sameUser = !expectedUser || String(row[userColumn] || '').trim() === expectedUser;
+  const a = new Date(String(row[timestampColumn] || '')).getTime();
   const b = new Date(expectedTimestamp).getTime();
   const sameTime = Number.isNaN(a) || Number.isNaN(b) ? true : a === b;
   if (!sameName || !sameTime || !sameUser) throw new Error('This entry has changed or does not belong to this account. Refresh and try again.');
