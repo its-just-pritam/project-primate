@@ -6,7 +6,6 @@ import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from 'crypto';
 import {
   MealLogEntry,
   Recipe,
-  DEFAULT_RECIPES,
   PlanAnalytics,
   Micronutrients,
   DishIngredient,
@@ -74,6 +73,66 @@ export function getGoogleSheetsClient() {
 }
 
 export type SheetUser = { name: string; username: string; rowNumber: number };
+
+/** Read rows from a user-owned tab and fail closed unless its Email header exists. */
+async function getEmailScopedRows(sheets: any, sheetName: string, email: string) {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  if (!normalizedEmail) throw new Error('A user email is required to read this sheet');
+  const result = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${sheetName}!A1:Z`,
+  });
+  const rows: any[][] = result.data.values || [];
+  const headers = (rows[0] || []).map((value) => String(value || '').trim().toLowerCase());
+  const emailColumns = headers.flatMap((header, index) => header === 'email' ? [index] : []);
+  if (emailColumns.length !== 1) throw new Error(`${sheetName} sheet must have exactly one Email column`);
+  const emailColumn = emailColumns[0];
+  return rows.slice(1)
+    .map((row, index) => ({ row, rowNumber: index + 2 }))
+    .filter(({ row }) => String(row[emailColumn] || '').trim().toLowerCase() === normalizedEmail);
+}
+
+/** Build and append rows by column header so User and Email are always populated. */
+async function appendRowsForUser(
+  sheets: any,
+  sheetName: string,
+  rows: any[][],
+  userName: string,
+  email: string
+) {
+  const headerResult = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${sheetName}!A1:Z1`,
+  });
+  const headers = (headerResult.data.values?.[0] || []).map((value: unknown) => String(value || '').trim().toLowerCase());
+  const userColumns = headers.flatMap((header: string, index: number) => header === 'user' ? [index] : []);
+  const emailColumns = headers.flatMap((header: string, index: number) => header === 'email' ? [index] : []);
+  if (userColumns.length !== 1 || emailColumns.length !== 1) {
+    throw new Error(`${sheetName} sheet must have distinct User and Email columns`);
+  }
+  const userColumn = userColumns[0];
+  const emailColumn = emailColumns[0];
+
+  const output = rows.map((values) => {
+    const row = new Array(headers.length).fill('');
+    let valueIndex = 0;
+    headers.forEach((_header: string, column: number) => {
+      if (column === userColumn) row[column] = userName;
+      else if (column === emailColumn) row[column] = email.trim().toLowerCase();
+      else row[column] = values[valueIndex++] ?? '';
+    });
+    if (valueIndex !== values.length) {
+      throw new Error(`${sheetName} columns do not match the expected record layout`);
+    }
+    return row;
+  });
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `${sheetName}!A:Z`,
+    valueInputOption: 'USER_ENTERED',
+    requestBody: { values: output },
+  });
+}
 
 async function hashPassword(password: string) {
   const salt = randomBytes(16);
@@ -211,7 +270,7 @@ export function scaleIngredients(ingredients: DishIngredient[], portion: number)
 }
 
 // Compute dish nutrition dynamically from Ingredients and Recipe sheets
-async function getDishCatalog(sheets: any, userName?: string): Promise<{
+async function getDishCatalog(sheets: any, userEmail: string): Promise<{
   dishMap: Record<string, DishNutrition>;
   recipes: Recipe[];
   packaged: Recipe[];
@@ -224,14 +283,11 @@ async function getDishCatalog(sheets: any, userName?: string): Promise<{
         spreadsheetId: SPREADSHEET_ID,
         range: 'Ingredients!A2:N',
       }),
-      sheets.spreadsheets.values.get({
-        spreadsheetId: SPREADSHEET_ID,
-        range: 'Recipe!A2:C',
-      }),
+      getEmailScopedRows(sheets, 'Recipe', userEmail),
     ]);
 
     const ingRows = ingRes.data.values || [];
-    const recRows = recRes.data.values || [];
+    const recRows = recRes.map(({ row }) => row);
 
     const ingMap: Record<string, IngredientInfo> = {};
     ingRows.forEach((r: any[]) => {
@@ -319,12 +375,8 @@ async function getDishCatalog(sheets: any, userName?: string): Promise<{
     // Packaged items carry their nutrition directly; values are for `Quantity` servings.
     const packaged: Recipe[] = [];
     try {
-      const pkgRes = await sheets.spreadsheets.values.get({
-        spreadsheetId: SPREADSHEET_ID,
-        range: 'Packaged!A2:N',
-      });
-      (pkgRes.data.values || []).forEach((r: any[]) => {
-        if (userName && String(r[2] || '').trim() !== userName) return;
+      const pkgRows = await getEmailScopedRows(sheets, 'Packaged', userEmail);
+      pkgRows.forEach(({ row: r }) => {
         const name = String(r[0] || '').trim();
         if (!name || dishMap[name]) return;
         const qty = parseFloat(r[1]) > 0 ? parseFloat(r[1]) : 1;
@@ -377,23 +429,11 @@ async function getDishCatalog(sheets: any, userName?: string): Promise<{
     };
   } catch (err) {
     console.error('Error resolving dish catalog from Recipe & Ingredients:', err);
-    // Fallback to defaults
-    const fallbackMap: Record<string, DishNutrition> = {};
-    DEFAULT_RECIPES.forEach((r) => {
-      fallbackMap[r.name] = {
-        calories: r.calories,
-        protein: r.protein,
-        carbs: r.carbs,
-        fats: r.fats,
-        micros: { ...EMPTY_MICROS },
-        ingredients: [],
-      };
-    });
-    return { dishMap: fallbackMap, recipes: DEFAULT_RECIPES, packaged: [], ingredientNames: [], ingredientUnits: {} };
+    return { dishMap: {}, recipes: [], packaged: [], ingredientNames: [], ingredientUnits: {} };
   }
 }
 
-export async function fetchRecipes(userName?: string): Promise<{
+export async function fetchRecipes(userEmail: string): Promise<{
   recipes: Recipe[];
   packaged: Recipe[];
   ingredientNames: string[];
@@ -403,53 +443,34 @@ export async function fetchRecipes(userName?: string): Promise<{
   const sheets = getGoogleSheetsClient();
 
   if (!sheets) {
-    return { recipes: DEFAULT_RECIPES, packaged: [], ingredientNames: [], ingredientUnits: {}, isLive: false };
+    return { recipes: [], packaged: [], ingredientNames: [], ingredientUnits: {}, isLive: false };
   }
 
-  const { recipes, packaged, ingredientNames, ingredientUnits } = await getDishCatalog(sheets, userName);
+  const { recipes, packaged, ingredientNames, ingredientUnits } = await getDishCatalog(sheets, userEmail);
   return {
     packaged,
     ingredientUnits,
-    recipes: recipes.length > 0 ? recipes : DEFAULT_RECIPES,
+    recipes,
     ingredientNames,
     isLive: true,
   };
 }
 
-export async function fetchMealLogs(userName?: string): Promise<{ logs: MealLogEntry[]; isLive: boolean }> {
+export async function fetchMealLogs(userEmail: string): Promise<{ logs: MealLogEntry[]; isLive: boolean }> {
   const sheets = getGoogleSheetsClient();
 
   if (!sheets) {
-    return {
-      logs: !userName || userName === 'Pritam Mallick' ? [
-        {
-          id: '1',
-          dish: 'Egg Dosa',
-          portion: 2,
-          calories: 650,
-          protein: 38,
-          carbs: 48,
-          fats: 35,
-          timestamp: '2026-10-12T06:56:11Z',
-          user: 'Pritam Mallick',
-        },
-      ] : [],
-      isLive: false,
-    };
+    return { logs: [], isLive: false };
   }
 
   try {
     const [{ dishMap }, foodRes] = await Promise.all([
-      getDishCatalog(sheets, userName),
-      sheets.spreadsheets.values.get({
-        spreadsheetId: SPREADSHEET_ID,
-        range: 'Food!A2:D',
-      }),
+      getDishCatalog(sheets, userEmail),
+      getEmailScopedRows(sheets, 'Food', userEmail),
     ]);
 
-    const rows = foodRes.data.values || [];
-    const logs: MealLogEntry[] = rows.map((row: any[], index: number) => ({ row, index }))
-      .filter(({ row }) => !userName || String(row[3] || 'Pritam Mallick').trim() === userName)
+    const logs: MealLogEntry[] = foodRes
+      .map(({ row, rowNumber }) => ({ row, index: rowNumber - 2 }))
       .map(({ row, index }) => {
       const dish = String(row[0] || '').trim();
       const portion = parseFloat(row[1]) || 1;
@@ -489,7 +510,8 @@ export async function fetchMealLogs(userName?: string): Promise<{ logs: MealLogE
 }
 
 export async function appendMealLog(
-  entry: MealLogEntry
+  entry: MealLogEntry,
+  userEmail: string
 ): Promise<{ success: boolean; isLive: boolean }> {
   const sheets = getGoogleSheetsClient();
 
@@ -498,31 +520,23 @@ export async function appendMealLog(
     return { success: true, isLive: false };
   }
 
-  // Append ONLY raw input fields: [Dish, Portion, Timestamp, User]
-  const values = [
-    [
-      entry.dish,
-      entry.portion,
-      entry.timestamp || new Date().toISOString(),
-      entry.user || 'Pritam Mallick',
-    ],
-  ];
-
-  await sheets.spreadsheets.values.append({
-    spreadsheetId: SPREADSHEET_ID,
-    range: 'Food!A:D',
-    valueInputOption: 'USER_ENTERED',
-    requestBody: {
-      values,
-    },
-  });
+  // Email is stored in the sheet's Email column for account-scoped reads.
+  await appendRowsForUser(
+    sheets,
+    'Food',
+    [[entry.dish, entry.portion, entry.timestamp || new Date().toISOString()]],
+    entry.user || 'Pritam Mallick',
+    userEmail
+  );
 
   return { success: true, isLive: true };
 }
 
 export async function appendRecipe(
   dish: string,
-  items: { ingredient: string; quantity: number }[]
+  items: { ingredient: string; quantity: number }[],
+  userName: string,
+  userEmail: string
 ): Promise<{ success: boolean; isLive: boolean }> {
   const sheets = getGoogleSheetsClient();
 
@@ -531,14 +545,13 @@ export async function appendRecipe(
   }
 
   // One row per ingredient: Dish | Ingredient | Quantity
-  await sheets.spreadsheets.values.append({
-    spreadsheetId: SPREADSHEET_ID,
-    range: 'Recipe!A:C',
-    valueInputOption: 'USER_ENTERED',
-    requestBody: {
-      values: items.map((i) => [dish, i.ingredient, i.quantity]),
-    },
-  });
+  await appendRowsForUser(
+    sheets,
+    'Recipe',
+    items.map((i) => [dish, i.ingredient, i.quantity]),
+    userName,
+    userEmail
+  );
   return { success: true, isLive: true };
 }
 
@@ -546,6 +559,7 @@ export async function appendPackaged(p: {
   dish: string;
   quantity: number;
   user: string;
+  email: string;
   calories: number;
   protein: number;
   carbs: number;
@@ -558,16 +572,9 @@ export async function appendPackaged(p: {
   }
 
   // Dish | Quantity | User | Calories | Protein | Carbs | Fat | Calcium | Iron | Potassium | Sodium | Vit C | Vit B12 | Vit D
-  await sheets.spreadsheets.values.append({
-    spreadsheetId: SPREADSHEET_ID,
-    range: 'Packaged!A:N',
-    valueInputOption: 'USER_ENTERED',
-    requestBody: {
-      values: [
-        [
+  await appendRowsForUser(sheets, 'Packaged', [[
           p.dish,
           p.quantity,
-          p.user,
           p.calories,
           p.protein,
           p.carbs,
@@ -579,10 +586,7 @@ export async function appendPackaged(p: {
           p.micros.vitaminC,
           p.micros.vitaminB12,
           p.micros.vitaminD,
-        ],
-      ],
-    },
-  });
+        ]], p.user, p.email);
   return { success: true, isLive: true };
 }
 
@@ -590,6 +594,7 @@ export async function updatePackaged(p: {
   dish: string;
   quantity: number;
   user: string;
+  email: string;
   calories: number;
   protein: number;
   carbs: number;
@@ -601,18 +606,14 @@ export async function updatePackaged(p: {
     return { success: true, isLive: false };
   }
 
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: SPREADSHEET_ID,
-    range: 'Packaged!A2:N',
-  });
-  const rows: any[][] = res.data.values || [];
-  const rowIdx = rows.findIndex((r) => String(r[0] || '').trim() === p.dish && String(r[2] || '').trim() === p.user);
-  if (rowIdx === -1) {
+  const rows = await getEmailScopedRows(sheets, 'Packaged', p.email);
+  const match = rows.find(({ row: r }) => String(r[0] || '').trim() === p.dish && String(r[2] || '').trim() === p.user);
+  if (!match) {
     throw new Error(`Packaged item "${p.dish}" was not found`);
   }
 
   // Sheet rows are 1-indexed; data starts at row 2, so sheet row = rowIdx + 2
-  const sheetRow = rowIdx + 2;
+  const sheetRow = match.rowNumber;
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
     range: `Packaged!A${sheetRow}:N${sheetRow}`,
@@ -644,7 +645,9 @@ export async function updatePackaged(p: {
 export async function updateRecipe(
   dish: string,
   items: { ingredient: string; quantity: number }[],
-  newDish?: string
+  newDish: string | undefined,
+  userName: string,
+  userEmail: string
 ): Promise<{ success: boolean; isLive: boolean }> {
   const sheets = getGoogleSheetsClient();
   if (!sheets) {
@@ -653,11 +656,8 @@ export async function updateRecipe(
 
   const targetName = (newDish ?? dish).trim() || dish;
 
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: SPREADSHEET_ID,
-    range: 'Recipe!A2:C',
-  });
-  const rows: any[][] = res.data.values || [];
+  const scopedRows = await getEmailScopedRows(sheets, 'Recipe', userEmail);
+  const rows: any[][] = scopedRows.map(({ row }) => row);
   const firstIdx = rows.findIndex((r) => String(r[0] || '').trim() === dish);
   if (firstIdx === -1) {
     throw new Error(`Recipe "${dish}" was not found`);
@@ -675,22 +675,37 @@ export async function updateRecipe(
     }
   });
 
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `Recipe!A2:C${result.length + 1}`,
-    valueInputOption: 'USER_ENTERED',
-    requestBody: { values: result },
-  });
-  if (result.length < rows.length) {
-    await sheets.spreadsheets.values.clear({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `Recipe!A${result.length + 2}:C${rows.length + 1}`,
-    });
+  // Update only rows owned by this email. Other users' recipe rows are untouched.
+  for (let i = 0; i < scopedRows.length; i++) {
+    const rowNumber = scopedRows[i].rowNumber;
+    const updated = result[i];
+    if (updated) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `Recipe!A${rowNumber}:C${rowNumber}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: [updated] },
+      });
+    } else {
+      await sheets.spreadsheets.values.clear({
+        spreadsheetId: SPREADSHEET_ID,
+        range: `Recipe!A${rowNumber}:C${rowNumber}`,
+      });
+    }
+  }
+  if (result.length > scopedRows.length) {
+    await appendRowsForUser(
+      sheets,
+      'Recipe',
+      result.slice(scopedRows.length),
+      userName,
+      userEmail
+    );
   }
   return { success: true, isLive: true };
 }
 
-export async function fetchPlanAnalytics(userName?: string): Promise<{
+export async function fetchPlanAnalytics(userEmail: string, displayName?: string): Promise<{
   plan: PlanAnalytics;
   activePlans: PlanAnalytics[];
   isLive: boolean;
@@ -699,7 +714,7 @@ export async function fetchPlanAnalytics(userName?: string): Promise<{
 
   const fallbackPlan: PlanAnalytics = {
     planName: 'Cut 2026',
-    userName: userName || 'Pritam Mallick',
+    userName: displayName || '',
     currentWeight: 83,
     targetWeight: 75,
     restingCalories: 2100,
@@ -729,25 +744,17 @@ export async function fetchPlanAnalytics(userName?: string): Promise<{
   }
 
   try {
-    const [planRes, userRes, workoutsRes, mealLogsData] = await Promise.all([
-      sheets.spreadsheets.values.get({
-        spreadsheetId: SPREADSHEET_ID,
-        range: 'Plan!A2:G',
-      }),
+    const [planRowsScoped, userRes, workoutRowsScoped, mealLogsData] = await Promise.all([
+      getEmailScopedRows(sheets, 'Plan', userEmail),
       sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,
         range: 'User!A2:G',
       }),
-      sheets.spreadsheets.values.get({
-        spreadsheetId: SPREADSHEET_ID,
-        range: 'Workouts!A2:D',
-      }),
-      fetchMealLogs(userName),
+      getEmailScopedRows(sheets, 'Workouts', userEmail),
+      fetchMealLogs(userEmail),
     ]);
 
-    const allPlanEntries = (planRes.data.values || [])
-      .map((row: any[], i: number) => ({ row, rowNumber: i + 2 }))
-      .filter(({ row }) => !userName || String(row[1] || '').trim() === userName);
+    const allPlanEntries = planRowsScoped;
     const allPlanRows: any[][] = allPlanEntries.map(({ row }) => row);
     const planEntries = allPlanEntries
       .filter(({ row }) => String(row[6] || '').trim().toUpperCase() !== 'DELETED');
@@ -780,7 +787,7 @@ export async function fetchPlanAnalytics(userName?: string): Promise<{
       };
     });
     const userRows: any[][] = userRes.data.values || [];
-    const userRow = userRows.find((row) => !userName || String(row[0] || '').trim() === userName) || [];
+    const userRow = userRows.find((row) => String(row[5] || '').trim().toLowerCase() === userEmail.trim().toLowerCase()) || [];
 
     if (activeIdx < 0) {
       return {
@@ -816,8 +823,7 @@ export async function fetchPlanAnalytics(userName?: string): Promise<{
         isLive: true,
       };
     }
-    const workoutRows: any[][] = (workoutsRes.data.values || [])
-      .filter((row) => !userName || String(row[1] || '').trim() === userName);
+    const workoutRows: any[][] = workoutRowsScoped.map(({ row }) => row);
     const mealLogs = mealLogsData.logs || [];
 
     const buildPlan = (planRow: any[]): PlanAnalytics => {
@@ -1015,25 +1021,20 @@ export async function fetchPlanAnalytics(userName?: string): Promise<{
   }
 }
 
-export async function fetchWorkouts(userName?: string): Promise<{ workouts: WorkoutEntry[]; isLive: boolean }> {
+export async function fetchWorkouts(userEmail: string): Promise<{ workouts: WorkoutEntry[]; isLive: boolean }> {
   const sheets = getGoogleSheetsClient();
   if (!sheets) return { workouts: [], isLive: false };
 
   // Columns: Name, User, Created At (UTC), Calories Burnt (kCal)
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: SPREADSHEET_ID,
-    range: 'Workouts!A2:D',
-  });
-  const rows: any[][] = res.data.values || [];
+  const scopedRows = await getEmailScopedRows(sheets, 'Workouts', userEmail);
   const workouts: WorkoutEntry[] = [];
-  rows.forEach((row, index) => {
+  scopedRows.forEach(({ row, rowNumber }) => {
     const name = String(row[0] || '').trim();
     const timestamp = String(row[2] || '').trim();
     if (!name || Number.isNaN(new Date(timestamp).getTime())) return;
     const user = String(row[1] || '').trim();
-    if (userName && user !== userName) return;
     workouts.push({
-      id: String(index + 1),
+      id: String(rowNumber - 1),
       name,
       user,
       timestamp: new Date(timestamp).toISOString(),
@@ -1044,24 +1045,25 @@ export async function fetchWorkouts(userName?: string): Promise<{ workouts: Work
 }
 
 export async function appendWorkout(
-  entry: WorkoutEntry
+  entry: WorkoutEntry,
+  userEmail: string
 ): Promise<{ success: boolean; isLive: boolean }> {
   const sheets = getGoogleSheetsClient();
   if (!sheets) return { success: true, isLive: false };
 
-  await sheets.spreadsheets.values.append({
-    spreadsheetId: SPREADSHEET_ID,
-    range: 'Workouts!A:D',
-    valueInputOption: 'USER_ENTERED',
-    requestBody: {
-      values: [[entry.name, entry.user, entry.timestamp, entry.caloriesBurnt]],
-    },
-  });
+  await appendRowsForUser(
+    sheets,
+    'Workouts',
+    [[entry.name, entry.timestamp, entry.caloriesBurnt]],
+    entry.user,
+    userEmail
+  );
   return { success: true, isLive: true };
 }
 
 export async function updateProfile(
-  p: ProfileUpdate
+  p: ProfileUpdate,
+  userEmail: string
 ): Promise<{ success: boolean; isLive: boolean }> {
   const sheets = getGoogleSheetsClient();
   if (!sheets) return { success: true, isLive: false };
@@ -1072,8 +1074,9 @@ export async function updateProfile(
   if (userIndex < 0) throw new Error('User profile not found');
   const userRowNumber = userIndex + 2;
   if (p.planRow) {
-    const planSheet = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: `Plan!A${p.planRow}:G${p.planRow}` });
-    if (String(planSheet.data.values?.[0]?.[1] || '').trim() !== p.userName) throw new Error('Plan does not belong to this account');
+    const planRows = await getEmailScopedRows(sheets, 'Plan', userEmail);
+    const plan = planRows.find(({ rowNumber }) => rowNumber === p.planRow);
+    if (!plan || String(plan.row[1] || '').trim() !== p.userName) throw new Error('Plan does not belong to this account');
   }
   await sheets.spreadsheets.values.batchUpdate({
     spreadsheetId: SPREADSHEET_ID,
@@ -1120,18 +1123,17 @@ const planStatus = (startDate: string) => {
   return !Number.isNaN(ts) && ts <= Date.now() ? 'ACTIVE' : 'INACTIVE';
 };
 
-export async function addPlan(p: PlanInput): Promise<{ success: boolean; isLive: boolean }> {
+export async function addPlan(p: PlanInput, userEmail: string): Promise<{ success: boolean; isLive: boolean }> {
   const sheets = getGoogleSheetsClient();
   if (!sheets) return { success: true, isLive: false };
 
-  await sheets.spreadsheets.values.append({
-    spreadsheetId: SPREADSHEET_ID,
-    range: 'Plan!A:G',
-    valueInputOption: 'USER_ENTERED',
-    requestBody: {
-      values: [[p.planName, p.userName, p.targetWeightKg, p.restingCalories, p.startDate, p.comment || '', planStatus(p.startDate)]],
-    },
-  });
+  await appendRowsForUser(
+    sheets,
+    'Plan',
+    [[p.planName, p.targetWeightKg, p.restingCalories, p.startDate, p.comment || '', planStatus(p.startDate)]],
+    p.userName,
+    userEmail
+  );
   return { success: true, isLive: true };
 }
 
@@ -1139,20 +1141,18 @@ export async function addPlan(p: PlanInput): Promise<{ success: boolean; isLive:
 export async function deletePlan(
   rowNumber: number,
   comment?: string,
-  userName?: string
+  userName?: string,
+  userEmail?: string
 ): Promise<{ success: boolean; isLive: boolean }> {
   const sheets = getGoogleSheetsClient();
   if (!sheets) return { success: true, isLive: false };
 
-  const current = await sheets.spreadsheets.values.get({
-    spreadsheetId: SPREADSHEET_ID,
-    range: 'Plan!A2:G',
-  });
-  const rows: any[][] = current.data.values || [];
-  if (rowNumber < 2 || rowNumber > rows.length + 1) throw new Error('Plan not found');
-  if (userName && String(rows[rowNumber - 2]?.[1] || '').trim() !== userName) throw new Error('Plan does not belong to this account');
+  const rows = await getEmailScopedRows(sheets, 'Plan', userEmail || '');
+  const selected = rows.find(({ rowNumber: actual }) => actual === rowNumber);
+  if (!selected) throw new Error('Plan not found');
+  if (userName && String(selected.row[1] || '').trim() !== userName) throw new Error('Plan does not belong to this account');
 
-  const existingComment = String(rows[rowNumber - 2]?.[5] || '');
+  const existingComment = String(selected.row[5] || '');
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
     range: `Plan!F${rowNumber}:G${rowNumber}`,
@@ -1168,7 +1168,8 @@ async function deleteLogRow(
   rowNumber: number,
   expectedName: string,
   expectedTimestamp: string,
-  expectedUser?: string
+  expectedUser: string | undefined,
+  userEmail: string
 ): Promise<{ success: boolean; isLive: boolean }> {
   const sheets = getGoogleSheetsClient();
   if (!sheets) return { success: true, isLive: false };
@@ -1179,11 +1180,10 @@ async function deleteLogRow(
     ?.sheetId;
   if (sheetId === undefined || sheetId === null) throw new Error(`${sheetTitle} sheet not found`);
 
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `${sheetTitle}!A${rowNumber}:D${rowNumber}`,
-  });
-  const row: any[] = res.data.values?.[0] || [];
+  const scopedRows = await getEmailScopedRows(sheets, sheetTitle, userEmail);
+  const selected = scopedRows.find(({ rowNumber: actual }) => actual === rowNumber);
+  if (!selected) throw new Error('This entry does not belong to this account. Refresh and try again.');
+  const row: any[] = selected.row;
   const sameName = String(row[0] || '').trim() === expectedName.trim();
   const sameUser = !expectedUser || String(row[sheetTitle === 'Food' ? 3 : 1] || '').trim() === expectedUser;
   const a = new Date(String(row[2] || '')).getTime();
@@ -1206,8 +1206,8 @@ async function deleteLogRow(
   return { success: true, isLive: true };
 }
 
-export const deleteMealLog = (id: string, dish: string, timestamp: string, userName?: string) =>
-  deleteLogRow('Food', Number(id) + 1, dish, timestamp, userName);
+export const deleteMealLog = (id: string, dish: string, timestamp: string, userName: string | undefined, userEmail: string) =>
+  deleteLogRow('Food', Number(id) + 1, dish, timestamp, userName, userEmail);
 
-export const deleteWorkout = (id: string, name: string, timestamp: string, userName?: string) =>
-  deleteLogRow('Workouts', Number(id) + 1, name, timestamp, userName);
+export const deleteWorkout = (id: string, name: string, timestamp: string, userName: string | undefined, userEmail: string) =>
+  deleteLogRow('Workouts', Number(id) + 1, name, timestamp, userName, userEmail);

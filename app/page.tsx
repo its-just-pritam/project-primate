@@ -34,7 +34,6 @@ import {
   DailyTargets,
   PlanAnalytics,
   DEFAULT_TARGETS,
-  DEFAULT_RECIPES,
 } from '@/types/nutrition';
 
 export default function Home() {
@@ -53,7 +52,7 @@ export default function Home() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [openNewPlan, setOpenNewPlan] = useState(false);
   const [logMode, setLogMode] = useState<'meal' | 'workout'>('meal');
-  const [recipes, setRecipes] = useState<Recipe[]>(DEFAULT_RECIPES);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [packaged, setPackaged] = useState<Recipe[]>([]);
   const [ingredientNames, setIngredientNames] = useState<string[]>([]);
   const [ingredientUnits, setIngredientUnits] = useState<Record<string, { baseQuantity: number; unit: string }>>({});
@@ -105,9 +104,7 @@ export default function Home() {
         setIngredientNames(recipesData.ingredientNames || []);
         setPackaged(recipesData.packaged || []);
         setIngredientUnits(recipesData.ingredientUnits || {});
-        if (recipesData.recipes && recipesData.recipes.length > 0) {
-          setRecipes(recipesData.recipes);
-        }
+        setRecipes(recipesData.recipes || []);
       }
 
       if (planRes.ok) {
