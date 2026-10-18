@@ -372,7 +372,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
                               {TOOLTIP_PROPS.labelFormatter(label)}
                             </p>
                             <p style={{ margin: 0, color, fontWeight: 600 }}>
-                              {isDeficit ? 'Calorie deficit' : 'Surplus'}: {value} kcal
+                              {isDeficit ? 'Calorie deficit' : 'Surplus'}: {value.toLocaleString(undefined, { maximumFractionDigits: 1 })} kcal
                             </p>
                           </div>
                         );
