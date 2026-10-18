@@ -270,12 +270,15 @@ export default function LandingPage() {
                     <TrendingUp aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
                   </div>
                   <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1.5" aria-hidden="true">
-                    {preview.legend.map(({ label, color, line }) => (
-                      <span key={label} className="inline-flex items-center gap-1.5 text-[10px] font-medium text-slate-500">
-                        {line ? <span className="w-2.5 border-t border-dashed" style={{ borderColor: color }} /> : <span className="h-2 w-2 rounded-sm" style={{ backgroundColor: color }} />}
-                        {label}
-                      </span>
-                    ))}
+                    {preview.legend.map((item) => {
+                      const line = 'line' in item && item.line;
+                      return (
+                        <span key={item.label} className="inline-flex items-center gap-1.5 text-[10px] font-medium text-slate-500">
+                          {line ? <span className="w-2.5 border-t border-dashed" style={{ borderColor: item.color }} /> : <span className="h-2 w-2 rounded-sm" style={{ backgroundColor: item.color }} />}
+                          {item.label}
+                        </span>
+                      );
+                    })}
                   </div>
                   <div aria-hidden="true" className="relative mt-3 h-20 overflow-hidden rounded-lg border-b border-slate-700/80 px-1">
                     {preview.kind === 'calories' && (
