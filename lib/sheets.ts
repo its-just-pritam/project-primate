@@ -19,6 +19,7 @@ import {
 import {
   calculateDailyFatMassChangeGrams,
   calculateDailyWetMuscleMassChangeGrams,
+  calculateThermicEffectOfFood,
 } from '@/lib/bodyComposition';
 
 const SPREADSHEET_ID =
@@ -122,7 +123,8 @@ export async function authenticateSheetUser(username: string, password: string):
   const normalizedUsername = username.trim().toLowerCase();
   const usernameMatches = rows.filter((row) => String(row[5] || '').trim().toLowerCase() === normalizedUsername);
   if (usernameMatches.length !== 1) return null;
-  for (const [index, row] of rows.entries()) {
+  for (let index = 0; index < rows.length; index++) {
+    const row = rows[index];
     const name = String(row[0] || '').trim();
     const storedUsername = String(row[5] || '').trim();
     const storedHash = String(row[6] || '').trim();
@@ -828,6 +830,7 @@ export async function fetchPlanAnalytics(userName?: string): Promise<{
         console.error('Skipping workout row with invalid date:', dateValue);
         return;
       }
+      if (parsedDate.getTime() < startMs) return;
       const date = /^\d{4}-\d{2}-\d{2}/.test(dateValue)
         ? dateValue.slice(0, 10)
         : parsedDate.toISOString().split('T')[0];
@@ -835,9 +838,8 @@ export async function fetchPlanAnalytics(userName?: string): Promise<{
       workoutCaloriesByDate[date] = (workoutCaloriesByDate[date] || 0) + calories;
     });
 
-    // Total resting calories burnt
+    // Total energy expenditure includes resting, logged workouts, and food thermogenesis.
     const totalRestingBurnt = elapsedDays * restingCalories;
-    const totalCalorieBurnt = Math.round(totalRestingBurnt + totalWorkoutBurnt);
 
     // Total calories consumed from food (calculated on the fly via Recipe & Ingredients)
     const totalCalorieConsumed = Math.round(
@@ -846,10 +848,6 @@ export async function fetchPlanAnalytics(userName?: string): Promise<{
         return !Number.isNaN(when) && when < startMs ? sum : sum + item.calories;
       }, 0)
     );
-
-    // Calorie deficit
-    const totalCalorieDeficit = Math.round(totalCalorieBurnt - totalCalorieConsumed);
-    const averageCalorieDeficit = Math.round(totalCalorieDeficit / Math.max(1, elapsedDays));
 
     const nutritionByDate: Record<string, DailyNutritionTotals> = {};
     mealLogs.forEach((item) => {
@@ -864,16 +862,39 @@ export async function fetchPlanAnalytics(userName?: string): Promise<{
       nutritionByDate[dateKey] = totals;
     });
 
+    const totalThermicEffect = Object.values(nutritionByDate).reduce(
+      (sum, totals) => sum + calculateThermicEffectOfFood({
+        proteinG: totals.protein,
+        carbohydrateG: totals.carbs,
+        dietaryFatG: totals.fats,
+      }),
+      0
+    );
+    const totalCalorieBurnt = Math.round(
+      totalRestingBurnt + totalWorkoutBurnt + totalThermicEffect
+    );
+    const totalCalorieDeficit = Math.round(totalCalorieBurnt - totalCalorieConsumed);
+    const averageCalorieDeficit = Math.round(totalCalorieDeficit / Math.max(1, elapsedDays));
+
     const dailyFatMassChanges: number[] = [];
     const dailyMuscleMassChanges: number[] = [];
     const modelDay = new Date(startDate);
     modelDay.setUTCHours(0, 0, 0, 0);
-    const today = new Date();
+    const modelNow = new Date();
+    const today = new Date(modelNow);
     today.setUTCHours(0, 0, 0, 0);
 
     while (modelDay <= today) {
       const dateKey = toUtcDateKey(modelDay);
       const totals = nutritionByDate[dateKey] || { calories: 0, protein: 0, carbs: 0, fats: 0 };
+      const nextDay = new Date(modelDay);
+      nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+      const activeDayMs = Math.max(
+        0,
+        Math.min(nextDay.getTime(), modelNow.getTime()) -
+          Math.max(modelDay.getTime(), startDate.getTime())
+      );
+      const dayRestingCalories = (activeDayMs / (1000 * 60 * 60 * 24)) * restingCalories;
       dailyFatMassChanges.push(
         calculateDailyFatMassChangeGrams({
           weightKg: currentWeight,
@@ -882,7 +903,7 @@ export async function fetchPlanAnalytics(userName?: string): Promise<{
           dietaryFatG: totals.fats,
           calorieIntake: totals.calories,
           workoutCalories: workoutCaloriesByDate[dateKey] || 0,
-          restingCalories,
+          restingCalories: dayRestingCalories,
         })
       );
       dailyMuscleMassChanges.push(
@@ -893,7 +914,7 @@ export async function fetchPlanAnalytics(userName?: string): Promise<{
           dietaryFatG: totals.fats,
           calorieIntake: totals.calories,
           workoutCalories: workoutCaloriesByDate[dateKey] || 0,
-          restingCalories,
+          restingCalories: dayRestingCalories,
         })
       );
       modelDay.setUTCDate(modelDay.getUTCDate() + 1);
