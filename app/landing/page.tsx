@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Activity, ArrowRight, Check, Cookie, Dumbbell, Leaf, Scale, Target, TrendingUp, Utensils } from 'lucide-react';
+import { ScrollReveal } from './scroll-reveal';
 
 export const metadata: Metadata = {
   title: 'Primate Fuel | Nutrition, energy, and body composition',
@@ -79,6 +80,7 @@ const cardClass = 'group rounded-2xl border border-slate-800/90 bg-[#0d141e]/80 
 export default function LandingPage() {
   return (
     <div className="relative -mb-32 min-h-screen overflow-hidden bg-[#080e16] text-slate-100" style={{ fontFamily: 'var(--font-manrope), sans-serif' }}>
+      <ScrollReveal>
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-56 left-1/2 h-[620px] w-[920px] -translate-x-1/2 rounded-full bg-emerald-500/[0.09] blur-[120px]" />
         <div className="absolute right-[-15rem] top-[38rem] h-[30rem] w-[30rem] rounded-full bg-teal-500/[0.06] blur-[110px]" />
@@ -96,7 +98,7 @@ export default function LandingPage() {
             <a href="#about" className="inline-flex h-10 items-center rounded-xl px-3 text-sm font-medium text-slate-400 transition hover:bg-white/[0.04] hover:text-white sm:px-4">About</a>
             <a href="#contact" className="inline-flex h-10 items-center rounded-xl px-3 text-sm font-medium text-slate-400 transition hover:bg-white/[0.04] hover:text-white sm:px-4">Contact</a>
           </nav>
-          <Link href="/login" className="inline-flex h-10 items-center rounded-xl px-3 text-sm font-semibold text-slate-300 transition hover:bg-white/[0.04] hover:text-white sm:px-4">
+          <Link href="/login" className="landing-button inline-flex h-10 items-center rounded-xl px-3 text-sm font-semibold text-slate-300 transition hover:bg-white/[0.04] hover:text-white sm:px-4">
             Sign in
           </Link>
         </div>
@@ -104,7 +106,7 @@ export default function LandingPage() {
 
       <div className="relative z-10">
         <section className="mx-auto grid max-w-7xl items-center gap-14 px-5 pb-24 pt-14 sm:px-8 md:pt-20 lg:grid-cols-[1.02fr_0.98fr] lg:gap-16 lg:px-12 lg:pb-32 lg:pt-24">
-          <div className="max-w-2xl">
+          <div className="max-w-2xl" data-reveal>
             <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/[0.07] px-3 py-1.5 text-xs font-semibold text-emerald-200">
               <Leaf className="h-3.5 w-3.5" /> The Nutrition Atlas
             </div>
@@ -116,10 +118,10 @@ export default function LandingPage() {
               Log meals, calories, and macros. See how your intake compares with resting needs, workouts, and the energy used to digest food (TEF). Then follow estimated fat and muscle changes—not just the scale.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href="/signup" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-400 px-6 text-sm font-extrabold text-slate-950 shadow-xl shadow-emerald-500/15 transition hover:-translate-y-0.5 hover:bg-emerald-300">
+              <Link href="/signup" className="landing-button inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-400 px-6 text-sm font-extrabold text-slate-950 shadow-xl shadow-emerald-500/15 hover:bg-emerald-300">
                 Start tracking your nutrition <ArrowRight className="h-4 w-4" />
               </Link>
-              <a href="#trends-heading" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900/50 px-6 text-sm font-semibold text-slate-200 transition hover:border-slate-600 hover:bg-slate-900">
+              <a href="#trends-heading" className="landing-button inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900/50 px-6 text-sm font-semibold text-slate-200 hover:border-slate-600 hover:bg-slate-900">
                 Explore the trends
               </a>
             </div>
@@ -130,7 +132,7 @@ export default function LandingPage() {
             <p className="mt-4 text-xs leading-5 text-slate-500">For data-minded eaters: clear numbers, flexible food, and no guilt.</p>
           </div>
 
-          <div className="relative mx-auto w-full max-w-[560px] lg:ml-auto">
+          <div className="relative mx-auto w-full max-w-[560px] lg:ml-auto" data-reveal data-reveal-delay="1">
             <div aria-hidden="true" className="absolute -inset-5 rounded-[2.5rem] bg-gradient-to-br from-emerald-400/15 via-teal-400/[0.04] to-sky-400/10 blur-2xl" />
             <div className="relative rounded-[1.8rem] border border-white/10 bg-[#101923]/95 p-4 shadow-[0_28px_100px_-35px_rgba(16,185,129,0.3)] backdrop-blur-xl sm:p-6">
               <div className="flex items-start justify-between gap-4">
@@ -207,8 +209,8 @@ export default function LandingPage() {
               <p className="mt-4 leading-7 text-slate-400">The key tools for tracking what you eat and following your progress, together in one place.</p>
             </div>
             <div className="mt-10 grid gap-4 md:auto-rows-fr md:grid-cols-3">
-              {features.map(({ icon: Icon, title, body, details, color }) => (
-                <article key={title} className={cardClass}>
+              {features.map(({ icon: Icon, title, body, details, color }, index) => (
+                <article key={title} className={cardClass} data-reveal data-reveal-delay={String((index % 3) + 1)}>
                   <div className={`flex h-11 w-11 items-center justify-center rounded-xl border ${color}`}><Icon className="h-5 w-5" /></div>
                   <h3 className="mt-5 text-lg font-bold text-white">{title}</h3>
                   <p className="mt-2 text-sm leading-6 text-slate-400">{body}</p>
@@ -234,17 +236,17 @@ export default function LandingPage() {
               <p className="mt-4 leading-7 text-slate-400">Use your food log and plan trends to understand patterns over time, while keeping nutrition flexible and personal.</p>
             </div>
             <div className="mt-9 grid gap-4 md:auto-rows-fr md:grid-cols-3">
-              <article className={cardClass}>
+              <article className={cardClass} data-reveal>
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-300/15 bg-emerald-400/10 text-emerald-300"><Activity className="h-5 w-5" /></div>
                 <h3 className="mt-5 text-lg font-bold text-white">Understand your food patterns</h3>
                 <p className="mt-2 text-sm leading-6 text-slate-400">Compare logged calories and macros with energy balance over time. Use the patterns to guide reflection, not as proof that one meal caused a change.</p>
               </article>
-              <article className={cardClass}>
+              <article className={cardClass} data-reveal data-reveal-delay="1">
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-violet-300/15 bg-violet-400/10 text-violet-300"><Dumbbell className="h-5 w-5" /></div>
                 <h3 className="mt-5 text-lg font-bold text-white">Track more than weight</h3>
                 <p className="mt-2 text-sm leading-6 text-slate-400">Follow estimated fat-mass and muscle-mass changes separately, alongside scale weight, to understand how your plan is progressing.</p>
               </article>
-              <article className={cardClass}>
+              <article className={cardClass} data-reveal data-reveal-delay="2">
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-amber-300/15 bg-amber-400/10 text-amber-300"><Cookie className="h-5 w-5" /></div>
                 <h3 className="mt-5 text-lg font-bold text-white">Make room for real life</h3>
                 <p className="mt-2 text-sm leading-6 text-slate-400">Snacks and favorite foods count too. Log them with your meals to see your full-day totals without labeling foods as good or bad.</p>
@@ -265,8 +267,8 @@ export default function LandingPage() {
               <span className="inline-flex w-fit shrink-0 items-center rounded-full border border-emerald-300/15 bg-emerald-300/[0.06] px-3 py-1.5 text-xs font-semibold text-emerald-200">Nutrition · Energy · Body composition</span>
             </div>
             <div className="mt-9 grid gap-4 sm:grid-cols-2">
-              {trendPreviews.map((preview) => (
-                <article key={preview.title} className={cardClass}>
+              {trendPreviews.map((preview, index) => (
+                <article key={preview.title} className={cardClass} data-reveal data-reveal-delay={String(index % 3)}>
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <h3 className="text-sm font-bold text-white">{preview.title}</h3>
@@ -345,13 +347,13 @@ export default function LandingPage() {
 
         <section className="border-t border-white/[0.06] bg-slate-950/25">
           <div className="mx-auto grid max-w-7xl gap-4 px-5 py-20 sm:px-8 md:grid-cols-2 lg:px-12 lg:py-24">
-            <article id="about" className={`${cardClass} scroll-mt-8 sm:p-8`}>
+            <article id="about" className={`${cardClass} scroll-mt-8 sm:p-8`} data-reveal>
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">About us</p>
               <h2 className="mt-3 text-2xl font-black tracking-tight text-white">About Primate Fuel</h2>
               <p className="mt-4 text-sm leading-7 text-slate-400">Created by Pritam Mallick, Primate Fuel brings meal logs, daily energy, and body-composition trends into one clear view. It’s for people who want to understand their habits without turning food into a test. If that sounds like you, come join us and help shape what comes next.</p>
               <Link href="/signup" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-emerald-300 transition hover:text-emerald-200">Join Primate Fuel <ArrowRight className="h-4 w-4" /></Link>
             </article>
-            <article id="contact" className={`${cardClass} scroll-mt-8 sm:p-8`}>
+            <article id="contact" className={`${cardClass} scroll-mt-8 sm:p-8`} data-reveal data-reveal-delay="1">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Contact</p>
               <h2 className="mt-3 text-2xl font-black tracking-tight text-white">Get in touch.</h2>
               <p className="mt-4 text-sm leading-7 text-slate-400">Questions, feedback, or ideas? We’d be glad to hear from you.</p>
@@ -372,20 +374,20 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="mx-5 mb-16 overflow-hidden rounded-[2rem] border border-emerald-300/15 bg-gradient-to-br from-emerald-400/[0.13] via-[#10211f] to-slate-900 sm:mx-8 lg:mx-auto lg:mb-24 lg:max-w-7xl">
+        <section className="mx-5 mb-16 overflow-hidden rounded-[2rem] border border-emerald-300/15 bg-gradient-to-br from-emerald-400/[0.13] via-[#10211f] to-slate-900 sm:mx-8 lg:mx-auto lg:mb-24 lg:max-w-7xl" data-reveal>
           <div className="relative px-6 py-12 text-center sm:px-12 sm:py-16">
             <div aria-hidden="true" className="absolute left-1/2 top-0 h-56 w-96 -translate-x-1/2 rounded-full bg-emerald-400/10 blur-3xl" />
             <div className="relative mx-auto max-w-2xl">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-200">Get started</p>
               <h2 className="mt-4 text-3xl font-black tracking-tight text-white sm:text-4xl">Start with your next meal.</h2>
               <p className="mt-4 text-sm leading-6 text-slate-300 sm:text-base">Track what you eat. Understand what changes.</p>
-              <Link href="/signup" className="mt-7 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-300 px-6 text-sm font-extrabold text-slate-950 transition hover:-translate-y-0.5 hover:bg-emerald-200">Start tracking <ArrowRight className="h-4 w-4" /></Link>
+              <Link href="/signup" className="landing-button mt-7 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-300 px-6 text-sm font-extrabold text-slate-950 hover:bg-emerald-200">Start tracking <ArrowRight className="h-4 w-4" /></Link>
             </div>
           </div>
         </section>
       </div>
 
-      <footer className="relative z-10 border-t border-white/[0.06] px-5 py-7 sm:px-8 lg:px-12">
+      <footer className="relative z-10 border-t border-white/[0.06] px-5 py-7 sm:px-8 lg:px-12" data-reveal>
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
           <Link href="/" className="flex items-center gap-2.5 text-sm font-bold text-slate-300">
             <Image src="/icon.svg" alt="" width={28} height={28} className="h-7 w-7 rounded-lg" /> Primate Fuel
@@ -394,6 +396,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-4 text-xs font-medium text-slate-500"><Link href="/login" className="hover:text-white">Sign in</Link><Link href="/signup" className="hover:text-white">Create account</Link></div>
         </div>
       </footer>
+      </ScrollReveal>
     </div>
   );
 }
