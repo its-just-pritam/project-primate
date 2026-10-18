@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { PlanAnalytics, PlanInput, PlanSummary, ProfileUpdate } from '@/types/nutrition';
-import { ArrowLeft, ChevronDown, Eye, EyeOff, LogOut, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Eye, EyeOff, LogOut, Mail, Plus, Trash2 } from 'lucide-react';
 import { AVATARS } from '@/lib/avatars';
 
 interface ProfileScreenProps {
@@ -597,6 +597,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
           {planError && <p className="text-xs text-red-400">{planError}</p>}
         </section>
+        <a
+          href="mailto:mallickpritam1407@gmail.com"
+          className="w-full flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-medium text-slate-300 hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-300 transition-colors"
+        >
+          <Mail className="h-4 w-4" />
+          Contact support
+        </a>
         <button
           type="button"
           onClick={onSignOut}

@@ -57,7 +57,6 @@ export default function Home() {
   const [packaged, setPackaged] = useState<Recipe[]>([]);
   const [ingredientNames, setIngredientNames] = useState<string[]>([]);
   const [ingredientUnits, setIngredientUnits] = useState<Record<string, { baseQuantity: number; unit: string }>>({});
-  const [isLive, setIsLive] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [hasLoaded, setHasLoaded] = useState(false);
   const initialLoading = isLoading && !hasLoaded;
@@ -94,7 +93,6 @@ export default function Home() {
       if (mealsRes.ok) {
         const mealsData = await mealsRes.json();
         setLogs(mealsData.logs || []);
-        setIsLive(Boolean(mealsData.isLive));
       }
 
       if (workoutsRes.ok) {
@@ -385,7 +383,6 @@ export default function Home() {
   return (
     <>
       <Header
-        isLive={isLive}
         onRefresh={loadData}
         isLoading={isLoading}
         userName={plan?.userName}
