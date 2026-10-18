@@ -1,16 +1,15 @@
 'use client';
 
 import React from 'react';
-import { Database, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 
 interface HeaderProps {
-  isLive: boolean;
   onRefresh: () => void;
   isLoading: boolean;
   userName?: string;
 }
 
-export const Header: React.FC<HeaderProps> = ({ isLive, onRefresh, isLoading, userName }) => {
+export const Header: React.FC<HeaderProps> = ({ onRefresh, isLoading, userName }) => {
   return (
     <header className="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-md border-b border-slate-800/80 px-4 md:px-8 py-3 flex items-center justify-between">
       <div className="flex items-center space-x-2.5 text-left">
@@ -25,22 +24,6 @@ export const Header: React.FC<HeaderProps> = ({ isLive, onRefresh, isLoading, us
       </div>
 
       <div className="flex items-center space-x-2">
-        <div
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border ${
-            isLive
-              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-              : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-          }`}
-        >
-          <span
-            className={`w-1.5 h-1.5 rounded-full ${
-              isLive ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
-            }`}
-          />
-          <Database className="w-3 h-3" />
-          <span>{isLive ? 'Google Sheets' : 'Local / Demo'}</span>
-        </div>
-
         <button
           onClick={onRefresh}
           disabled={isLoading}

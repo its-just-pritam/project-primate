@@ -140,6 +140,29 @@ export async function authenticateSheetUser(username: string, password: string):
   return null;
 }
 
+export async function changeSheetUserPassword(username: string, newPassword: string): Promise<boolean> {
+  const sheets = getGoogleSheetsClient();
+  if (!sheets) throw new Error('Google Sheets is not configured');
+  const result = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: 'User!A2:G',
+  });
+  const rows: any[][] = result.data.values || [];
+  const normalizedUsername = username.trim().toLowerCase();
+  const matches = rows
+    .map((row, index) => ({ row, rowNumber: index + 2 }))
+    .filter(({ row }) => String(row[5] || '').trim().toLowerCase() === normalizedUsername);
+  if (matches.length !== 1 || !String(matches[0].row[0] || '').trim()) return false;
+  const passwordHash = await hashPassword(newPassword);
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `User!G${matches[0].rowNumber}`,
+    valueInputOption: 'RAW',
+    requestBody: { values: [[passwordHash]] },
+  });
+  return true;
+}
+
 interface DishNutrition {
   calories: number;
   protein: number;
