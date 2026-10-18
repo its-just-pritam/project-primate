@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Manrope } from 'next/font/google';
 import './globals.css';
+import { InstallPrompt } from './install-prompt';
 
 const manrope = Manrope({ subsets: ['latin'], variable: '--font-manrope', display: 'swap' });
 
@@ -42,6 +43,7 @@ export default function RootLayout({
         <main className="w-full max-w-md md:max-w-none min-h-screen flex flex-col pb-32 shadow-2xl bg-[#0b101b] border-x border-slate-900/60 relative">
           {children}
         </main>
+        <InstallPrompt />
       </body>
     </html>
   );
