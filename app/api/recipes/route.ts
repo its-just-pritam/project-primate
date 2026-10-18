@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchRecipes, appendRecipe, updateRecipe } from '@/lib/sheets';
 import { Recipe } from '@/types/nutrition';
+import { getCurrentSession } from '@/lib/authSession';
 
 export async function GET() {
   try {
-    const data = await fetchRecipes();
+    const session = await getCurrentSession();
+    if (!session) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    const data = await fetchRecipes(session.name);
     return NextResponse.json(data);
   } catch (error: any) {
     return NextResponse.json(

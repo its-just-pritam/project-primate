@@ -73,7 +73,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
           </div>
           <div className="min-w-0">
             <span className="text-[10px] text-slate-400 font-medium block truncate">
-              Total Burnt
+              Total Burnt incl. TEF
             </span>
             <div className="flex items-baseline gap-1">
               <span className="text-sm font-black text-white">

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import { MealLogEntry, DailyTargets } from '@/types/nutrition';
 import {
   ResponsiveContainer,
@@ -20,6 +20,7 @@ import { toLocalDateKey } from '@/lib/localDate';
 import {
   calculateDailyFatMassChangeGrams,
   calculateDailyWetMuscleMassChangeGrams,
+  calculateThermicEffectOfFood,
 } from '@/lib/bodyComposition';
 
 interface TrendsViewProps {
@@ -53,6 +54,36 @@ const DayTick = ({ x, y, payload }: any) => {
 
 const CHART_MARGIN = { top: 12, right: 8, left: 0, bottom: 0 };
 const BAR_CHART_PROPS = { barCategoryGap: '18%', barGap: 6, maxBarSize: 34 };
+const VISIBLE_CHART_DAYS = 7;
+
+const useChartScroller = (dayCount: number) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [viewportWidth, setViewportWidth] = useState(0);
+
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    const updateWidth = () => setViewportWidth(element.clientWidth);
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(element);
+    updateWidth();
+    return () => observer.disconnect();
+  }, []);
+
+  const chartWidth = viewportWidth
+    ? `${Math.max(viewportWidth, (viewportWidth * dayCount) / VISIBLE_CHART_DAYS)}px`
+    : '100%';
+
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (element && viewportWidth) {
+      element.scrollLeft = element.scrollWidth - element.clientWidth;
+    }
+  }, [chartWidth, dayCount, viewportWidth]);
+
+  return { ref, chartWidth };
+};
+
 const TOOLTIP_PROPS = {
   cursor: { fill: 'rgba(148, 163, 184, 0.08)' },
   labelFormatter: (iso: any) =>
@@ -85,6 +116,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
       burnt: number | null;
       resting: number | null;
       workout: number | null;
+      tef: number | null;
       deficit: number | null;
       fatChange: number | null;
       muscleChange: number | null;
@@ -92,16 +124,22 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
     };
   } = {};
 
-  // Charts always span 7 days; averages cover only the days elapsed on the plan.
+  // Charts cover the active plan period; KPI averages stay on the recent window.
   const CHART_DAYS = 7;
   const daysToShow =
     daysElapsed === undefined ? CHART_DAYS : Math.min(CHART_DAYS, Math.max(1, Math.floor(daysElapsed)));
   const planStartDateKey = planStartDate ? toLocalDateKey(planStartDate) : undefined;
 
   const today = new Date();
-  for (let i = CHART_DAYS - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
+  const todayDateKey = toLocalDateKey(today);
+  const recentStart = new Date(today);
+  recentStart.setHours(0, 0, 0, 0);
+  recentStart.setDate(recentStart.getDate() - (CHART_DAYS - 1));
+  const chartStart =
+    planStartDateKey && planStartDateKey <= todayDateKey
+      ? parseDay(planStartDateKey)
+      : recentStart;
+  for (let d = new Date(chartStart); toLocalDateKey(d) <= todayDateKey; d.setDate(d.getDate() + 1)) {
     const dateStr = toLocalDateKey(d);
     const displayDate = d.toLocaleDateString([], { weekday: 'short', month: 'numeric', day: 'numeric' });
     dateMap[dateStr] = {
@@ -113,6 +151,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
       burnt: 0,
       resting: 0,
       workout: 0,
+      tef: 0,
       deficit: 0,
       fatChange: 0,
       muscleChange: 0,
@@ -133,6 +172,10 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
 
   const chartData = Object.values(dateMap)
     .sort((a, b) => a.date.localeCompare(b.date));
+  const caloriesChartScroll = useChartScroller(chartData.length);
+  const deficitChartScroll = useChartScroller(chartData.length);
+  const bodyCompositionChartScroll = useChartScroller(chartData.length);
+  const proteinChartScroll = useChartScroller(chartData.length);
 
   // Days before the plan started have no burn, deficit, or composition change to report.
   if (restingCalories !== undefined) {
@@ -141,6 +184,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
         day.burnt = null;
         day.resting = null;
         day.workout = null;
+        day.tef = null;
         day.deficit = null;
         day.fatChange = null;
         day.muscleChange = null;
@@ -154,7 +198,13 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
       const restingBurn = restingCalories * dayFraction;
       day.resting = Math.round(restingBurn);
       day.workout = workoutCaloriesByDate[day.date] || 0;
-      day.burnt = day.resting + day.workout;
+      const thermicEffect = calculateThermicEffectOfFood({
+        proteinG: day.protein,
+        carbohydrateG: day.carbs,
+        dietaryFatG: day.fats,
+      });
+      day.tef = thermicEffect;
+      day.burnt = day.resting + day.workout + thermicEffect;
       day.deficit = day.burnt - day.calories;
       if (currentWeight !== undefined) {
         const compositionInputs = {
@@ -175,9 +225,10 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
     });
   }
 
+  const recentChartData = chartData.slice(-daysToShow);
   const averagedDays = planStartDateKey === undefined
-    ? chartData
-    : chartData.filter((day) => day.date >= planStartDateKey);
+    ? recentChartData
+    : recentChartData.filter((day) => day.date >= planStartDateKey);
 
   const avgCalories =
     averagedDays.length > 0
@@ -188,7 +239,6 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
     averagedDays.length > 0
       ? Math.round((averagedDays.reduce((s, d) => s + d.protein, 0) / averagedDays.length) * 10) / 10
       : 0;
-
   return (
     <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 md:gap-4 md:items-stretch [&>*]:min-w-0">
       <div className="md:col-span-2">
@@ -237,34 +287,40 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
         </div>
 
         <p className="text-[10px] text-slate-400">
-          Consumed (blue) next to burnt: resting (orange) + workout (red).
+          Consumed (blue) beside burnt, stacked as resting (yellow), workout (red), and TEF (orange).
           {restingCalories === undefined && (
             <span className="text-amber-400"> Plan burn data is unavailable.</span>
           )}
         </p>
 
-        <div className="h-48 w-full mt-auto">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={CHART_MARGIN} {...BAR_CHART_PROPS}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-              <XAxis dataKey="date" tick={<DayTick />} interval={0} height={40} tickLine={false} axisLine={{ stroke: '#334155' }} />
-              <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} width={40} />
-              <Tooltip
-                formatter={(value, name) => [`${value} kcal`, name]}
-                {...TOOLTIP_PROPS}
-              />
-              <ReferenceLine y={targets.calories} stroke="#f59e0b" strokeDasharray="3 3" />
-              <Bar dataKey="calories" name="Consumed" fill="#38bdf8" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="resting" name="Resting" stackId="burnt" fill="#f97316" />
-              <Bar
-                dataKey="workout"
-                name="Workout"
-                stackId="burnt"
-                fill="#ef4444"
-                radius={[6, 6, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+        <div ref={caloriesChartScroll.ref} className="h-48 w-full mt-auto overflow-x-auto overscroll-x-contain" role="region" aria-label="Scrollable calories consumed and burnt chart">
+          <div className="h-full" style={{ width: caloriesChartScroll.chartWidth }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} margin={CHART_MARGIN} {...BAR_CHART_PROPS}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                <XAxis dataKey="date" tick={<DayTick />} interval={0} height={40} tickLine={false} axisLine={{ stroke: '#334155' }} />
+                <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} width={40} />
+                <Tooltip
+                  formatter={(value, name) => [
+                    `${name === 'TEF' ? Number(value).toLocaleString(undefined, { maximumFractionDigits: 3 }) : value} kcal`,
+                    name,
+                  ]}
+                  {...TOOLTIP_PROPS}
+                />
+                <ReferenceLine y={targets.calories} stroke="#f8fafc" strokeDasharray="3 3" />
+                <Bar dataKey="calories" name="Consumed" fill="#4e79a7" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="resting" name="Resting" stackId="burnt" fill="#fbbf24" />
+                <Bar dataKey="tef" name="TEF" stackId="burnt" fill="#fb923c" />
+                <Bar
+                  dataKey="workout"
+                  name="Workout"
+                  stackId="burnt"
+                  fill="#f87171"
+                  radius={[6, 6, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
       {/* Daily Calorie Deficit Chart */}
@@ -285,7 +341,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
         ) : (
           <>
             <p className="text-[10px] text-slate-400">
-              Resting + workout calories burned − calories eaten.
+              Resting + workout + TEF calories burned − calories eaten.
             </p>
             <div className="flex items-center gap-4 text-[10px] font-semibold">
               <span className="flex items-center gap-1.5 text-red-500">
@@ -295,44 +351,46 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
                 <span className="w-2 h-2 rounded-full bg-emerald-500" /> Surplus
               </span>
             </div>
-            <div className="h-48 w-full mt-auto">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={CHART_MARGIN} {...BAR_CHART_PROPS}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                  <XAxis dataKey="date" tick={<DayTick />} interval={0} height={40} tickLine={false} axisLine={{ stroke: '#334155' }} />
-                  <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} width={40} />
-                  <Tooltip
-                    content={({ active, payload, label }: any) => {
-                      if (!active || !payload?.length || payload[0].value == null) return null;
-                      const value = Number(payload[0].value);
-                      const isDeficit = value > 0;
-                      const color = isDeficit ? '#ef4444' : '#10b981';
-                      return (
-                        <div
-                          style={{ ...TOOLTIP_PROPS.contentStyle, border: '1px solid #334155', padding: '8px 12px' }}
-                        >
-                          <p style={{ margin: 0, marginBottom: 4, color: '#fff' }}>
-                            {TOOLTIP_PROPS.labelFormatter(label)}
-                          </p>
-                          <p style={{ margin: 0, color, fontWeight: 600 }}>
-                            {isDeficit ? 'Calorie deficit' : 'Surplus'}: {value} kcal
-                          </p>
-                        </div>
-                      );
-                    }}
-                    {...TOOLTIP_PROPS}
-                  />
-                  <ReferenceLine y={0} stroke="#64748b" />
-                  <Bar dataKey="deficit" radius={[6, 6, 0, 0]}>
-                    {chartData.map((day) => (
-                      <Cell
-                        key={day.date}
-                        fill={day.deficit !== null && day.deficit > 0 ? '#ef4444' : '#10b981'}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+            <div ref={deficitChartScroll.ref} className="h-48 w-full mt-auto overflow-x-auto overscroll-x-contain" role="region" aria-label="Scrollable daily calorie deficit chart">
+              <div className="h-full" style={{ width: deficitChartScroll.chartWidth }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={CHART_MARGIN} {...BAR_CHART_PROPS}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                    <XAxis dataKey="date" tick={<DayTick />} interval={0} height={40} tickLine={false} axisLine={{ stroke: '#334155' }} />
+                    <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} width={40} />
+                    <Tooltip
+                      content={({ active, payload, label }: any) => {
+                        if (!active || !payload?.length || payload[0].value == null) return null;
+                        const value = Number(payload[0].value);
+                        const isDeficit = value > 0;
+                        const color = isDeficit ? '#ef4444' : '#10b981';
+                        return (
+                          <div
+                            style={{ ...TOOLTIP_PROPS.contentStyle, border: '1px solid #334155', padding: '8px 12px' }}
+                          >
+                            <p style={{ margin: 0, marginBottom: 4, color: '#fff' }}>
+                              {TOOLTIP_PROPS.labelFormatter(label)}
+                            </p>
+                            <p style={{ margin: 0, color, fontWeight: 600 }}>
+                              {isDeficit ? 'Calorie deficit' : 'Surplus'}: {value.toLocaleString(undefined, { maximumFractionDigits: 1 })} kcal
+                            </p>
+                          </div>
+                        );
+                      }}
+                      {...TOOLTIP_PROPS}
+                    />
+                    <ReferenceLine y={0} stroke="#64748b" />
+                    <Bar dataKey="deficit" radius={[6, 6, 0, 0]}>
+                      {chartData.map((day) => (
+                        <Cell
+                          key={day.date}
+                          fill={day.deficit !== null && day.deficit > 0 ? '#ef4444' : '#10b981'}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </>
         )}
@@ -362,9 +420,10 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
                 <span className="w-2 h-2 rounded-full bg-sky-400" /> Muscle
               </span>
             </div>
-            <div className="h-48 w-full mt-auto">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData} margin={CHART_MARGIN}>
+            <div ref={bodyCompositionChartScroll.ref} className="h-48 w-full mt-auto overflow-x-auto overscroll-x-contain" role="region" aria-label="Scrollable daily fat and muscle change chart">
+              <div className="h-full" style={{ width: bodyCompositionChartScroll.chartWidth }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData} margin={CHART_MARGIN}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                   <XAxis
                     dataKey="date"
@@ -408,8 +467,9 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
                     activeDot={{ r: 5 }}
                     connectNulls={false}
                   />
-                </LineChart>
-              </ResponsiveContainer>
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </>
         )}
@@ -424,19 +484,21 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
           <span className="text-[10px] text-slate-400">Target: {targets.protein}g</span>
         </div>
 
-        <div className="h-48 w-full mt-auto">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={CHART_MARGIN} {...BAR_CHART_PROPS}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-              <XAxis dataKey="date" tick={<DayTick />} interval={0} height={40} tickLine={false} axisLine={{ stroke: '#334155' }} />
-              <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} width={40} />
-              <Tooltip
-                {...TOOLTIP_PROPS}
-              />
-              <ReferenceLine y={targets.protein} stroke="#10b981" strokeDasharray="3 3" />
-              <Bar dataKey="protein" fill="#10b981" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        <div ref={proteinChartScroll.ref} className="h-48 w-full mt-auto overflow-x-auto overscroll-x-contain" role="region" aria-label="Scrollable daily protein intake chart">
+          <div className="h-full" style={{ width: proteinChartScroll.chartWidth }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} margin={CHART_MARGIN} {...BAR_CHART_PROPS}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                <XAxis dataKey="date" tick={<DayTick />} interval={0} height={40} tickLine={false} axisLine={{ stroke: '#334155' }} />
+                <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} width={40} />
+                <Tooltip
+                  {...TOOLTIP_PROPS}
+                />
+                <ReferenceLine y={targets.protein} stroke="#10b981" strokeDasharray="3 3" />
+                <Bar dataKey="protein" fill="#10b981" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
     </div>
