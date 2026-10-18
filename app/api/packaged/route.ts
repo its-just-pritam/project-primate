@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { appendPackaged, updatePackaged } from '@/lib/sheets';
 import { MICRO_FIELDS, EMPTY_MICROS, Micronutrients } from '@/types/nutrition';
+import { getCurrentSession } from '@/lib/authSession';
 
 const num = (v: unknown) => {
   const n = Number(v);
@@ -10,6 +11,8 @@ const num = (v: unknown) => {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    const session = await getCurrentSession();
+    if (!session) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     const dish = String(body.dish || '').trim();
     const quantity = Number(body.quantity) > 0 ? Number(body.quantity) : 1;
 
@@ -25,7 +28,7 @@ export async function POST(req: NextRequest) {
     const result = await appendPackaged({
       dish,
       quantity,
-      user: String(body.user || 'Pritam Mallick'),
+      user: session.name,
       calories: num(body.calories),
       protein: num(body.protein),
       carbs: num(body.carbs),
@@ -44,6 +47,8 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
+    const session = await getCurrentSession();
+    if (!session) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     const dish = String(body.dish || '').trim();
     const quantity = Number(body.quantity) > 0 ? Number(body.quantity) : 1;
 
@@ -59,7 +64,7 @@ export async function PUT(req: NextRequest) {
     const result = await updatePackaged({
       dish,
       quantity,
-      user: String(body.user || 'Pritam Mallick'),
+      user: session.name,
       calories: num(body.calories),
       protein: num(body.protein),
       carbs: num(body.carbs),

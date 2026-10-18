@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Database, RefreshCw } from 'lucide-react';
+import { Database, RefreshCw, LogOut } from 'lucide-react';
 
 interface HeaderProps {
   isLive: boolean;
@@ -48,6 +48,17 @@ export const Header: React.FC<HeaderProps> = ({ isLive, onRefresh, isLoading, us
           title="Refresh Data"
         >
           <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-emerald-400' : ''}`} />
+        </button>
+        <button
+          onClick={async () => {
+            await fetch('/api/auth/logout', { method: 'POST' });
+            window.location.assign('/login');
+          }}
+          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+          title="Sign out"
+          aria-label="Sign out"
+        >
+          <LogOut className="w-4 h-4" />
         </button>
       </div>
     </header>
