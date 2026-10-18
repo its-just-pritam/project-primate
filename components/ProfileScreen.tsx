@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { PlanAnalytics, PlanInput, PlanSummary, ProfileUpdate } from '@/types/nutrition';
-import { ArrowLeft, ChevronDown, LogOut, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Eye, EyeOff, LogOut, Plus, Trash2 } from 'lucide-react';
 import { AVATARS } from '@/lib/avatars';
 
 interface ProfileScreenProps {
@@ -70,6 +70,39 @@ const FormField: React.FC<{
       className={inputCls}
       {...props}
     />
+  </div>
+);
+
+const PasswordField: React.FC<{
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  visible: boolean;
+  onToggleVisibility: () => void;
+}> = ({ label, value, onChange, visible, onToggleVisibility }) => (
+  <div>
+    <label className="text-xs font-medium text-slate-300 block mb-1">{label}</label>
+    <div className="relative">
+      <input
+        type={visible ? 'text' : 'password'}
+        autoComplete="new-password"
+        minLength={12}
+        maxLength={256}
+        required
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={`${inputCls} pr-11`}
+      />
+      <button
+        type="button"
+        onClick={onToggleVisibility}
+        aria-label={visible ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
+        aria-pressed={visible}
+        className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-white"
+      >
+        {visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+      </button>
+    </div>
   </div>
 );
 
@@ -207,6 +240,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const [saving, setSaving] = useState(false);
   const [draftAvatar, setDraftAvatar] = useState(avatar);
   const [error, setError] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
+  const [passwordBusy, setPasswordBusy] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+  const [passwordSectionOpen, setPasswordSectionOpen] = useState(false);
 
   // ACTIVE first, then INACTIVE, then DELETED; within a status, earliest start date first.
   const STATUS_ORDER = { ACTIVE: 0, INACTIVE: 1, DELETED: 2 } as const;
@@ -268,6 +309,33 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     setSaving(false);
     if (ok) onClose();
     else setError('Could not save. Please check the values and try again.');
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError(null);
+    setPasswordSuccess(null);
+    if (newPassword !== confirmNewPassword) {
+      setPasswordError('New passwords do not match.');
+      return;
+    }
+    setPasswordBusy(true);
+    try {
+      const response = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPassword }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Could not change password.');
+      setNewPassword('');
+      setConfirmNewPassword('');
+      setPasswordSuccess('Password changed successfully.');
+    } catch (changeError) {
+      setPasswordError(changeError instanceof Error ? changeError.message : 'Could not change password.');
+    } finally {
+      setPasswordBusy(false);
+    }
   };
 
   const handleSavePlan = async (p: PlanSummary, v: PlanInput) => {
@@ -400,6 +468,47 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           </div>
           {error && <p className="text-xs text-red-400">{error}</p>}
         </form>
+
+        <section className="rounded-xl border border-slate-800 bg-slate-900/50">
+          <button
+            type="button"
+            aria-expanded={passwordSectionOpen}
+            aria-controls="change-password-form"
+            onClick={() => setPasswordSectionOpen((open) => !open)}
+            className="w-full flex items-center justify-between px-3.5 py-3 text-left"
+          >
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Change password</span>
+            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${passwordSectionOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {passwordSectionOpen && (
+            <form id="change-password-form" onSubmit={handleChangePassword} className="space-y-2.5 border-t border-slate-800 p-3.5">
+              <PasswordField
+                label="New password"
+                value={newPassword}
+                onChange={setNewPassword}
+                visible={showNewPassword}
+                onToggleVisibility={() => setShowNewPassword((visible) => !visible)}
+              />
+              <PasswordField
+                label="Confirm new password"
+                value={confirmNewPassword}
+                onChange={setConfirmNewPassword}
+                visible={showConfirmNewPassword}
+                onToggleVisibility={() => setShowConfirmNewPassword((visible) => !visible)}
+              />
+              <p className="text-[11px] text-slate-500">Use at least 12 characters.</p>
+              {passwordError && <p className="text-xs text-red-400">{passwordError}</p>}
+              {passwordSuccess && <p className="text-xs text-emerald-400">{passwordSuccess}</p>}
+              <button
+                type="submit"
+                disabled={passwordBusy || newPassword.length < 12 || !confirmNewPassword}
+                className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {passwordBusy ? 'Changing...' : 'Change password'}
+              </button>
+            </form>
+          )}
+        </section>
 
         <section className="space-y-2.5 pb-6">
           <div className="flex items-center justify-between">
