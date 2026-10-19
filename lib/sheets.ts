@@ -276,9 +276,15 @@ export async function registerSheetUser(firstName: string, lastName: string, ema
     name, 'weight (kg)': 0, 'height (cm)': 0, 'workouts per week': 0, avatar: '🐻',
     email: normalizedEmail, 'password hash': passwordHash, 'first name': first, 'last name': last, 'onboarding step': 0,
   };
+  const userHeaderAliases: Record<string, string[]> = {
+    heightcm: ['heightcm', 'heightcms'],
+    workoutsperweek: ['workoutperweek', 'workoutsperweek'],
+  };
   const userRecord = new Array(userHeaders.length).fill('');
   for (const [field, value] of Object.entries(userFields)) {
-    const matches = userHeaders.flatMap((header, index) => normalizeSheetHeader(header) === normalizeSheetHeader(field) ? [index] : []);
+    const normalizedField = normalizeSheetHeader(field);
+    const acceptedHeaders = userHeaderAliases[normalizedField] || [normalizedField];
+    const matches = userHeaders.flatMap((header, index) => acceptedHeaders.includes(normalizeSheetHeader(header)) ? [index] : []);
     if (matches.length !== 1) throw new Error(`User sheet must have exactly one ${field} column`);
     userRecord[matches[0]] = value;
   }
