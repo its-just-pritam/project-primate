@@ -54,7 +54,7 @@ export const DailyLogList: React.FC<DailyLogListProps> = ({ logs, onDelete }) =>
           <div
             key={key}
             onClick={() => toggle(key)}
-            className="bg-slate-900/80 border border-slate-800/80 hover:border-slate-700/80 rounded-2xl p-3.5 transition-all shadow-sm cursor-pointer"
+            className="bg-[linear-gradient(155deg,#182438,#101827)] shadow-[5px_6px_14px_rgba(0,0,0,0.22),-2px_-2px_8px_rgba(255,255,255,0.025)] rounded-2xl p-3.5 transition-all cursor-pointer"
           >
             <div className="flex items-start justify-between">
               <div>
@@ -95,7 +95,7 @@ export const DailyLogList: React.FC<DailyLogListProps> = ({ logs, onDelete }) =>
 
             {/* Macro details pills */}
             <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-800/60 text-[11px] font-medium">
-              <span className="text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+              <span className="text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-md">
                 P: {item.protein}g
               </span>
               <span className="text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md">

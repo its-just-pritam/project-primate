@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Recipe, MealLogEntry } from '@/types/nutrition';
-import { Plus, Minus, Check, Sparkles, Utensils, AlertCircle } from 'lucide-react';
+import { Plus, Minus, Check, Sparkles, Utensils, AlertCircle, Search, X } from 'lucide-react';
 
 interface QuickLoggerProps {
   recipes: Recipe[];
@@ -25,9 +25,15 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
   const [portion, setPortion] = useState<number>(1);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [timestamp, setTimestamp] = useState(getLocalDateTime());
 
   const selectedRecipe = recipes.find((r) => r.id === selectedRecipeId);
+  const showSearch = recipes.length >= 10;
+  const normalizedSearch = searchQuery.trim().toLocaleLowerCase();
+  const filteredRecipes = normalizedSearch
+    ? recipes.filter((recipe) => recipe.name.toLocaleLowerCase().includes(normalizedSearch))
+    : recipes;
 
   // Compute calculated values
   const calPerUnit = selectedRecipe?.calories || 0;
@@ -112,8 +118,32 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
                 </button>
               </div>
 
+              {showSearch && (
+                <div className="relative rounded-full bg-gradient-to-r from-slate-900/90 via-slate-800/75 to-slate-900/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_24px_rgba(0,0,0,0.16)] backdrop-blur-xl">
+                  <Search aria-hidden="true" className="absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-emerald-400" />
+                  <input
+                    type="search"
+                    aria-label="Search foods to log"
+                    placeholder="Search foods..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="relative w-full rounded-full border-0 bg-transparent py-3 pl-10 pr-10 text-sm text-white outline-none transition placeholder:text-slate-400/80 focus:bg-white/[0.025] focus:ring-2 focus:ring-inset focus:ring-emerald-400/20"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      aria-label="Clear food search"
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 transition hover:bg-white/10 hover:text-white"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              )}
+
               <div className={`grid grid-cols-1 md:grid-cols-2 gap-2 max-h-56 md:max-h-72 overflow-y-auto pr-1 ${onboardingHighlight ? 'onboarding-glow-fields' : ''}`}>
-                {recipes.map((r) => {
+                {filteredRecipes.map((r) => {
                   const isSelected = selectedRecipeId === r.id;
                   return (
                     <button
@@ -155,6 +185,12 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
                     </button>
                   );
                 })}
+                {normalizedSearch && filteredRecipes.length === 0 && (
+                  <div className="md:col-span-2 rounded-xl border border-slate-800 bg-slate-900/60 px-4 py-6 text-center">
+                    <p className="text-sm font-semibold text-slate-100">No matching foods</p>
+                    <p className="mt-1 text-xs text-slate-400">Try another name or clear your search.</p>
+                  </div>
+                )}
               </div>
             </div>
 

@@ -34,7 +34,7 @@ export const WorkoutList: React.FC<{
         {workouts.map((w, idx) => (
           <div
             key={w.id || idx}
-            className="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-3.5 flex items-start justify-between shadow-sm"
+            className="bg-[linear-gradient(155deg,#182438,#101827)] shadow-[5px_6px_14px_rgba(0,0,0,0.22),-2px_-2px_8px_rgba(255,255,255,0.025)] rounded-2xl p-3.5 flex items-start justify-between"
           >
             <div>
               <h4 className="text-sm font-bold text-white tracking-tight">{w.name}</h4>

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Recipe, MICRO_FIELDS } from '@/types/nutrition';
-import { Plus, BookOpen, Check, ChefHat, ChevronDown, Trash2, Pencil, Package } from 'lucide-react';
+import { Plus, BookOpen, Check, ChefHat, ChevronDown, Trash2, Pencil, Package, Search, X } from 'lucide-react';
 import { IngredientBreakdown } from './IngredientBreakdown';
 import { PackagedForm, PackagedInput } from './PackagedForm';
 
@@ -30,8 +30,15 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const knownIngredients = ingredientNames;
+  const catalog = [...recipes, ...packaged];
+  const showSearch = catalog.length >= 10;
+  const normalizedSearch = searchQuery.trim().toLocaleLowerCase();
+  const filteredCatalog = normalizedSearch
+    ? catalog.filter((recipe) => recipe.name.toLocaleLowerCase().includes(normalizedSearch))
+    : catalog;
 
   const updateItem = (idx: number, field: 'ingredient' | 'quantity', value: string) =>
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, [field]: value } : it)));
@@ -275,6 +282,29 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
       )}
 
       {/* Recipe List Cards */}
+      {showSearch && (
+          <div className="relative rounded-full bg-gradient-to-r from-slate-900/90 via-slate-800/75 to-slate-900/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_24px_rgba(0,0,0,0.16)] backdrop-blur-xl">
+          <Search aria-hidden="true" className="absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-emerald-400" />
+          <input
+            type="search"
+            aria-label="Search recipes"
+            placeholder="Search recipes and packaged foods..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="relative w-full rounded-full border-0 bg-transparent py-3 pl-10 pr-10 text-sm text-white outline-none transition placeholder:text-slate-400/80 focus:bg-white/[0.025] focus:ring-2 focus:ring-inset focus:ring-emerald-400/20"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              aria-label="Clear recipe search"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white/10 hover:text-white"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 items-start">
         {recipes.length === 0 && packaged.length === 0 && (
           <div className="md:col-span-2 rounded-2xl border border-slate-800 bg-slate-900/60 px-5 py-8 text-center">
@@ -286,7 +316,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
             </div>
           </div>
         )}
-        {[...recipes, ...packaged].map((r) => {
+        {filteredCatalog.map((r) => {
           const isOpen = !!expandedIds[r.id];
           return (
           <div
@@ -381,6 +411,12 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
           </div>
           );
         })}
+        {normalizedSearch && filteredCatalog.length === 0 && (
+          <div className="md:col-span-2 rounded-2xl border border-slate-800 bg-slate-900/60 px-5 py-8 text-center">
+            <p className="text-sm font-semibold text-slate-100">No matching recipes</p>
+            <p className="mt-1 text-xs text-slate-400">Try another name or clear your search.</p>
+          </div>
+        )}
       </div>
     </div>
   );
