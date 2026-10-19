@@ -580,7 +580,7 @@ export default function Home() {
                   type="button"
                   aria-label="Previous day"
                   onClick={() => shiftSelectedDate(-1)}
-                  className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white active:scale-95 transition"
+                  className="w-8 h-8 flex items-center justify-center rounded-xl bg-[linear-gradient(155deg,#182438,#101827)] text-slate-300 shadow-[4px_5px_12px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.05)] transition hover:text-white active:scale-95"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
@@ -590,14 +590,14 @@ export default function Home() {
                   max={todayKey}
                   onChange={(e) => e.target.value && setSelectedDate(e.target.value)}
                   style={{ colorScheme: 'dark' }}
-                  className="bg-slate-900 border border-slate-800 text-xs text-slate-300 rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-emerald-500"
+                  className="rounded-xl bg-[linear-gradient(155deg,#182438,#101827)] px-2.5 py-1.5 text-center text-xs text-slate-200 shadow-[4px_5px_12px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.05)] focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                 />
                 <button
                   type="button"
                   aria-label="Next day"
                   onClick={() => shiftSelectedDate(1)}
                   disabled={selectedDate >= todayKey}
-                  className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white active:scale-95 transition disabled:opacity-30 disabled:pointer-events-none"
+                  className="w-8 h-8 flex items-center justify-center rounded-xl bg-[linear-gradient(155deg,#182438,#101827)] text-slate-300 shadow-[4px_5px_12px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.05)] transition hover:text-white active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>

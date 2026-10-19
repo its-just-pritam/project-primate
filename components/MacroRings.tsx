@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { DailyTargets } from '@/types/nutrition';
-import { Flame, Beef, Wheat, Droplets } from 'lucide-react';
+import { Beef, Wheat, Droplets } from 'lucide-react';
 
 interface MacroTotals {
   calories: number;
@@ -29,13 +29,11 @@ export const MacroRings: React.FC<MacroRingsProps> = ({ totals, targets }) => {
   return (
     <section className="space-y-2 min-w-0">
     <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider px-1">Nutrients</h3>
-    <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-4">
+    <div className="bg-[#0b1220] rounded-2xl p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_14px_34px_rgba(0,0,0,0.2)] space-y-4">
       {/* Top Banner: Calories */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400">
-            <Flame className="w-6 h-6 stroke-[2.2]" />
-          </div>
+          <span aria-hidden="true" className="shrink-0 text-[30px] leading-none">🔥</span>
           <div>
             <div className="flex items-baseline space-x-1.5">
               <span className="text-2xl font-black text-white tracking-tight">
@@ -51,13 +49,12 @@ export const MacroRings: React.FC<MacroRingsProps> = ({ totals, targets }) => {
           <span
             className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold ${
               calSurplus > 0
-                ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+              ? 'bg-rose-500/10 text-rose-400'
+              : 'bg-orange-500/10 text-orange-400'
             }`}
           >
             {calSurplus > 0 ? `${calSurplus} surplus` : calRemaining > 0 ? `${calRemaining} left` : 'Target met'}
           </span>
-          <p className="text-[10px] text-slate-500 mt-1">{calPercent}% achieved</p>
         </div>
       </div>
 
@@ -72,9 +69,9 @@ export const MacroRings: React.FC<MacroRingsProps> = ({ totals, targets }) => {
       {/* Macro Grid */}
       <div className="grid grid-cols-3 gap-2 pt-1">
         {/* Protein */}
-        <div className="min-w-0 bg-slate-950/60 border border-emerald-500/20 rounded-xl p-2.5 flex flex-col justify-between">
+        <div className="min-w-0 bg-[linear-gradient(155deg,#182438,#101827)] shadow-[5px_6px_14px_rgba(0,0,0,0.22),-2px_-2px_8px_rgba(255,255,255,0.025)] rounded-xl p-2.5 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[11px] font-bold text-emerald-400 flex items-center gap-1">
+            <span className="text-[11px] font-bold text-rose-400 flex items-center gap-1">
               <Beef className="w-3.5 h-3.5" /> Protein
             </span>
             <span className="text-[10px] text-slate-400 max-[400px]:hidden">{proteinPercent}%</span>
@@ -87,14 +84,14 @@ export const MacroRings: React.FC<MacroRingsProps> = ({ totals, targets }) => {
           </div>
           <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
             <div
-              className="h-full bg-emerald-400 rounded-full transition-all duration-500"
+              className="h-full bg-rose-400 rounded-full transition-all duration-500"
               style={{ width: `${proteinPercent}%` }}
             />
           </div>
         </div>
 
         {/* Carbs */}
-        <div className="min-w-0 bg-slate-950/60 border border-amber-500/20 rounded-xl p-2.5 flex flex-col justify-between">
+        <div className="min-w-0 bg-[linear-gradient(155deg,#182438,#101827)] shadow-[5px_6px_14px_rgba(0,0,0,0.22),-2px_-2px_8px_rgba(255,255,255,0.025)] rounded-xl p-2.5 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11px] font-bold text-amber-400 flex items-center gap-1">
               <Wheat className="w-3.5 h-3.5" /> Carbs
@@ -116,7 +113,7 @@ export const MacroRings: React.FC<MacroRingsProps> = ({ totals, targets }) => {
         </div>
 
         {/* Fats */}
-        <div className="min-w-0 bg-slate-950/60 border border-sky-500/20 rounded-xl p-2.5 flex flex-col justify-between">
+        <div className="min-w-0 bg-[linear-gradient(155deg,#182438,#101827)] shadow-[5px_6px_14px_rgba(0,0,0,0.22),-2px_-2px_8px_rgba(255,255,255,0.025)] rounded-xl p-2.5 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11px] font-bold text-sky-400 flex items-center gap-1">
               <Droplets className="w-3.5 h-3.5" /> Fats

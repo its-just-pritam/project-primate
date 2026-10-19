@@ -27,7 +27,7 @@ export const Header: React.FC<HeaderProps> = ({ onRefresh, isLoading, userName }
         <button
           onClick={onRefresh}
           disabled={isLoading}
-          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors disabled:opacity-50"
+          className="p-1.5 rounded-lg text-slate-300 transition-colors hover:text-white disabled:opacity-50"
           title="Refresh Data"
         >
           <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-emerald-400' : ''}`} />
