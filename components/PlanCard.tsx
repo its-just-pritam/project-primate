@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import { PlanAnalytics } from '@/types/nutrition';
-import { Target, Flame, Zap, ArrowRight, TrendingDown, Utensils, Clock, Info, Share2 } from 'lucide-react';
+import { ArrowRight, Info, Share2 } from 'lucide-react';
 
 const INVITATION_URL = 'https://project-primate.vercel.app/';
 
@@ -101,6 +101,8 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
   const [showInfo, setShowInfo] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
   const [sharing, setSharing] = useState(false);
+  const [selectedCoreMetric, setSelectedCoreMetric] = useState(3);
+  const gaugeGradientId = useId().replace(/:/g, '');
   if (!plan) return null;
 
   const targetWeightDelta = plan.targetWeight - plan.currentWeight;
@@ -109,7 +111,14 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
   const muscleMassDeltaKg = plan.totalMuscleMassChangeGrams / 1000;
   const isWeightGain = weightDeltaKg > 0;
   const progressBarWidth = Math.min(100, Math.abs(plan.progressPercent));
-
+  const coreMetrics = [
+    { label: 'Total Consumed', value: plan.totalCalorieConsumed.toLocaleString(), unit: 'kcal', emoji: '🥣', blueFire: false, highlight: false, accentStart: '#7dd3fc', accentEnd: '#2563eb', glow: 'rgba(56,189,248,0.5)' },
+    { label: 'Total Burnt incl. TEF', value: plan.totalCalorieBurnt.toLocaleString(), unit: 'kcal', emoji: '⚡', blueFire: false, highlight: false, accentStart: '#fde047', accentEnd: '#f59e0b', glow: 'rgba(250,204,21,0.5)' },
+    { label: 'Resting Burn', value: plan.restingCalories.toLocaleString(), unit: 'kcal/d', emoji: '🔥', blueFire: true, highlight: false, accentStart: '#38bdf8', accentEnd: '#2563eb', glow: 'rgba(56,189,248,0.5)' },
+    { label: 'Avg Daily Deficit', value: plan.averageCalorieDeficit.toLocaleString(), unit: 'kcal/d', emoji: '🔥', blueFire: false, highlight: false, accentStart: '#fb923c', accentEnd: '#ef4444', glow: 'rgba(249,115,22,0.5)' },
+    { label: 'Total Deficit', value: plan.totalCalorieDeficit.toLocaleString(), unit: 'kcal', emoji: '📉', blueFire: false, highlight: true, accentStart: '#34d399', accentEnd: '#059669', glow: 'rgba(52,211,153,0.48)' },
+    { label: 'Days on Plan', value: String(plan.daysElapsed), unit: 'days', emoji: '📅', blueFire: false, highlight: false, accentStart: '#60a5fa', accentEnd: '#4f46e5', glow: 'rgba(96,165,250,0.5)' },
+  ];
   const handleShare = async () => {
     setSharing(true);
     setShareMessage('');
@@ -150,7 +159,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
   };
 
   return (
-    <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/40 border border-emerald-500/30 rounded-2xl p-4 shadow-xl space-y-3.5 relative overflow-hidden">
+    <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/40 rounded-2xl px-4 pb-4 pt-2 shadow-xl space-y-3.5 relative overflow-hidden">
       {/* Subtle background glow */}
       <div className="absolute -top-12 -right-12 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
 
@@ -158,7 +167,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
       <div className="flex items-start justify-between gap-2 relative z-10">
         <div className="min-w-0">
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className="shrink-0 whitespace-nowrap px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 tracking-wide uppercase">
+            <span className="shrink-0 whitespace-nowrap px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 tracking-wide uppercase">
               Active Plan
             </span>
             <span className="text-xs text-slate-400 font-medium truncate">· {plan.planName}</span>
@@ -174,26 +183,93 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
             </span>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={handleShare}
-          disabled={sharing}
-          aria-label={sharing ? 'Preparing plan image to share' : 'Share active plan'}
-          title={sharing ? 'Preparing plan image' : 'Share active plan'}
-          className="shrink-0 inline-flex items-center justify-center p-1.5 text-slate-400 hover:text-emerald-300 disabled:opacity-60"
-        >
-          {sharing ? <span aria-hidden="true">…</span> : <Share2 className="h-4 w-4" />}
-        </button>
+        <div className="flex shrink-0 items-center gap-0.5">
+          <button
+            type="button"
+            onClick={handleShare}
+            disabled={sharing}
+            aria-label={sharing ? 'Preparing plan image to share' : 'Share active plan'}
+            title={sharing ? 'Preparing plan image' : 'Share active plan'}
+            className="shrink-0 inline-flex items-center justify-center p-1.5 text-slate-400 hover:text-emerald-300 disabled:opacity-60"
+          >
+            {sharing ? <span aria-hidden="true">…</span> : <Share2 className="h-4 w-4" />}
+          </button>
+        </div>
       </div>
       {shareMessage && <p role="status" className="relative z-10 text-[11px] text-emerald-300">{shareMessage}</p>}
 
+      {/* Mobile calorie gauge */}
+      <div className="relative z-10 hidden max-sm:block pt-1">
+        {(() => {
+          const selectedMetric = coreMetrics[selectedCoreMetric];
+          const bottomMetrics = coreMetrics.filter((_, index) => index !== selectedCoreMetric);
+          return (
+            <div className="mx-auto flex w-full max-w-[360px] flex-col items-center">
+              <div className="relative h-[276px] w-[276px] max-w-full">
+                <svg viewBox="0 0 260 260" className="absolute inset-0 h-full w-full rotate-[135deg]" aria-hidden="true">
+                  <defs>
+                    <linearGradient id={gaugeGradientId} x1="0%" y1="100%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor={selectedMetric.accentStart} />
+                      <stop offset="100%" stopColor={selectedMetric.accentEnd} />
+                    </linearGradient>
+                  </defs>
+                  <circle cx="130" cy="130" r="103" fill="none" stroke="rgba(148,163,184,0.12)" strokeWidth="13" strokeDasharray="485 647" strokeLinecap="round" />
+                  <circle cx="130" cy="130" r="103" fill="none" stroke={`url(#${gaugeGradientId})`} strokeWidth="13" strokeDasharray="485 647" strokeLinecap="round" style={{ filter: `drop-shadow(0 0 8px ${selectedMetric.glow})` }} />
+                </svg>
+                <div key={selectedMetric.label} className="metric-selection-enter absolute inset-[30px] flex flex-col items-center justify-center rounded-full bg-[radial-gradient(circle_at_50%_38%,rgba(45,61,86,0.34),rgba(15,23,42,0.08)_68%)] text-center">
+                  <span
+                    aria-hidden="true"
+                    className="mb-2 text-[32px] leading-none"
+                    style={{ filter: `${selectedMetric.blueFire ? 'hue-rotate(190deg) saturate(1.25) ' : ''}drop-shadow(0 0 7px ${selectedMetric.glow})` }}
+                  >
+                    {selectedMetric.emoji}
+                  </span>
+                  <span className="max-w-[172px] text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                    {selectedMetric.label}
+                  </span>
+                  <span className={`mt-1 text-[38px] font-black leading-none tracking-tight ${selectedMetric.highlight ? 'text-emerald-300' : 'text-white'}`}>
+                    {selectedMetric.value}
+                  </span>
+                  <span className="mt-1 text-[11px] font-medium text-slate-400">{selectedMetric.unit}</span>
+                </div>
+              </div>
+
+              <div className="mt-1 grid w-full grid-cols-5 gap-1.5">
+                {bottomMetrics.map((metric, positionIndex) => {
+                  const metricIndex = coreMetrics.indexOf(metric);
+                  return (
+                    <button
+                      key={metric.label}
+                      type="button"
+                      aria-label={`Show ${metric.label}: ${metric.value} ${metric.unit}`}
+                      aria-pressed={false}
+                      onClick={() => setSelectedCoreMetric(metricIndex)}
+                      className="metric-selection-enter group relative flex min-w-0 flex-col items-center gap-1 rounded-lg px-0.5 py-1.5 text-slate-400 transition-colors hover:bg-white/[0.04] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+                    >
+                      {positionIndex > 0 && (
+                        <span
+                          aria-hidden="true"
+                          className="pointer-events-none absolute -left-[4px] top-0 -bottom-2 w-px bg-gradient-to-b from-transparent via-slate-400/35 to-slate-400/35"
+                        />
+                      )}
+                      <span className="flex h-8 items-center justify-center text-[22px] transition-transform group-active:scale-95">
+                        <span aria-hidden="true" style={{ filter: `${metric.blueFire ? 'hue-rotate(190deg) saturate(1.25) ' : ''}drop-shadow(0 0 4px ${metric.glow})` }}>{metric.emoji}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div aria-hidden="true" className="mt-2 h-px w-full bg-slate-400/35" />
+            </div>
+          );
+        })()}
+      </div>
+
       {/* 6 Core Metrics Grid */}
-      <div className="grid grid-cols-2 gap-2 relative z-10">
+      <div className="grid grid-cols-2 gap-2 relative z-10 max-sm:hidden">
         {/* Metric 1: Total Calorie Consumed */}
-        <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-2.5 flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 flex-shrink-0">
-            <Utensils className="w-4 h-4 stroke-[2.2]" />
-          </div>
+        <div className="bg-[linear-gradient(155deg,#182438,#101827)] shadow-[5px_6px_14px_rgba(0,0,0,0.22),-2px_-2px_8px_rgba(255,255,255,0.025)] rounded-xl p-2.5 flex items-center gap-2.5">
+          <span aria-hidden="true" className="w-8 h-8 flex items-center justify-center text-[20px] leading-none flex-shrink-0">🥣</span>
           <div className="min-w-0">
             <span className="text-[10px] text-slate-400 font-medium block truncate">
               Total Consumed
@@ -208,10 +284,8 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
         </div>
 
         {/* Metric 2: Total Calorie Burnt */}
-        <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-2.5 flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 flex-shrink-0">
-            <Zap className="w-4 h-4 stroke-[2.2]" />
-          </div>
+        <div className="bg-[linear-gradient(155deg,#182438,#101827)] shadow-[5px_6px_14px_rgba(0,0,0,0.22),-2px_-2px_8px_rgba(255,255,255,0.025)] rounded-xl p-2.5 flex items-center gap-2.5">
+          <span aria-hidden="true" className="w-8 h-8 flex items-center justify-center text-[20px] leading-none flex-shrink-0">⚡</span>
           <div className="min-w-0">
             <span className="text-[10px] text-slate-400 font-medium block truncate">
               Total Burnt incl. TEF
@@ -225,47 +299,9 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
           </div>
         </div>
 
-        {/* Metric 3: Total Deficit */}
-        <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-2.5 flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 flex-shrink-0">
-            <TrendingDown className="w-4 h-4 stroke-[2.2]" />
-          </div>
-          <div className="min-w-0">
-            <span className="text-[10px] text-slate-400 font-medium block truncate">
-              Total Deficit
-            </span>
-            <div className="flex items-baseline gap-1">
-              <span className="text-sm font-black text-emerald-400">
-                {plan.totalCalorieDeficit.toLocaleString()}
-              </span>
-              <span className="text-[10px] text-slate-400">kcal</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Metric 4: Avg Daily Deficit */}
-        <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-2.5 flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 flex-shrink-0">
-            <Flame className="w-4 h-4 stroke-[2.2]" />
-          </div>
-          <div className="min-w-0">
-            <span className="text-[10px] text-slate-400 font-medium block truncate">
-              Avg Daily Deficit
-            </span>
-            <div className="flex items-baseline gap-1">
-              <span className="text-sm font-black text-white">
-                {plan.averageCalorieDeficit.toLocaleString()}
-              </span>
-              <span className="text-[10px] text-slate-400">kcal/d</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Metric 5: Resting Burn Baseline */}
-        <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-2.5 flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 flex-shrink-0">
-            <Target className="w-4 h-4 stroke-[2.2]" />
-          </div>
+        {/* Metric 3: Resting Burn Baseline */}
+        <div className="bg-[linear-gradient(155deg,#182438,#101827)] shadow-[5px_6px_14px_rgba(0,0,0,0.22),-2px_-2px_8px_rgba(255,255,255,0.025)] rounded-xl p-2.5 flex items-center gap-2.5">
+          <span aria-hidden="true" className="w-8 h-8 flex items-center justify-center text-[20px] leading-none flex-shrink-0 [filter:hue-rotate(190deg)_saturate(1.25)]">🔥</span>
           <div className="min-w-0">
             <span className="text-[10px] text-slate-400 font-medium block truncate">
               Resting Burn
@@ -279,11 +315,41 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
           </div>
         </div>
 
-        {/* Metric 6: Days on Plan */}
-        <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-2.5 flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400 flex-shrink-0">
-            <Clock className="w-4 h-4 stroke-[2.2]" />
+        {/* Metric 4: Avg Daily Deficit */}
+        <div className="bg-[linear-gradient(155deg,#182438,#101827)] shadow-[5px_6px_14px_rgba(0,0,0,0.22),-2px_-2px_8px_rgba(255,255,255,0.025)] rounded-xl p-2.5 flex items-center gap-2.5">
+          <span aria-hidden="true" className="w-8 h-8 flex items-center justify-center text-[20px] leading-none flex-shrink-0">🔥</span>
+          <div className="min-w-0">
+            <span className="text-[10px] text-slate-400 font-medium block truncate">
+              Avg Daily Deficit
+            </span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-sm font-black text-white">
+                {plan.averageCalorieDeficit.toLocaleString()}
+              </span>
+              <span className="text-[10px] text-slate-400">kcal/d</span>
+            </div>
           </div>
+        </div>
+
+        {/* Metric 5: Total Deficit */}
+        <div className="bg-[linear-gradient(155deg,#182438,#101827)] shadow-[5px_6px_14px_rgba(0,0,0,0.22),-2px_-2px_8px_rgba(255,255,255,0.025)] rounded-xl p-2.5 flex items-center gap-2.5">
+          <span aria-hidden="true" className="w-8 h-8 flex items-center justify-center text-[20px] leading-none flex-shrink-0">📉</span>
+          <div className="min-w-0">
+            <span className="text-[10px] text-slate-400 font-medium block truncate">
+              Total Deficit
+            </span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-sm font-black text-emerald-400">
+                {plan.totalCalorieDeficit.toLocaleString()}
+              </span>
+              <span className="text-[10px] text-slate-400">kcal</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Metric 6: Days on Plan */}
+        <div className="bg-[linear-gradient(155deg,#182438,#101827)] shadow-[5px_6px_14px_rgba(0,0,0,0.22),-2px_-2px_8px_rgba(255,255,255,0.025)] rounded-xl p-2.5 flex items-center gap-2.5">
+          <span aria-hidden="true" className="w-8 h-8 flex items-center justify-center text-[20px] leading-none flex-shrink-0">📅</span>
           <div className="min-w-0">
             <span className="text-[10px] text-slate-400 font-medium block truncate">
               Days on Plan
@@ -331,14 +397,14 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
           />
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2">
-          <div className="rounded-lg border border-slate-800 bg-slate-950/60 px-2.5 py-2">
+          <div className="rounded-lg bg-[linear-gradient(155deg,#182438,#101827)] shadow-[5px_6px_14px_rgba(0,0,0,0.22),-2px_-2px_8px_rgba(255,255,255,0.025)] px-2.5 py-2">
             <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">Body Fat</p>
             <p className={`mt-0.5 text-sm font-extrabold ${fatMassDeltaKg > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
               {fatMassDeltaKg > 0 ? '+' : ''}
               {fatMassDeltaKg.toFixed(2)} kg
             </p>
           </div>
-          <div className="rounded-lg border border-slate-800 bg-slate-950/60 px-2.5 py-2">
+          <div className="rounded-lg bg-[linear-gradient(155deg,#182438,#101827)] shadow-[5px_6px_14px_rgba(0,0,0,0.22),-2px_-2px_8px_rgba(255,255,255,0.025)] px-2.5 py-2">
             <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">Muscle Mass</p>
             <p className={`mt-0.5 text-sm font-extrabold ${muscleMassDeltaKg >= 0 ? 'text-sky-400' : 'text-orange-400'}`}>
               {muscleMassDeltaKg > 0 ? '+' : ''}
@@ -394,3 +460,8 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
     </div>
   );
 };
+
+
+
+
+
