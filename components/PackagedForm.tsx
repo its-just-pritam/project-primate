@@ -24,7 +24,7 @@ interface PackagedFormProps {
 }
 
 const inputCls =
-  'w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500';
+  'log-input w-full h-11 rounded-xl px-3 text-sm text-white focus:outline-none';
 
 const MACROS = [
   { key: 'calories', label: 'Calories (kcal)' },
@@ -131,7 +131,7 @@ export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel, 
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-slate-900 border border-amber-500/30 rounded-2xl p-4 space-y-3.5 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200"
+      className="space-y-4 border-y border-slate-700/70 py-3 animate-in fade-in slide-in-from-top-2 duration-200"
     >
       <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
         <Package className="w-4 h-4 text-amber-400" /> {editingName ? 'Edit Packaged Food' : 'New Packaged Food'}
@@ -143,7 +143,7 @@ export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel, 
             type="button"
             disabled={scanState.busy}
             onClick={() => cameraRef.current?.click()}
-            className="flex items-center justify-center gap-1.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold disabled:opacity-50"
+            className="log-control-button flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-slate-200 text-xs font-semibold disabled:opacity-50"
           >
             <Camera className="w-4 h-4" /> Take photo
           </button>
@@ -151,7 +151,7 @@ export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel, 
             type="button"
             disabled={scanState.busy}
             onClick={() => uploadRef.current?.click()}
-            className="flex items-center justify-center gap-1.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold disabled:opacity-50"
+            className="log-control-button flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-slate-200 text-xs font-semibold disabled:opacity-50"
           >
             <ImageUp className="w-4 h-4" /> Upload label
           </button>
@@ -254,14 +254,14 @@ export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel, 
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-semibold text-xs hover:bg-slate-700"
+          className="flex-1 py-2.5 rounded-xl bg-white/[0.05] text-slate-300 font-semibold text-xs hover:bg-white/[0.09]"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={isSubmitting}
-          className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs disabled:opacity-50"
+          className="flex-1 py-2.5 rounded-xl bg-gradient-to-br from-amber-200 to-yellow-400 text-slate-950 font-bold text-xs shadow-[0_6px_16px_rgba(245,158,11,0.16)] disabled:bg-none disabled:bg-slate-800 disabled:text-slate-500 disabled:shadow-none"
         >
           {isSubmitting ? 'Saving...' : editingName ? 'Update Packaged Food' : 'Save Packaged Food'}
         </button>

@@ -29,7 +29,7 @@ export const MacroRings: React.FC<MacroRingsProps> = ({ totals, targets }) => {
   return (
     <section className="space-y-2 min-w-0">
     <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider px-1">Nutrients</h3>
-    <div className="bg-[#0b1220] rounded-2xl p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_14px_34px_rgba(0,0,0,0.2)] space-y-4">
+    <div className="app-card-surface rounded-2xl p-4 space-y-4">
       {/* Top Banner: Calories */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
@@ -47,29 +47,31 @@ export const MacroRings: React.FC<MacroRingsProps> = ({ totals, targets }) => {
 
         <div className="text-right">
           <span
-            className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold ${
+            className={`inline-flex min-h-6 items-center justify-center px-2.5 py-1 rounded-full text-center text-xs font-bold leading-none ${
               calSurplus > 0
               ? 'bg-rose-500/10 text-rose-400'
               : 'bg-orange-500/10 text-orange-400'
             }`}
           >
-            {calSurplus > 0 ? `${calSurplus} surplus` : calRemaining > 0 ? `${calRemaining} left` : 'Target met'}
+            <span className="relative -top-px">
+              {calSurplus > 0 ? `${calSurplus} surplus` : calRemaining > 0 ? `${calRemaining} left` : 'Target met'}
+            </span>
           </span>
         </div>
       </div>
 
       {/* Main Calorie Progress Bar */}
-      <div className="w-full bg-slate-800/80 rounded-full h-2.5 overflow-hidden">
+      <div className="progress-track-inset w-full rounded-full h-3.5 overflow-hidden p-[2px]">
         <div
-          className="h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full transition-all duration-500 ease-out"
+          className="progress-fill-raised h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full transition-all duration-500 ease-out"
           style={{ width: `${calPercent}%` }}
         />
       </div>
 
       {/* Macro Grid */}
-      <div className="grid grid-cols-3 gap-2 pt-1">
+      <div className="relative grid grid-cols-3 pt-1">
         {/* Protein */}
-        <div className="min-w-0 bg-[linear-gradient(155deg,#182438,#101827)] shadow-[5px_6px_14px_rgba(0,0,0,0.22),-2px_-2px_8px_rgba(255,255,255,0.025)] rounded-xl p-2.5 flex flex-col justify-between">
+        <div className="min-w-0 px-2.5 py-2 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11px] font-bold text-rose-400 flex items-center gap-1">
               <Beef className="w-3.5 h-3.5" /> Protein
@@ -91,7 +93,7 @@ export const MacroRings: React.FC<MacroRingsProps> = ({ totals, targets }) => {
         </div>
 
         {/* Carbs */}
-        <div className="min-w-0 bg-[linear-gradient(155deg,#182438,#101827)] shadow-[5px_6px_14px_rgba(0,0,0,0.22),-2px_-2px_8px_rgba(255,255,255,0.025)] rounded-xl p-2.5 flex flex-col justify-between">
+        <div className="min-w-0 px-2.5 py-2 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11px] font-bold text-amber-400 flex items-center gap-1">
               <Wheat className="w-3.5 h-3.5" /> Carbs
@@ -113,7 +115,7 @@ export const MacroRings: React.FC<MacroRingsProps> = ({ totals, targets }) => {
         </div>
 
         {/* Fats */}
-        <div className="min-w-0 bg-[linear-gradient(155deg,#182438,#101827)] shadow-[5px_6px_14px_rgba(0,0,0,0.22),-2px_-2px_8px_rgba(255,255,255,0.025)] rounded-xl p-2.5 flex flex-col justify-between">
+        <div className="min-w-0 px-2.5 py-2 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[11px] font-bold text-sky-400 flex items-center gap-1">
               <Droplets className="w-3.5 h-3.5" /> Fats
@@ -133,6 +135,8 @@ export const MacroRings: React.FC<MacroRingsProps> = ({ totals, targets }) => {
             />
           </div>
         </div>
+        <span aria-hidden="true" className="pointer-events-none absolute left-1/3 top-0 -bottom-2 w-px bg-gradient-to-b from-transparent via-slate-400/35 to-transparent" />
+        <span aria-hidden="true" className="pointer-events-none absolute left-2/3 top-0 -bottom-2 w-px bg-gradient-to-b from-transparent via-slate-400/35 to-transparent" />
       </div>
     </div>
     </section>

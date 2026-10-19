@@ -119,7 +119,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
               aria-label="Add packaged food"
               title="Add packaged food with its nutrition information"
               onClick={() => setShowPackagedForm(true)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/30 text-xs font-semibold active:scale-95 transition-all ${onboardingHighlight ? 'onboarding-glow onboarding-recipe-glow-a' : ''}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.05] hover:bg-amber-500/10 text-amber-300 text-xs font-semibold active:scale-95 transition-all ${onboardingHighlight ? 'onboarding-glow onboarding-recipe-glow-a' : ''}`}
             >
               <Package className="w-4 h-4" />
             </button>
@@ -180,7 +180,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
       {showAddForm && (
         <form
           onSubmit={handleSubmit}
-          className={`bg-slate-900 border border-emerald-500/30 rounded-2xl p-4 space-y-3.5 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200 ${onboardingHighlight ? 'onboarding-glow-fields' : ''}`}
+          className={`space-y-4 border-y border-slate-700/70 py-3 animate-in fade-in slide-in-from-top-2 duration-200 ${onboardingHighlight ? 'onboarding-glow-fields' : ''}`}
         >
           <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
             <BookOpen className="w-4 h-4 text-emerald-400" /> {editingName ? 'Edit Recipe' : 'New Recipe'}
@@ -195,7 +195,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                className="log-input w-full h-11 rounded-xl px-3 text-sm text-white focus:outline-none"
               />
             </div>
 
@@ -222,7 +222,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
                     value={it.ingredient}
                     onChange={(e) => updateItem(idx, 'ingredient', e.target.value)}
                     required
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                    className="log-input w-full h-11 rounded-xl px-3 text-sm text-white focus:outline-none"
                   />
                   <input
                     type="number"
@@ -232,7 +232,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
                     value={it.quantity}
                     onChange={(e) => updateItem(idx, 'quantity', e.target.value)}
                     required
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                    className="log-input w-full h-11 rounded-xl px-3 text-sm text-white focus:outline-none"
                   />
                   <button
                     type="button"
@@ -266,14 +266,14 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
             <button
               type="button"
               onClick={closeForm}
-              className="flex-1 py-2.5 rounded-xl bg-slate-800 text-slate-300 font-semibold text-xs hover:bg-slate-700"
+              className="flex-1 py-2.5 rounded-xl bg-white/[0.05] text-slate-300 font-semibold text-xs hover:bg-white/[0.09]"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-md transition-all disabled:opacity-50"
+              className="flex-1 py-2.5 rounded-xl bg-gradient-to-br from-emerald-200 to-emerald-400 text-slate-950 font-bold text-xs shadow-[0_6px_16px_rgba(16,185,129,0.14)] transition-all disabled:bg-none disabled:bg-slate-800 disabled:text-slate-500 disabled:shadow-none"
             >
               {isSubmitting ? 'Saving...' : editingName ? 'Update Recipe' : 'Save Recipe'}
             </button>
@@ -307,7 +307,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
       )}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 items-start">
         {recipes.length === 0 && packaged.length === 0 && (
-          <div className="md:col-span-2 rounded-2xl border border-slate-800 bg-slate-900/60 px-5 py-8 text-center">
+          <div className="app-card-surface md:col-span-2 rounded-2xl px-5 py-8 text-center">
             <p className="text-sm font-semibold text-slate-100">Let’s add your first favorites</p>
             <p className="mt-1 text-xs text-slate-400">Build a personal food catalog to make logging meals quicker.</p>
             <div className="mt-3 space-y-2 text-left text-xs text-slate-400 sm:mx-auto sm:w-fit">
@@ -322,7 +322,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
           <div
             key={r.id}
             onClick={() => setExpandedIds((p) => ({ ...p, [r.id]: !p[r.id] }))}
-            className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5 space-y-2 hover:border-slate-700 transition-all shadow-sm cursor-pointer"
+            className="app-card-raised rounded-2xl p-3.5 space-y-2 transition-all cursor-pointer"
           >
             <div className="flex items-center justify-between">
               <div>
@@ -412,7 +412,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
           );
         })}
         {normalizedSearch && filteredCatalog.length === 0 && (
-          <div className="md:col-span-2 rounded-2xl border border-slate-800 bg-slate-900/60 px-5 py-8 text-center">
+          <div className="app-card-surface md:col-span-2 rounded-2xl px-5 py-8 text-center">
             <p className="text-sm font-semibold text-slate-100">No matching recipes</p>
             <p className="mt-1 text-xs text-slate-400">Try another name or clear your search.</p>
           </div>

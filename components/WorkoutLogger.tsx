@@ -52,7 +52,7 @@ export const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ workoutNames, user
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="workout-log-form space-y-4">
       {toast && (
         <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2">
           <Check className="w-4 h-4" /> {toast}
@@ -64,7 +64,7 @@ export const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ workoutNames, user
         </div>
       )}
 
-      <div className={`bg-slate-900/70 border border-slate-800 rounded-2xl p-4 space-y-3 ${onboardingHighlight ? 'onboarding-workout-glow-fields' : ''}`}>
+      <div className={`px-1 py-2 space-y-3 ${onboardingHighlight ? 'onboarding-workout-glow-fields' : ''}`}>
         <div>
           <label className="text-xs font-semibold text-slate-300 block mb-1">Workout</label>
           <input
@@ -74,7 +74,7 @@ export const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ workoutNames, user
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+            className="log-input w-full rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none"
           />
           <datalist id="known-workouts">
             {workoutNames.map((n) => (
@@ -83,7 +83,7 @@ export const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ workoutNames, user
           </datalist>
         </div>
         <div>
-          <label className="text-xs font-semibold text-red-400 block mb-1">Calories Burnt (kcal)</label>
+          <label className="text-xs font-semibold text-slate-300 block mb-1">Calories Burnt (kcal)</label>
           <input
             type="number"
             min="1"
@@ -92,30 +92,32 @@ export const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ workoutNames, user
             value={calories}
             onChange={(e) => setCalories(e.target.value)}
             required
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+            className="log-input w-full rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none"
           />
         </div>
         <div>
-          <label className="text-xs font-semibold text-white block mb-1">Timestamp</label>
+          <label className="text-xs font-semibold text-slate-300 block mb-1">Timestamp</label>
           <input
             type="datetime-local"
             value={timestamp}
             onChange={(e) => setTimestamp(e.target.value)}
             required
             max={getLocalDateTime()}
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+            className="log-input w-full rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none"
           />
         </div>
       </div>
 
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className={`w-full py-3.5 rounded-xl bg-gradient-to-r from-red-500 to-orange-400 hover:from-red-400 hover:to-orange-300 active:scale-[0.98] text-slate-950 font-bold text-sm shadow-lg shadow-red-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 ${onboardingHighlight ? 'onboarding-workout-glow' : ''}`}
-      >
-        <Dumbbell className="w-4 h-4 stroke-[2.5]" />
-        {isSubmitting ? 'Recording to Sheet...' : 'Log This Workout'}
-      </button>
+      <div className="fixed inset-x-0 bottom-0 z-30 bg-[#090d16] px-4 pt-3 pb-[calc(5rem+env(safe-area-inset-bottom))]">
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className={`mx-auto w-full max-w-2xl py-4 rounded-2xl bg-gradient-to-br from-orange-300 via-orange-400 to-rose-400 hover:brightness-110 active:scale-[0.98] text-slate-950 font-bold text-sm shadow-[0_12px_30px_rgba(251,146,60,0.16),inset_0_1px_0_rgba(255,255,255,0.42)] transition-all flex items-center justify-center gap-2 disabled:opacity-50 ${onboardingHighlight ? 'onboarding-workout-glow' : ''}`}
+        >
+          <Dumbbell className="w-4 h-4 stroke-[2.5]" />
+          {isSubmitting ? 'Recording to Sheet...' : 'Log This Workout'}
+        </button>
+      </div>
     </form>
   );
 };

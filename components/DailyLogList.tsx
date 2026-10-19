@@ -25,7 +25,7 @@ export const DailyLogList: React.FC<DailyLogListProps> = ({ logs, onDelete }) =>
 
   if (!logs || logs.length === 0) {
     return (
-      <div className="bg-slate-900/40 border border-dashed border-slate-800 rounded-2xl p-8 text-center">
+      <div className="app-card-surface rounded-2xl p-8 text-center">
         <UtensilsCrossed className="w-8 h-8 text-slate-600 mx-auto mb-2" />
         <p className="text-sm font-semibold text-slate-300">No meals logged yet today</p>
         <p className="text-xs text-slate-500 mt-1">
@@ -54,7 +54,7 @@ export const DailyLogList: React.FC<DailyLogListProps> = ({ logs, onDelete }) =>
           <div
             key={key}
             onClick={() => toggle(key)}
-            className="bg-[linear-gradient(155deg,#182438,#101827)] shadow-[5px_6px_14px_rgba(0,0,0,0.22),-2px_-2px_8px_rgba(255,255,255,0.025)] rounded-2xl p-3.5 transition-all cursor-pointer"
+            className="app-card-raised rounded-2xl p-3.5 transition-all cursor-pointer"
           >
             <div className="flex items-start justify-between">
               <div>

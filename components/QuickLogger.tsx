@@ -150,10 +150,10 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
                       key={r.id}
                       type="button"
                       onClick={() => setSelectedRecipeId(r.id)}
-                      className={`text-left p-3 rounded-xl border transition-all flex items-center justify-between ${
+                      className={`log-choice text-left p-3 rounded-2xl transition-all flex items-center justify-between ${
                         isSelected
-                          ? 'bg-emerald-500/10 border-emerald-500/50 ring-1 ring-emerald-500/30'
-                          : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 text-slate-300'
+                          ? 'log-choice-selected text-white'
+                          : 'text-slate-300 hover:bg-white/[0.045]'
                       }`}
                     >
                       <div>
@@ -174,10 +174,10 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
                         </p>
                       </div>
                       <div
-                        className={`w-5 h-5 rounded-full flex items-center justify-center border ${
+                        className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors ${
                           isSelected
-                            ? 'bg-emerald-500 border-emerald-400 text-slate-950'
-                            : 'border-slate-700'
+                            ? 'bg-emerald-300 text-slate-950 shadow-[0_0_12px_rgba(110,231,183,0.4)]'
+                            : 'bg-white/[0.06] text-transparent'
                         }`}
                       >
                         {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
@@ -186,7 +186,7 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
                   );
                 })}
                 {normalizedSearch && filteredRecipes.length === 0 && (
-                  <div className="md:col-span-2 rounded-xl border border-slate-800 bg-slate-900/60 px-4 py-6 text-center">
+                  <div className="app-card-surface md:col-span-2 rounded-xl px-4 py-6 text-center">
                     <p className="text-sm font-semibold text-slate-100">No matching foods</p>
                     <p className="mt-1 text-xs text-slate-400">Try another name or clear your search.</p>
                   </div>
@@ -195,7 +195,7 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
             </div>
 
             {/* Portion Control */}
-              <div className={`bg-slate-900/70 border border-slate-800 rounded-2xl p-4 space-y-3 ${onboardingHighlight ? 'onboarding-glow-fields' : ''}`}>
+              <div className={`p-1 space-y-3 ${onboardingHighlight ? 'onboarding-glow-fields' : ''}`}>
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-slate-300">
                   Portion / Servings
@@ -209,7 +209,7 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
                 <button
                   type="button"
                   onClick={() => handleAdjustPortion(-0.5)}
-                  className={`w-11 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-white flex items-center justify-center border border-slate-700 transition-transform ${onboardingHighlight ? 'onboarding-glow' : ''}`}
+                  className={`log-control-button w-11 h-11 rounded-2xl active:scale-95 text-white flex items-center justify-center transition-transform ${onboardingHighlight ? 'onboarding-glow' : ''}`}
                 >
                   <Minus className="w-5 h-5" />
                 </button>
@@ -224,7 +224,7 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
                 <button
                   type="button"
                   onClick={() => handleAdjustPortion(0.5)}
-                  className={`w-11 h-11 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-white flex items-center justify-center border border-slate-700 transition-transform ${onboardingHighlight ? 'onboarding-glow' : ''}`}
+                  className={`log-control-button w-11 h-11 rounded-2xl active:scale-95 text-white flex items-center justify-center transition-transform ${onboardingHighlight ? 'onboarding-glow' : ''}`}
                 >
                   <Plus className="w-5 h-5" />
                 </button>
@@ -239,8 +239,8 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
                     onClick={() => setPortion(val)}
                     className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
                       portion === val
-                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                        : 'bg-slate-800/80 text-slate-400 hover:bg-slate-700'
+                        ? 'bg-emerald-300/15 text-emerald-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_4px_12px_rgba(16,185,129,0.08)]'
+                        : 'bg-white/[0.035] text-slate-400 hover:bg-white/[0.07]'
                     }`}
                   >
                     {val}x
@@ -256,14 +256,16 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
                   onChange={(e) => setTimestamp(e.target.value)}
                   required
                   max={getLocalDateTime()}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  className="log-input w-full rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none"
                 />
               </div>
             </div>
 
+            <hr className="w-full border-slate-700/70" />
+
             {/* Ingredients of the selected recipe, scaled to the chosen portion */}
             {selectedRecipe?.ingredients && selectedRecipe.ingredients.length > 0 && (
-              <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 space-y-2">
+              <div className="px-1 py-2 space-y-2">
                 <span className="text-xs font-semibold text-slate-300">
                   Ingredients ({selectedRecipe.ingredients.length})
                 </span>
@@ -285,7 +287,7 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
             )}
 
         {/* Live Calculation Preview Card */}
-        <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-3.5 space-y-2">
+        <div className="app-card-raised rounded-2xl p-3.5 space-y-2">
           <div className="flex items-center justify-between text-xs text-slate-400">
             <span className="flex items-center gap-1.5 font-medium">
               <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
@@ -304,23 +306,25 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
         </div>
 
         {/* Big Submit Button */}
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 active:scale-[0.98] text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
-        >
-          {isSubmitting ? (
-            <span className="flex items-center gap-2">
-              <span className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
-              Recording to Sheet...
-            </span>
-          ) : (
-            <span className="flex items-center gap-2">
-              <Utensils className="w-4 h-4 stroke-[2.5]" />
-              Log This Meal
-            </span>
-          )}
-        </button>
+        <div className="fixed inset-x-0 bottom-0 z-30 bg-[#090d16] px-4 pt-3 pb-[calc(5rem+env(safe-area-inset-bottom))]">
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="mx-auto w-full max-w-2xl py-4 rounded-2xl bg-gradient-to-br from-emerald-200 via-emerald-300 to-teal-400 hover:brightness-105 active:scale-[0.98] text-slate-950 font-bold text-sm shadow-[0_12px_30px_rgba(16,185,129,0.15),inset_0_1px_0_rgba(255,255,255,0.58)] transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
+          >
+            {isSubmitting ? (
+              <span className="flex items-center gap-2">
+                <span className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                Recording to Sheet...
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <Utensils className="w-4 h-4 stroke-[2.5]" />
+                Log This Meal
+              </span>
+            )}
+          </button>
+        </div>
       </form>
     </div>
   );

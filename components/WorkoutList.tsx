@@ -13,7 +13,7 @@ export const WorkoutList: React.FC<{
 
   if (workouts.length === 0) {
     return (
-      <div className="bg-slate-900/40 border border-dashed border-slate-800 rounded-2xl p-6 text-center">
+      <div className="app-card-surface rounded-2xl p-6 text-center">
         <Dumbbell className="w-7 h-7 text-slate-600 mx-auto mb-2" />
         <p className="text-sm font-semibold text-slate-300">No workouts logged</p>
       </div>
@@ -34,7 +34,7 @@ export const WorkoutList: React.FC<{
         {workouts.map((w, idx) => (
           <div
             key={w.id || idx}
-            className="bg-[linear-gradient(155deg,#182438,#101827)] shadow-[5px_6px_14px_rgba(0,0,0,0.22),-2px_-2px_8px_rgba(255,255,255,0.025)] rounded-2xl p-3.5 flex items-start justify-between"
+            className="app-card-raised rounded-2xl p-3.5 flex items-start justify-between"
           >
             <div>
               <h4 className="text-sm font-bold text-white tracking-tight">{w.name}</h4>

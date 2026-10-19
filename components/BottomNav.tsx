@@ -35,14 +35,13 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onChangeTab, a
                 aria-label={tab.label}
                 className="flex flex-col items-center justify-center py-1 px-3 group"
               >
-                <div
-                  className={`h-[46px] w-[46px] rounded-full flex items-center justify-center transition-all duration-200 group-active:scale-90 ${
-                    isActive
-                      ? 'bg-emerald-400 text-slate-950'
-                      : 'bg-slate-800 text-emerald-400 group-hover:bg-slate-700'
-                  }`}
-                >
-                  <Plus className="w-[23px] h-[23px] stroke-[2.75]" />
+                <div className={`log-orb relative flex h-[46px] w-[46px] items-center justify-center rounded-full transition-transform duration-200 group-active:scale-90 ${isActive ? 'log-orb-active' : ''}`}>
+                  <span aria-hidden="true" className="log-orb-fluid" />
+                  <span aria-hidden="true" className="log-orb-gloss" />
+                  <svg aria-hidden="true" viewBox="0 0 24 24" className="log-orb-plus relative z-10 h-[23px] w-[23px]">
+                    <path d="M12 5.5v13M5.5 12h13" fill="none" stroke="#04151a" strokeWidth="4" strokeLinecap="round" />
+                    <path d="M11.35 6v12M5.9 11.35h12" fill="none" stroke="#9fffe0" strokeOpacity="0.5" strokeWidth="0.8" strokeLinecap="round" />
+                  </svg>
                 </div>
               </button>
             );
