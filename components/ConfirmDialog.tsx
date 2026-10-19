@@ -27,7 +27,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     onClick={() => !busy && onCancel()}
   >
     <div
-      className="w-full max-h-[calc(100dvh-1.5rem)] overflow-y-auto bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3"
+      className="app-card-surface w-full max-h-[calc(100dvh-1.5rem)] overflow-y-auto rounded-2xl p-4 space-y-3"
       onClick={(e) => e.stopPropagation()}
     >
       <h4 className="text-sm font-bold text-white">{title}</h4>

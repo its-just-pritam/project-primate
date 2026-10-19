@@ -10,7 +10,7 @@ const Card: React.FC<{ children: React.ReactNode; label: string }> = ({ children
     role="status"
     aria-busy="true"
     aria-label={label}
-    className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3"
+    className="app-card-surface rounded-2xl p-4 space-y-3"
   >
     {children}
   </div>

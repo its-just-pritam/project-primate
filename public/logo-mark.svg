@@ -1,14 +1,51 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
-  <title>Primate Fuel logo mark</title>
+  <title id="title">Primate Fuel logo mark</title>
   <defs>
-    <linearGradient id="flame" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#5eead4"/>
-      <stop offset="1" stop-color="#10b981"/>
+    <linearGradient id="outer" x1="0" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#99f6e4"/>
+      <stop offset="0.28" stop-color="#2dd4bf"/>
+      <stop offset="0.7" stop-color="#10b981"/>
+      <stop offset="1" stop-color="#047857"/>
     </linearGradient>
+    <linearGradient id="flesh" x1="0" y1="0" x2="0.9" y2="1">
+      <stop offset="0" stop-color="#f0fdf4"/>
+      <stop offset="0.35" stop-color="#a7f3d0"/>
+      <stop offset="0.78" stop-color="#6ee7b7"/>
+      <stop offset="1" stop-color="#34d399"/>
+    </linearGradient>
+    <linearGradient id="seed" x1="0" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#fbbf24"/>
+      <stop offset="0.34" stop-color="#b45309"/>
+      <stop offset="1" stop-color="#78350f"/>
+    </linearGradient>
+    <linearGradient id="seedBevel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fde68a" stop-opacity="0.85"/>
+      <stop offset="0.45" stop-color="#f59e0b" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#451a03" stop-opacity="0.45"/>
+    </linearGradient>
+    <radialGradient id="shine" cx="0.25" cy="0.12" r="0.85">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.68"/>
+      <stop offset="0.35" stop-color="#fff" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="depth" x="-20%" y="-15%" width="140%" height="145%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="7" result="blur"/>
+      <feOffset dy="8" result="offset"/>
+      <feColorMatrix in="offset" type="matrix" values="0 0 0 0 0.01 0 0 0 0 0.12 0 0 0 0 0.1 0 0 0 .34 0" result="shadow"/>
+      <feMerge><feMergeNode in="shadow"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="outerClip"><path d="M256 70c-48 0-74 52-86 110-8 38-34 66-34 120 0 76 56 142 120 142s120-66 120-142c0-54-26-82-34-120-12-58-38-110-86-110z"/></clipPath>
+    <clipPath id="innerClip"><path d="M256 106c-36 0-56 42-66 90-8 36-32 62-32 106 0 62 44 118 98 118s98-56 98-118c0-44-24-70-32-106-10-48-30-90-66-90z"/></clipPath>
   </defs>
-  <path fill="url(#flame)" d="M256 70c-48 0-74 52-86 110-8 38-34 66-34 120 0 76 56 142 120 142s120-66 120-142c0-54-26-82-34-120-12-58-38-110-86-110z"/>
-  <path fill="#a7f3d0" d="M256 106c-36 0-56 42-66 90-8 36-32 62-32 106 0 62 44 118 98 118s98-56 98-118c0-44-24-70-32-106-10-48-30-90-66-90z"/>
-  <circle cx="256" cy="338" r="56" fill="#b45309"/>
-  <circle cx="256" cy="338" r="56" fill="none" stroke="#92400e" stroke-width="6"/>
-  <ellipse cx="238" cy="318" rx="14" ry="10" fill="#d97706" transform="rotate(-30 238 318)"/>
+  <g filter="url(#depth)">
+    <path fill="url(#outer)" d="M256 70c-48 0-74 52-86 110-8 38-34 66-34 120 0 76 56 142 120 142s120-66 120-142c0-54-26-82-34-120-12-58-38-110-86-110z"/>
+    <path fill="url(#flesh)" d="M256 106c-36 0-56 42-66 90-8 36-32 62-32 106 0 62 44 118 98 118s98-56 98-118c0-44-24-70-32-106-10-48-30-90-66-90z"/>
+    <ellipse cx="256" cy="210" rx="68" ry="94" fill="url(#shine)" clip-path="url(#innerClip)"/>
+    <path d="M175 180c18-58 45-91 81-91 41 0 68 37 84 97" fill="none" stroke="#fff" stroke-opacity=".32" stroke-width="9" stroke-linecap="round"/>
+    <circle cx="256" cy="338" r="56" fill="url(#seed)"/>
+    <circle cx="256" cy="338" r="52" fill="none" stroke="url(#seedBevel)" stroke-width="5"/>
+    <ellipse cx="238" cy="318" rx="17" ry="11" fill="#fff7cc" fill-opacity=".68" transform="rotate(-30 238 318)"/>
+    <ellipse cx="267" cy="376" rx="24" ry="7" fill="#451a03" fill-opacity=".2"/>
+  </g>
+  <ellipse cx="256" cy="210" rx="115" ry="130" fill="url(#shine)" clip-path="url(#outerClip)" opacity=".42"/>
 </svg>

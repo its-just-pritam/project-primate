@@ -23,7 +23,7 @@ interface ProfileScreenProps {
 }
 
 const inputCls =
-  'w-full h-10 bg-slate-950 border border-slate-800 rounded-xl px-3 text-sm text-white focus:outline-none focus:border-emerald-500';
+  'log-input w-full h-11 rounded-xl px-3 text-sm text-white focus:outline-none';
 
 const localDateTimeInputValue = (timestamp?: string) => {
   const parsed = timestamp ? new Date(timestamp) : new Date();
@@ -148,15 +148,13 @@ const PlanCard: React.FC<{
   };
 
   return (
-    <div
-      className={`bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden ${isDeleted ? 'opacity-60' : ''}`}
-    >
+    <div className={`border-b border-slate-700/70 pb-2 ${isDeleted ? 'opacity-60' : ''}`}>
       <button
         type="button"
         onClick={() => !isDeleted && setOpen((o) => !o)}
         aria-expanded={open}
         disabled={isDeleted}
-        className="w-full p-3.5 flex items-center justify-between gap-3 text-left"
+        className="w-full py-3 flex items-center justify-between gap-3 text-left"
       >
         <div className="min-w-0">
           <p className="text-sm font-bold text-white flex items-center gap-2">
@@ -184,7 +182,7 @@ const PlanCard: React.FC<{
       </button>
 
       {open && !isDeleted && (
-        <form onSubmit={submit} className="px-3.5 pb-3.5 pt-1 space-y-2.5 border-t border-slate-800">
+        <form onSubmit={submit} className="pt-3 space-y-3 border-t border-slate-700/70">
           <div className="pt-2.5">
             <FormField label="Plan name" value={name} onChange={setName} props={{ type: 'text' }} />
           </div>
@@ -216,14 +214,14 @@ const PlanCard: React.FC<{
               aria-label={`Delete ${plan.name}`}
               disabled={busy}
               onClick={() => onDelete(plan)}
-              className="px-3.5 py-2.5 rounded-xl bg-slate-800 text-red-400 hover:bg-slate-700 disabled:opacity-30 flex items-center gap-1.5 text-xs font-semibold"
+              className="px-3.5 py-2.5 rounded-xl bg-white/[0.04] text-red-300 hover:bg-rose-500/10 disabled:opacity-30 flex items-center gap-1.5 text-xs font-semibold"
             >
               <Trash2 className="w-3.5 h-3.5" /> Delete
             </button>
             <button
               type="submit"
               disabled={busy}
-              className="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-md disabled:opacity-50"
+              className="flex-1 py-2.5 rounded-xl bg-gradient-to-br from-emerald-200 to-emerald-400 text-slate-950 font-bold text-xs shadow-[0_6px_16px_rgba(16,185,129,0.14)] disabled:opacity-50"
             >
               Save plan
             </button>
@@ -450,7 +448,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               type="submit"
               form="user-form"
               disabled={saving || !userDirty}
-              className="ml-auto px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-medium text-sm disabled:bg-slate-800 disabled:hover:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed transition-all"
+              className="ml-auto px-4 py-2 rounded-xl bg-gradient-to-br from-emerald-200 to-emerald-400 text-slate-950 font-semibold text-sm disabled:bg-none disabled:bg-slate-800 disabled:shadow-none disabled:hover:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed transition-all"
             >
               {saving ? 'Saving...' : 'Save'}
             </button>
@@ -465,8 +463,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 onClick={() => setDraftAvatar(a)}
                 className={`h-12 rounded-xl text-2xl flex items-center justify-center border transition-all active:scale-95 ${
                   a === draftAvatar
-                    ? 'bg-emerald-500/15 border-emerald-500'
-                    : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                  ? 'bg-emerald-400/15 border-transparent shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
+                    : 'bg-white/[0.035] border-transparent hover:bg-white/[0.07]'
                 }`}
               >
                 {a}
@@ -474,6 +472,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             ))}
           </div>
         </section>
+
+        <hr className="w-full border-slate-700/70" />
 
         <form id="user-form" onSubmit={handleSaveUser} className={`space-y-2.5 ${onboardingHighlight === 'profile' ? 'onboarding-glow-fields' : ''}`}>
           <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">User</h3>
@@ -501,19 +501,19 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           {error && <p className="text-xs text-red-400">{error}</p>}
         </form>
 
-        <section className="rounded-xl border border-slate-800 bg-slate-900/50">
+        <section className="border-y border-slate-700/70">
           <button
             type="button"
             aria-expanded={passwordSectionOpen}
             aria-controls="change-password-form"
             onClick={() => setPasswordSectionOpen((open) => !open)}
-            className="w-full flex items-center justify-between px-3.5 py-3 text-left"
+            className="w-full flex items-center justify-between py-2 text-left"
           >
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Change password</span>
             <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${passwordSectionOpen ? 'rotate-180' : ''}`} />
           </button>
           {passwordSectionOpen && (
-            <form id="change-password-form" onSubmit={handleChangePassword} className="space-y-2.5 border-t border-slate-800 p-3.5">
+            <form id="change-password-form" onSubmit={handleChangePassword} className="space-y-3 pt-2 pb-3">
               <PasswordField
                 label="New password"
                 value={newPassword}
@@ -534,7 +534,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               <button
                 type="submit"
                 disabled={passwordBusy || newPassword.length < 12 || !confirmNewPassword}
-                className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] text-sm font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {passwordBusy ? 'Changing...' : 'Change password'}
               </button>
@@ -561,7 +561,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           {showNew && (
             <form
               onSubmit={handleAddPlan}
-              className={`bg-slate-900 border border-emerald-500/30 rounded-2xl p-4 space-y-2.5 ${onboardingHighlight === 'plan' ? 'onboarding-glow-fields' : ''}`}
+              className={`py-3 space-y-3 border-y border-slate-700/70 ${onboardingHighlight === 'plan' ? 'onboarding-glow-fields' : ''}`}
             >
               <h4 className="text-sm font-semibold text-white">New Plan</h4>
               <FormField
@@ -618,14 +618,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowNew(false)}
-                  className="flex-1 h-10 rounded-xl bg-slate-800 text-slate-300 font-medium text-sm hover:bg-slate-700 transition-colors"
+                  className="flex-1 h-10 rounded-xl bg-white/[0.05] text-slate-300 font-medium text-sm hover:bg-white/[0.09] transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={planBusy}
-                  className="flex-1 h-10 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-medium text-sm disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed transition-colors"
+                  className="flex-1 h-10 rounded-xl bg-gradient-to-br from-emerald-200 to-emerald-400 text-slate-950 font-medium text-sm disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed transition-colors"
                 >
                   {planBusy ? 'Adding...' : 'Add Plan'}
                 </button>
@@ -652,9 +652,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
           {planError && <p className="text-xs text-red-400">{planError}</p>}
         </section>
+        <hr className="w-full border-slate-700/70" />
         <a
           href="mailto:mallickpritam1407@gmail.com"
-          className="w-full flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-medium text-slate-300 hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-300 transition-colors"
+          className="w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-slate-300 hover:bg-emerald-500/10 hover:text-emerald-200 transition-colors"
         >
           <Mail className="h-4 w-4" />
           Contact support
@@ -662,7 +663,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         <button
           type="button"
           onClick={onSignOut}
-          className="w-full flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-medium text-slate-300 hover:border-rose-500/50 hover:bg-rose-500/10 hover:text-rose-300 transition-colors"
+          className="w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-slate-300 hover:bg-rose-500/10 hover:text-rose-300 transition-colors"
         >
           <LogOut className="h-4 w-4" />
           Sign out
@@ -677,7 +678,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           onClick={() => !planBusy && setDeleting(null)}
         >
           <div
-            className="w-full max-h-[calc(100dvh-1.5rem)] overflow-y-auto bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3"
+            className="app-card-surface w-full max-h-[calc(100dvh-1.5rem)] overflow-y-auto rounded-2xl p-4 space-y-3"
             onClick={(e) => e.stopPropagation()}
           >
             <h4 className="text-sm font-bold text-white">Delete plan &quot;{deleting.name}&quot;?</h4>

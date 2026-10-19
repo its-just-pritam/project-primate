@@ -250,7 +250,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
 
       {/* KPI Stats */}
       <div className="grid grid-cols-2 gap-2.5 md:col-span-2">
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5">
+        <div className="app-card-raised rounded-2xl p-3.5">
           <span className="text-[11px] font-semibold text-slate-400 block mb-1">
             {daysToShow}-Day Avg Calories
           </span>
@@ -263,7 +263,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
           </p>
         </div>
 
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3.5">
+        <div className="app-card-raised rounded-2xl p-3.5">
           <span className="text-[11px] font-semibold text-emerald-400 block mb-1">
             {daysToShow}-Day Avg Protein
           </span>
@@ -278,7 +278,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
       </div>
 
       {/* Calorie Consumed vs Burnt Chart Card */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-3 flex flex-col md:h-full">
+      <div className="app-card-surface rounded-2xl p-4 space-y-3 flex flex-col md:h-full">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
             <CalendarDays className="w-3.5 h-3.5 text-orange-400" /> Calories Consumed vs Burnt
@@ -324,7 +324,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
         </div>
       </div>
       {/* Daily Calorie Deficit Chart */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-3 flex flex-col md:h-full">
+      <div className="app-card-surface rounded-2xl p-4 space-y-3 flex flex-col md:h-full">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
             <TrendingUp className="w-3.5 h-3.5 text-emerald-400" /> Daily Calorie Deficit
@@ -355,6 +355,10 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
               <div className="h-full" style={{ width: deficitChartScroll.chartWidth }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData} margin={CHART_MARGIN} {...BAR_CHART_PROPS}>
+                    <defs>
+                      <linearGradient id="trend-deficit-gradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#b91c1c" /><stop offset="100%" stopColor="#f87171" /></linearGradient>
+                      <linearGradient id="trend-surplus-gradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#059669" /><stop offset="100%" stopColor="#6ee7b7" /></linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                     <XAxis dataKey="date" tick={<DayTick />} interval={0} height={40} tickLine={false} axisLine={{ stroke: '#334155' }} />
                     <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} width={40} />
@@ -384,7 +388,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
                       {chartData.map((day) => (
                         <Cell
                           key={day.date}
-                          fill={day.deficit !== null && day.deficit > 0 ? '#ef4444' : '#10b981'}
+                          fill={day.deficit !== null && day.deficit > 0 ? 'url(#trend-deficit-gradient)' : 'url(#trend-surplus-gradient)'}
                         />
                       ))}
                     </Bar>
@@ -397,7 +401,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
       </div>
 
       {/* Daily Body Composition Change Chart */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-3 flex flex-col md:h-full">
+      <div className="app-card-surface rounded-2xl p-4 space-y-3 flex flex-col md:h-full">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
             <TrendingUp className="w-3.5 h-3.5 text-violet-400" /> Daily Fat &amp; Muscle Change
@@ -476,7 +480,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
       </div>
 
       {/* Protein Intake Chart Card */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 space-y-3 flex flex-col md:h-full">
+      <div className="app-card-surface rounded-2xl p-4 space-y-3 flex flex-col md:h-full">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
             <Award className="w-3.5 h-3.5 text-emerald-400" /> Daily Protein Intake
@@ -488,6 +492,9 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
           <div className="h-full" style={{ width: proteinChartScroll.chartWidth }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={CHART_MARGIN} {...BAR_CHART_PROPS}>
+                <defs>
+                  <linearGradient id="trend-protein-gradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#059669" /><stop offset="100%" stopColor="#6ee7b7" /></linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                 <XAxis dataKey="date" tick={<DayTick />} interval={0} height={40} tickLine={false} axisLine={{ stroke: '#334155' }} />
                 <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} width={40} />
@@ -499,7 +506,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
                   {...TOOLTIP_PROPS}
                 />
                 <ReferenceLine y={targets.protein} stroke="#10b981" strokeDasharray="3 3" />
-                <Bar dataKey="protein" fill="#10b981" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="protein" fill="url(#trend-protein-gradient)" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

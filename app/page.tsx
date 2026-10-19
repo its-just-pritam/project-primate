@@ -517,7 +517,7 @@ export default function Home() {
       {profileSaveToast}
       {onboardingGuide}
 
-      <div className="flex-1 px-4 md:px-8 py-4 space-y-4 overflow-y-auto">
+      <div className={`flex-1 px-4 md:px-8 py-4 space-y-4 overflow-y-auto ${activeTab === 'log' ? 'pb-32' : ''}`}>
         {/* Tab 1: Today Dashboard */}
         {activeTab === 'today' && (
           <div className="space-y-4 animate-in fade-in duration-200">
@@ -638,15 +638,23 @@ export default function Home() {
         {/* Tab 2: Log Meal Form */}
         {activeTab === 'log' && (
           <div className="space-y-4 animate-in fade-in duration-200 md:max-w-2xl md:mx-auto">
-            <div className="flex bg-slate-900/90 p-1 rounded-xl border border-slate-800">
+            <div className="log-mode-switch relative flex bg-slate-950/70 p-1.5 rounded-2xl">
+              <span
+                aria-hidden="true"
+                className={`pointer-events-none absolute inset-y-1.5 left-1.5 w-[calc(50%-0.375rem)] rounded-xl transition-[transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                  logMode === 'meal'
+                    ? 'translate-x-0 bg-gradient-to-br from-emerald-200 to-emerald-400 shadow-[0_5px_16px_rgba(16,185,129,0.2),inset_0_1px_0_rgba(255,255,255,0.55)]'
+                    : 'translate-x-full bg-gradient-to-br from-orange-300 via-orange-400 to-rose-400 shadow-[0_5px_16px_rgba(251,146,60,0.2),inset_0_1px_0_rgba(255,255,255,0.45)]'
+                }`}
+              />
               {(['meal', 'workout'] as const).map((m) => (
                 <button
                   key={m}
                   type="button"
                   onClick={() => setLogMode(m)}
-                  className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
+                    className={`relative z-10 flex-1 py-3 text-xs font-semibold rounded-xl transition-colors duration-200 ${
                     logMode === m
-                      ? 'bg-emerald-500 text-slate-950 shadow-md'
+                      ? 'text-slate-950'
                       : 'text-slate-400 hover:text-white'
                   }`}
                 >

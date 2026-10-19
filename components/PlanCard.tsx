@@ -159,7 +159,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
   };
 
   return (
-    <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/40 rounded-2xl px-4 pb-4 pt-2 shadow-xl space-y-3.5 relative overflow-hidden">
+    <div className="app-card-surface rounded-2xl px-4 pb-4 pt-2 space-y-3.5 relative overflow-hidden">
       {/* Subtle background glow */}
       <div className="absolute -top-12 -right-12 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
 
@@ -268,7 +268,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
       {/* 6 Core Metrics Grid */}
       <div className="grid grid-cols-2 gap-2 relative z-10 max-sm:hidden">
         {/* Metric 1: Total Calorie Consumed */}
-        <div className="bg-[linear-gradient(155deg,#182438,#101827)] shadow-[5px_6px_14px_rgba(0,0,0,0.22),-2px_-2px_8px_rgba(255,255,255,0.025)] rounded-xl p-2.5 flex items-center gap-2.5">
+        <div className="app-card-raised rounded-xl p-2.5 flex items-center gap-2.5">
           <span aria-hidden="true" className="w-8 h-8 flex items-center justify-center text-[20px] leading-none flex-shrink-0">🥣</span>
           <div className="min-w-0">
             <span className="text-[10px] text-slate-400 font-medium block truncate">
@@ -284,7 +284,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
         </div>
 
         {/* Metric 2: Total Calorie Burnt */}
-        <div className="bg-[linear-gradient(155deg,#182438,#101827)] shadow-[5px_6px_14px_rgba(0,0,0,0.22),-2px_-2px_8px_rgba(255,255,255,0.025)] rounded-xl p-2.5 flex items-center gap-2.5">
+        <div className="app-card-raised rounded-xl p-2.5 flex items-center gap-2.5">
           <span aria-hidden="true" className="w-8 h-8 flex items-center justify-center text-[20px] leading-none flex-shrink-0">⚡</span>
           <div className="min-w-0">
             <span className="text-[10px] text-slate-400 font-medium block truncate">
@@ -300,7 +300,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
         </div>
 
         {/* Metric 3: Resting Burn Baseline */}
-        <div className="bg-[linear-gradient(155deg,#182438,#101827)] shadow-[5px_6px_14px_rgba(0,0,0,0.22),-2px_-2px_8px_rgba(255,255,255,0.025)] rounded-xl p-2.5 flex items-center gap-2.5">
+        <div className="app-card-raised rounded-xl p-2.5 flex items-center gap-2.5">
           <span aria-hidden="true" className="w-8 h-8 flex items-center justify-center text-[20px] leading-none flex-shrink-0 [filter:hue-rotate(190deg)_saturate(1.25)]">🔥</span>
           <div className="min-w-0">
             <span className="text-[10px] text-slate-400 font-medium block truncate">
@@ -316,7 +316,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
         </div>
 
         {/* Metric 4: Avg Daily Deficit */}
-        <div className="bg-[linear-gradient(155deg,#182438,#101827)] shadow-[5px_6px_14px_rgba(0,0,0,0.22),-2px_-2px_8px_rgba(255,255,255,0.025)] rounded-xl p-2.5 flex items-center gap-2.5">
+        <div className="app-card-raised rounded-xl p-2.5 flex items-center gap-2.5">
           <span aria-hidden="true" className="w-8 h-8 flex items-center justify-center text-[20px] leading-none flex-shrink-0">🔥</span>
           <div className="min-w-0">
             <span className="text-[10px] text-slate-400 font-medium block truncate">
@@ -332,7 +332,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
         </div>
 
         {/* Metric 5: Total Deficit */}
-        <div className="bg-[linear-gradient(155deg,#182438,#101827)] shadow-[5px_6px_14px_rgba(0,0,0,0.22),-2px_-2px_8px_rgba(255,255,255,0.025)] rounded-xl p-2.5 flex items-center gap-2.5">
+        <div className="app-card-raised rounded-xl p-2.5 flex items-center gap-2.5">
           <span aria-hidden="true" className="w-8 h-8 flex items-center justify-center text-[20px] leading-none flex-shrink-0">📉</span>
           <div className="min-w-0">
             <span className="text-[10px] text-slate-400 font-medium block truncate">
@@ -348,7 +348,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
         </div>
 
         {/* Metric 6: Days on Plan */}
-        <div className="bg-[linear-gradient(155deg,#182438,#101827)] shadow-[5px_6px_14px_rgba(0,0,0,0.22),-2px_-2px_8px_rgba(255,255,255,0.025)] rounded-xl p-2.5 flex items-center gap-2.5">
+        <div className="app-card-raised rounded-xl p-2.5 flex items-center gap-2.5">
           <span aria-hidden="true" className="w-8 h-8 flex items-center justify-center text-[20px] leading-none flex-shrink-0">📅</span>
           <div className="min-w-0">
             <span className="text-[10px] text-slate-400 font-medium block truncate">
@@ -386,9 +386,9 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
           </p>
         </div>
 
-        <div className="relative mt-3 h-2.5 w-full overflow-hidden rounded-full border border-slate-800 bg-slate-950">
+        <div className="progress-track-inset relative mt-3 h-3.5 w-full overflow-hidden rounded-full p-[2px]">
           <div
-            className={`absolute inset-y-0 left-0 rounded-r-full transition-all duration-700 ${
+            className={`progress-fill-raised h-full max-w-full rounded-full transition-all duration-700 ${
               plan.progressPercent >= 0
                 ? 'bg-gradient-to-r from-emerald-500 to-teal-400'
                 : 'bg-gradient-to-r from-rose-500 to-orange-400'
@@ -396,15 +396,16 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
             style={{ width: `${progressBarWidth}%` }}
           />
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <div className="rounded-lg bg-[linear-gradient(155deg,#182438,#101827)] shadow-[5px_6px_14px_rgba(0,0,0,0.22),-2px_-2px_8px_rgba(255,255,255,0.025)] px-2.5 py-2">
+        <div className="relative mt-3 grid grid-cols-2">
+          <div className="px-2.5 py-2 text-center">
             <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">Body Fat</p>
             <p className={`mt-0.5 text-sm font-extrabold ${fatMassDeltaKg > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
               {fatMassDeltaKg > 0 ? '+' : ''}
               {fatMassDeltaKg.toFixed(2)} kg
             </p>
           </div>
-          <div className="rounded-lg bg-[linear-gradient(155deg,#182438,#101827)] shadow-[5px_6px_14px_rgba(0,0,0,0.22),-2px_-2px_8px_rgba(255,255,255,0.025)] px-2.5 py-2">
+          <span aria-hidden="true" className="pointer-events-none absolute left-1/2 top-0 -bottom-2 w-px bg-gradient-to-b from-transparent via-slate-400/35 to-slate-400/35" />
+          <div className="px-2.5 py-2 text-center">
             <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">Muscle Mass</p>
             <p className={`mt-0.5 text-sm font-extrabold ${muscleMassDeltaKg >= 0 ? 'text-sky-400' : 'text-orange-400'}`}>
               {muscleMassDeltaKg > 0 ? '+' : ''}
@@ -412,7 +413,8 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
             </p>
           </div>
         </div>
-        <div className="mt-3 pt-3 border-t border-slate-800 grid grid-cols-2 gap-3">
+        <div aria-hidden="true" className="mt-2 h-px w-full bg-slate-400/35" />
+        <div className="pt-3 grid grid-cols-2 gap-3">
           <div className="min-w-0">
             <div className="relative flex items-center gap-1">
               <p className="text-[10px] uppercase tracking-[0.08em] text-slate-400 font-semibold">Projected finish</p>
