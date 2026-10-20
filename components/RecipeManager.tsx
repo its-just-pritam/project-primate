@@ -372,7 +372,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
             </div>
 
             <div className="flex items-center gap-2 pt-1 border-t border-slate-800/60 text-[11px] font-medium">
-              <span className="text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+              <span className="text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-md">
                 Protein: {r.protein}g
               </span>
               <span className="text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md">

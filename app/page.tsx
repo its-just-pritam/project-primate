@@ -21,8 +21,11 @@ import type { PackagedInput } from '@/components/PackagedForm';
 import { TrendsView } from '@/components/TrendsView';
 import { PlanCarousel } from '@/components/PlanCarousel';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { Plus, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { OpenAiLogo } from '@phosphor-icons/react/dist/csr/OpenAiLogo';
+import { WhatsappLogo } from '@phosphor-icons/react/dist/csr/WhatsappLogo';
+import { Plus, ChevronLeft, ChevronRight, CheckCircle2, ChevronDown, Copy, FileText, Share2, Sparkles, X } from 'lucide-react';
 import { toLocalDateKey, parseLocalDateKey } from '@/lib/localDate';
+import { calculateDailyFatMassChangeGrams, calculateDailyWetMuscleMassChangeGrams, calculateThermicEffectOfFood } from '@/lib/bodyComposition';
 import { ProfileScreen } from '@/components/ProfileScreen';
 import { StartupSplash } from '@/components/StartupSplash';
 import { OnboardingGuide } from '@/components/OnboardingGuide';
@@ -45,6 +48,14 @@ const ONBOARDING_TASKS: { id: OnboardingTaskId; title: string; description: stri
   { id: 'meal', title: 'Log a meal', description: 'Choose a dish and portion, then select Log This Meal to save your food log.' },
   { id: 'workout', title: 'Log a workout', description: 'Enter a workout and calories, then select Log This Workout to save it.' },
 ];
+
+function GeminiBrandMark() {
+  return <svg aria-hidden="true" viewBox="0 0 24 24" className="h-[19px] w-[19px] fill-current"><path d="M11.04 19.32Q12 21.51 12 24q0-2.49.93-4.68.96-2.19 2.58-3.81t3.81-2.55Q21.51 12 24 12q-2.49 0-4.68-.93a12.3 12.3 0 0 1-3.81-2.58 12.3 12.3 0 0 1-2.58-3.81Q12 2.49 12 0q0 2.49-.96 4.68-.93 2.19-2.55 3.81a12.3 12.3 0 0 1-3.81 2.58Q2.49 12 0 12q2.49 0 4.68.96 2.19.93 3.81 2.55t2.55 3.81" /></svg>;
+}
+
+function ClaudeBrandMark() {
+  return <svg aria-hidden="true" viewBox="0 0 24 24" className="h-[19px] w-[19px] fill-current"><path d="m4.714 15.956 4.718-2.648.079-.23-.08-.128h-.23l-.79-.048-2.695-.073-2.337-.097-2.265-.122-.57-.121-.535-.704.055-.353.48-.321.685.06 1.518.104 2.277.157 1.651.098 2.447.255h.389l.054-.158-.133-.097-.103-.098-2.356-1.596-2.55-1.688-1.336-.972-.722-.491L2 6.223l-.158-1.008.656-.722.88.06.224.061.893.686 1.906 1.476 2.49 1.833.364.304.146-.104.018-.072-.164-.274-1.354-2.446-1.445-2.49-.644-1.032-.17-.619a3 3 0 0 1-.103-.729L6.287.133 6.7 0l.995.134.42.364.619 1.415L9.735 4.14l1.555 3.03.455.898.243.832.09.255h.159V9.01l.127-1.706.237-2.095.23-2.695.08-.76.376-.91.747-.492.583.28.48.685-.067.444-.286 1.851-.558 2.903-.365 1.942h.213l.243-.242.983-1.306 1.652-2.064.728-.82.85-.904.547-.431h1.032l.759 1.129-.34 1.166-1.063 1.347-.88 1.142-1.263 1.7-.79 1.36.074.11.188-.02 2.853-.606 1.542-.28 1.84-.315.832.388.09.395-.327.807-1.967.486-2.307.462-3.436.813-.043.03.049.061 1.548.146.662.036h1.62l3.018.225.79.522.473.638-.08.485-1.213.62-1.64-.389-3.825-.91-1.31-.329h-.183v.11l1.093 1.068 2.003 1.81 2.508 2.33.127.578-.321.455-.34-.049-2.204-1.657-.85-.747-1.925-1.62h-.127v.17l.443.649 2.343 3.521.122 1.08-.17.353-.607.213-.668-.122-1.372-1.924-1.415-2.168-1.141-1.943-.14.08-.674 7.254-.316.37-.728.28-.607-.461-.322-.747.322-1.476.388-1.924.316-1.53.285-1.9.17-.632-.012-.042-.14.018-1.432 1.967-2.18 2.945-1.724 1.845-.413.164-.716-.37.066-.662.401-.589 2.386-3.036 1.439-1.882.929-1.086-.006-.158h-.055L4.138 18.56l-1.13.146-.485-.456.06-.746.231-.243 1.907-1.312Z" /></svg>;
+}
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('today');
@@ -79,6 +90,11 @@ export default function Home() {
   const [plan, setPlan] = useState<PlanAnalytics | null>(null);
   const [activePlans, setActivePlans] = useState<PlanAnalytics[]>([]);
   const [planIdx, setPlanIdx] = useState(0);
+  const [exportReport, setExportReport] = useState('');
+  const [exportSummary, setExportSummary] = useState('');
+  const [exportPeriod, setExportPeriod] = useState('');
+  const [isExportReportExpanded, setIsExportReportExpanded] = useState(false);
+  const [exportStatus, setExportStatus] = useState('');
   const [selectedDate, setSelectedDate] = useState<string>(
     toLocalDateKey(new Date())
   );
@@ -281,6 +297,200 @@ export default function Home() {
       { calories: 0, protein: 0, carbs: 0, fats: 0 }
     );
   }, [filteredLogs]);
+
+  const buildExportReport = () => {
+    const dateLabel = parseLocalDateKey(selectedDate).toLocaleDateString([], {
+      year: 'numeric', month: 'long', day: 'numeric',
+    });
+    const recentStartDate = parseLocalDateKey(todayKey);
+    recentStartDate.setDate(recentStartDate.getDate() - 6);
+    const recentStartKey = toLocalDateKey(recentStartDate);
+    const recentLogs = logs.filter((entry) => {
+      const key = toLocalDateKey(entry.timestamp);
+      return key >= recentStartKey && key <= todayKey;
+    });
+    const recentWorkouts = workouts.filter((entry) => {
+      const key = toLocalDateKey(entry.timestamp);
+      return key >= recentStartKey && key <= todayKey;
+    });
+    const recentTotals = recentLogs.reduce((sum, entry) => ({
+      calories: sum.calories + entry.calories,
+      protein: sum.protein + entry.protein,
+      carbs: sum.carbs + entry.carbs,
+      fats: sum.fats + entry.fats,
+    }), { calories: 0, protein: 0, carbs: 0, fats: 0 });
+    const recentWorkoutCalories = recentWorkouts.reduce((sum, entry) => sum + (Number(entry.caloriesBurnt) || 0), 0);
+    const loggedDays = new Set(recentLogs.map((entry) => toLocalDateKey(entry.timestamp))).size;
+    const number = (value: number) => Math.round((Number(value) || 0) * 10) / 10;
+    const planStartMs = currentPlan?.hasPlan ? new Date(currentPlan.startDate).getTime() : Number.POSITIVE_INFINITY;
+    const dailyTrends = Array.from({ length: 7 }, (_, offset) => {
+      const day = new Date(recentStartDate);
+      day.setDate(day.getDate() + offset);
+      const dayKey = toLocalDateKey(day);
+      const dayLogs = recentLogs.filter((entry) => toLocalDateKey(entry.timestamp) === dayKey);
+      const dayWorkouts = recentWorkouts.filter((entry) => toLocalDateKey(entry.timestamp) === dayKey);
+      const totals = dayLogs.reduce((sum, entry) => ({
+        calories: sum.calories + entry.calories,
+        protein: sum.protein + entry.protein,
+        carbs: sum.carbs + entry.carbs,
+        fats: sum.fats + entry.fats,
+      }), { calories: 0, protein: 0, carbs: 0, fats: 0 });
+      const planDayWorkouts = currentPlan?.hasPlan
+        ? dayWorkouts.filter((entry) => new Date(entry.timestamp).getTime() >= planStartMs)
+        : dayWorkouts;
+      const workoutCalories = planDayWorkouts.reduce((sum, entry) => sum + (Number(entry.caloriesBurnt) || 0), 0);
+      const thermicEffect = calculateThermicEffectOfFood({
+        proteinG: totals.protein,
+        carbohydrateG: totals.carbs,
+        dietaryFatG: totals.fats,
+      });
+      const dayStart = new Date(day);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(dayStart);
+      dayEnd.setDate(dayEnd.getDate() + 1);
+      const activePlanMs = currentPlan?.hasPlan
+        ? Math.max(0, Math.min(dayEnd.getTime(), Date.now()) - Math.max(dayStart.getTime(), planStartMs))
+        : 0;
+      const dayRestingCalories = currentPlan?.hasPlan
+        ? (activePlanMs / (1000 * 60 * 60 * 24)) * currentPlan.restingCalories
+        : 0;
+      const isPlanDay = activePlanMs > 0;
+      const totalBurned = dayRestingCalories + workoutCalories + (isPlanDay ? thermicEffect : 0);
+      const dayLabel = parseLocalDateKey(dayKey).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+      const nutritionLine = `${dayLabel}: protein ${number(totals.protein)} g · carbs ${number(totals.carbs)} g · fat ${number(totals.fats)} g · ${dayWorkouts.length} workout(s), ${number(dayWorkouts.reduce((sum, entry) => sum + (Number(entry.caloriesBurnt) || 0), 0))} kcal workout burn`;
+      const energyLine = currentPlan?.hasPlan && isPlanDay
+        ? `${dayLabel}: ${number(totals.calories)} kcal consumed · ${number(totalBurned)} kcal estimated burned · ${number(totalBurned - totals.calories)} kcal deficit`
+        : `${dayLabel}: ${number(totals.calories)} kcal consumed · ${number(workoutCalories)} kcal burned in logged workouts (resting burn unavailable)`;
+      const bodyCompositionLine = currentPlan?.hasPlan && isPlanDay
+        ? `${dayLabel}: body fat ${number(calculateDailyFatMassChangeGrams({
+            weightKg: currentPlan.currentWeight,
+            proteinG: totals.protein,
+            carbohydrateG: totals.carbs,
+            dietaryFatG: totals.fats,
+            calorieIntake: totals.calories,
+            workoutCalories,
+            restingCalories: dayRestingCalories,
+          }))} g · wet muscle mass ${number(calculateDailyWetMuscleMassChangeGrams({
+            weightKg: currentPlan.currentWeight,
+            proteinG: totals.protein,
+            carbohydrateG: totals.carbs,
+            dietaryFatG: totals.fats,
+            calorieIntake: totals.calories,
+            workoutCalories,
+            restingCalories: dayRestingCalories,
+          }))} g`
+        : `${dayLabel}: outside active plan dates`;
+      return { nutritionLine, energyLine, bodyCompositionLine };
+    });
+    const kg = (grams: number) => `${number(grams / 1000)} kg`;
+    const lines = [
+      'PRIMATE FUEL — PERSONAL NUTRITION & PLAN REPORT',
+      `Generated: ${new Date().toLocaleString()}`,
+      '',
+      'ACTIVE PLAN',
+    ];
+    if (currentPlan?.hasPlan) {
+      const planStartLabel = parseLocalDateKey(toLocalDateKey(currentPlan.startDate)).toLocaleDateString([], {
+        year: 'numeric', month: 'short', day: 'numeric',
+      });
+      lines.push(
+        `User: ${currentPlan.userName}`,
+        `Plan: ${currentPlan.planName}`,
+        `Period: from ${planStartLabel} · ${currentPlan.daysElapsed} days elapsed · ${currentPlan.daysRemaining > 0 ? `${currentPlan.daysRemaining} days remaining` : 'goal date reached'}`,
+        `Weight goal: ${currentPlan.currentWeight} kg → ${currentPlan.targetWeight} kg`,
+        `Progress: ${number(currentPlan.progressPercent)}% · projected finish ${currentPlan.projectedDate}`,
+        `Resting energy estimate: ${number(currentPlan.restingCalories)} kcal/day`,
+        `Plan totals: ${number(currentPlan.totalCalorieConsumed).toLocaleString()} kcal consumed · ${number(currentPlan.totalCalorieBurnt).toLocaleString()} kcal burned · ${number(currentPlan.totalCalorieDeficit).toLocaleString()} kcal deficit`,
+        `Average daily deficit: ${number(currentPlan.averageCalorieDeficit).toLocaleString()} kcal/day`,
+        `Estimated body composition change: weight ${kg(currentPlan.totalWeightChangeGrams)} · fat ${kg(currentPlan.totalFatMassChangeGrams)} · muscle ${kg(currentPlan.totalMuscleMassChangeGrams)}`,
+      );
+    } else {
+      lines.push('No active plan.');
+    }
+    lines.push('', `NUTRITION & ACTIVITY — ${dateLabel.toUpperCase()}`);
+    lines.push(
+      `Food logged: ${filteredLogs.length} item(s) · ${number(dailyTotals.calories).toLocaleString()} kcal`,
+      `Macros: protein ${number(dailyTotals.protein)} g · carbs ${number(dailyTotals.carbs)} g · fat ${number(dailyTotals.fats)} g`,
+      `Targets: ${targets.calories} kcal · protein ${targets.protein} g · carbs ${targets.carbs} g · fat ${targets.fats} g`,
+    );
+    if (filteredLogs.length) {
+      lines.push('Meals:', ...filteredLogs.map((entry) => `• ${entry.dish} (${number(entry.portion)} portion) — ${number(entry.calories)} kcal; P ${number(entry.protein)} g, C ${number(entry.carbs)} g, F ${number(entry.fats)} g`));
+    }
+    const selectedWorkoutCalories = filteredWorkouts.reduce((sum, entry) => sum + (Number(entry.caloriesBurnt) || 0), 0);
+    lines.push(`Workouts: ${filteredWorkouts.length} session(s) · ${number(selectedWorkoutCalories).toLocaleString()} kcal burned`);
+    if (filteredWorkouts.length) lines.push(...filteredWorkouts.map((entry) => `• ${entry.name} — ${number(entry.caloriesBurnt)} kcal`));
+    lines.push(
+      '',
+      `LAST 7 DAYS (${recentStartKey} to ${todayKey})`,
+      `Food logged on ${loggedDays} of 7 days · ${number(recentTotals.calories).toLocaleString()} kcal total (${number(recentTotals.calories / 7).toLocaleString()} kcal/day average)`,
+      `Macros: protein ${number(recentTotals.protein)} g · carbs ${number(recentTotals.carbs)} g · fat ${number(recentTotals.fats)} g`,
+      `Workouts: ${recentWorkouts.length} session(s) · ${number(recentWorkoutCalories).toLocaleString()} kcal burned`,
+      '',
+      'DAILY NUTRITION & ACTIVITY TREND',
+      ...dailyTrends.map((trend) => trend.nutritionLine),
+      '',
+      'CALORIES CONSUMED VS BURNED — DAILY TREND',
+      ...dailyTrends.map((trend) => trend.energyLine),
+      '',
+      'MODELED BODY FAT VS WET MUSCLE MASS — DAILY TREND',
+      ...(currentPlan?.hasPlan
+        ? ['Estimates based on logged food/activity and the active plan; these are modeled changes, not measured body composition.', ...dailyTrends.map((trend) => trend.bodyCompositionLine)]
+        : ['Unavailable without an active plan and resting energy estimate.']),
+      '',
+      'Report drafted from the data currently recorded in Primate Fuel.',
+      '',
+      'ABOUT PRIMATE FUEL',
+      'Homepage: https://project-primate.vercel.app/',
+      'Primate Fuel brings food logs, nutrition targets, workouts, calorie balance, and active-plan progress together in one personal dashboard. Track the habits that shape your day, follow your nutrition and activity trends, and see how your plan is progressing toward your goals.',
+    );
+    return lines.join('\n');
+  };
+
+  const openExportReport = () => {
+    setExportStatus('');
+    setIsExportReportExpanded(false);
+    const report = buildExportReport();
+    const foodSummary = report.match(/Food logged on (\d+) of 7 days · .*?\(([\d,.]+) kcal\/day average\)/);
+    const workoutSummary = report.match(/Workouts: (\d+) session\(s\) · ([\d,.]+) kcal burned/);
+    const weekStart = parseLocalDateKey(todayKey);
+    weekStart.setDate(weekStart.getDate() - 6);
+    const formatPeriodDate = (date: Date) => date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    setExportPeriod(`${formatPeriodDate(weekStart)}–${formatPeriodDate(parseLocalDateKey(todayKey))}`);
+    setExportSummary(foodSummary && workoutSummary
+      ? `Over the past week, you logged food on ${foodSummary[1]} of 7 days, averaging ${foodSummary[2]} kcal a day, and completed ${workoutSummary[1]} ${Number(workoutSummary[1]) === 1 ? 'workout' : 'workouts'}.`
+      : 'Your nutrition, activity, active plan, and 7-day trends are gathered into one report.');
+    setExportReport(report);
+  };
+
+  const copyExportReport = async () => {
+    try {
+      await navigator.clipboard.writeText(exportReport);
+      setExportStatus('Report copied. Paste it into Gemini, Meta AI, or another app.');
+    } catch {
+      setExportStatus('Could not copy automatically. Select the report text and copy it.');
+    }
+  };
+
+  const shareExportReport = async () => {
+    if (!navigator.share) {
+      await copyExportReport();
+      return;
+    }
+    try {
+      await navigator.share({ title: 'Primate Fuel report', text: exportReport });
+      setExportStatus('Report shared.');
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      setExportStatus('Sharing is unavailable here. Copy the report and paste it into another app.');
+    }
+  };
+
+  const openWhatsAppDraft = () => {
+    if (!exportReport) return;
+    const url = `https://wa.me/?text=${encodeURIComponent(exportReport)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+    setExportStatus('WhatsApp opened with the report drafted. Choose a recipient and send when ready.');
+  };
 
   // Handlers
   const handleLogMeal = async (entry: MealLogEntry): Promise<boolean> => {
@@ -511,9 +721,59 @@ export default function Home() {
     <>
       <Header
         onRefresh={loadData}
+        onExport={openExportReport}
         isLoading={isLoading}
         userName={plan?.userName}
       />
+      {exportReport && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm" onMouseDown={(event) => {
+          if (event.target === event.currentTarget) setExportReport('');
+        }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="export-report-title" className="app-card-surface flex max-h-[88vh] w-full max-w-md flex-col overflow-y-auto rounded-[22px] border border-slate-700/80 shadow-2xl">
+            <div className="flex items-center justify-between gap-4 px-5 pb-4 pt-5">
+              <div className="flex items-center gap-3">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-amber-300/10 text-amber-300"><Sparkles aria-hidden="true" className="h-4 w-4" /></span>
+                <div className="flex flex-col justify-center">
+                  <div className="text-[8px] font-bold leading-none tracking-[.18em] text-amber-200">PERSONALIZED SUMMARY</div>
+                  <h2 id="export-report-title" className="mt-0.5 text-[17px] font-bold leading-tight text-white">A note for your coach</h2>
+                </div>
+              </div>
+              <button type="button" aria-label="Close report" onClick={() => setExportReport('')} className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-white/[0.06] hover:text-white"><X aria-hidden="true" className="h-4 w-4" /></button>
+            </div>
+
+            <div className="space-y-4 px-5 pb-5">
+              <div className="rounded-xl bg-gradient-to-br from-amber-300/[0.09] via-emerald-300/[0.04] to-transparent p-4">
+                <div className="text-[9px] font-bold tracking-wider text-amber-200">WEEKLY CHECK-IN</div>
+                <p className="mt-2 text-[12px] leading-relaxed text-slate-200">“{exportSummary}”</p>
+                <p className="mt-3 text-[9px] text-slate-500">Summary based on your logged data · {exportPeriod}</p>
+              </div>
+
+              <div className="overflow-hidden rounded-xl bg-white/[0.035]">
+                <button type="button" aria-expanded={isExportReportExpanded} aria-controls="full-nutrition-report" onClick={() => setIsExportReportExpanded((expanded) => !expanded)} className="flex w-full items-center gap-2.5 p-3 text-left transition-colors hover:bg-white/[0.035]">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-emerald-300/10 text-emerald-300"><FileText aria-hidden="true" className="h-3.5 w-3.5" /></span>
+                  <span className="min-w-0 flex-1"><span className="block truncate text-[10px] font-semibold text-slate-200">Full nutrition report</span><span className="mt-0.5 block text-[9px] text-slate-500">Plan · macros · meals · 7-day trends</span></span>
+                  <ChevronDown aria-hidden="true" className={`h-4 w-4 shrink-0 text-slate-500 transition-transform ${isExportReportExpanded ? 'rotate-180' : ''}`} />
+                </button>
+                {isExportReportExpanded && <pre id="full-nutrition-report" aria-label="Full report preview" className="max-h-56 overflow-y-auto whitespace-pre-wrap break-words border-t border-white/[0.06] px-3 py-3 font-sans text-[10px] leading-relaxed text-slate-300">{exportReport}</pre>}
+              </div>
+
+              <div className="flex items-center justify-between gap-2 pt-1">
+                <div className="flex items-center gap-0" aria-label="Common sharing apps">
+                  <span role="img" aria-label="Gemini" title="Gemini" className="grid h-8 w-8 place-items-center text-blue-300"><GeminiBrandMark /></span>
+                  <span role="img" aria-label="ChatGPT" title="ChatGPT" className="grid h-8 w-8 place-items-center text-slate-200"><OpenAiLogo aria-hidden="true" size={20} weight="regular" /></span>
+                  <button type="button" aria-label="Draft report in WhatsApp" title="Draft report in WhatsApp" onClick={openWhatsAppDraft} className="grid h-8 w-8 place-items-center rounded-lg text-emerald-400 transition-colors hover:bg-emerald-400/10 hover:text-emerald-300"><WhatsappLogo aria-hidden="true" size={20} weight="regular" /></button>
+                  <span role="img" aria-label="Claude" title="Claude" className="grid h-8 w-8 place-items-center text-orange-300"><ClaudeBrandMark /></span>
+                </div>
+                <div className="flex items-center gap-0">
+                  <button type="button" aria-label="Copy report" title="Copy report" onClick={copyExportReport} className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-white/[0.06] hover:text-white"><Copy aria-hidden="true" className="h-4 w-4" /></button>
+                  <button type="button" aria-label="Share report" title="Share report" onClick={shareExportReport} className="grid h-8 w-8 place-items-center rounded-lg text-emerald-300 transition-colors hover:bg-emerald-300/10 hover:text-emerald-200"><Share2 aria-hidden="true" className="h-4 w-4" /></button>
+                </div>
+              </div>
+              <p role="status" aria-live="polite" className="min-h-4 text-[10px] text-emerald-300">{exportStatus}</p>
+            </div>
+          </section>
+        </div>
+      )}
       {profileSaveToast}
       {onboardingGuide}
 
