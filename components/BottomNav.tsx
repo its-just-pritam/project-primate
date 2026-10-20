@@ -10,9 +10,10 @@ interface BottomNavProps {
   onChangeTab: (tab: TabType) => void;
   avatar?: string;
   onOpenProfile: () => void;
+  isHidden?: boolean;
 }
 
-export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onChangeTab, avatar, onOpenProfile }) => {
+export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onChangeTab, avatar, onOpenProfile, isHidden = false }) => {
   const tabs = [
     { id: 'today' as TabType, label: 'Today', icon: Calendar },
     { id: 'recipes' as TabType, label: 'Recipes', icon: BookOpen },
@@ -21,7 +22,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onChangeTab, a
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-slate-900/90 backdrop-blur-lg border-t border-slate-800/80 px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] max-w-md md:max-w-none mx-auto md:px-8">
+    <nav className={`fixed bottom-0 left-0 right-0 z-40 bg-slate-900/90 backdrop-blur-lg border-t border-slate-800/80 px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] max-w-md md:max-w-none mx-auto md:px-8 transition-transform duration-300 ease-in-out ${isHidden ? 'translate-y-full pointer-events-none md:translate-y-0 md:pointer-events-auto' : 'translate-y-0'}`}>
       <div className="flex items-center justify-around">
         {tabs.map((tab) => {
           const Icon = tab.icon;

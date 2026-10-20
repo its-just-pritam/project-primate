@@ -9,9 +9,10 @@ interface WorkoutLoggerProps {
   userName?: string;
   onLogWorkout: (entry: WorkoutEntry) => Promise<boolean>;
   onboardingHighlight?: boolean;
+  isBottomNavHidden?: boolean;
 }
 
-export const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ workoutNames, userName, onLogWorkout, onboardingHighlight = false }) => {
+export const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ workoutNames, userName, onLogWorkout, onboardingHighlight = false, isBottomNavHidden = false }) => {
   const [name, setName] = useState('');
   const [calories, setCalories] = useState('');
   const [timestamp, setTimestamp] = useState(getLocalDateTime());
@@ -108,7 +109,7 @@ export const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ workoutNames, user
         </div>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 bg-[#090d16] px-4 pt-3 pb-[calc(5rem+env(safe-area-inset-bottom))]">
+      <div className={`fixed inset-x-0 bottom-0 z-30 bg-[#090d16] px-4 pt-3 transition-[padding] duration-300 ${isBottomNavHidden ? 'pb-[max(1rem,env(safe-area-inset-bottom))]' : 'pb-[calc(5rem+env(safe-area-inset-bottom))]'}`}>
         <button
           type="submit"
           disabled={isSubmitting}

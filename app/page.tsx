@@ -21,8 +21,10 @@ import type { PackagedInput } from '@/components/PackagedForm';
 import { TrendsView } from '@/components/TrendsView';
 import { PlanCarousel } from '@/components/PlanCarousel';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { Plus, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { WhatsappLogo } from '@phosphor-icons/react/dist/csr/WhatsappLogo';
+import { Plus, ChevronLeft, ChevronRight, CheckCircle2, ChevronDown, Copy, FileText, Share2, Sparkles, X } from 'lucide-react';
 import { toLocalDateKey, parseLocalDateKey } from '@/lib/localDate';
+import { calculateDailyFatMassChangeGrams, calculateDailyWetMuscleMassChangeGrams, calculateThermicEffectOfFood } from '@/lib/bodyComposition';
 import { ProfileScreen } from '@/components/ProfileScreen';
 import { StartupSplash } from '@/components/StartupSplash';
 import { OnboardingGuide } from '@/components/OnboardingGuide';
@@ -48,6 +50,8 @@ const ONBOARDING_TASKS: { id: OnboardingTaskId; title: string; description: stri
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('today');
+  const [isBottomNavHidden, setIsBottomNavHidden] = useState(false);
+  const lastContentScrollTop = useRef(0);
   const [logs, setLogs] = useState<MealLogEntry[]>([]);
   const [workouts, setWorkouts] = useState<WorkoutEntry[]>([]);
   const [showProfile, setShowProfile] = useState(false);
@@ -79,11 +83,35 @@ export default function Home() {
   const [plan, setPlan] = useState<PlanAnalytics | null>(null);
   const [activePlans, setActivePlans] = useState<PlanAnalytics[]>([]);
   const [planIdx, setPlanIdx] = useState(0);
+  const [exportReport, setExportReport] = useState('');
+  const [exportSummary, setExportSummary] = useState('');
+  const [exportPeriod, setExportPeriod] = useState('');
+  const [isExportReportExpanded, setIsExportReportExpanded] = useState(false);
+  const [exportStatus, setExportStatus] = useState('');
   const [selectedDate, setSelectedDate] = useState<string>(
     toLocalDateKey(new Date())
   );
   const todayKey = toLocalDateKey(new Date());
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    setIsBottomNavHidden(false);
+    lastContentScrollTop.current = 0;
+  }, [activeTab]);
+
+  const handleContentScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    const scrollTop = event.currentTarget.scrollTop;
+    const scrollDelta = scrollTop - lastContentScrollTop.current;
+    lastContentScrollTop.current = scrollTop;
+
+    if (window.matchMedia('(min-width: 768px)').matches || scrollTop < 32) {
+      setIsBottomNavHidden(false);
+    } else if (scrollDelta > 5) {
+      setIsBottomNavHidden(true);
+    } else if (scrollDelta < -5) {
+      setIsBottomNavHidden(false);
+    }
+  };
 
   const announceProfileSave = (message: string) => {
     setProfileSaveNotice(message);
@@ -281,6 +309,200 @@ export default function Home() {
       { calories: 0, protein: 0, carbs: 0, fats: 0 }
     );
   }, [filteredLogs]);
+
+  const buildExportReport = () => {
+    const dateLabel = parseLocalDateKey(selectedDate).toLocaleDateString([], {
+      year: 'numeric', month: 'long', day: 'numeric',
+    });
+    const recentStartDate = parseLocalDateKey(todayKey);
+    recentStartDate.setDate(recentStartDate.getDate() - 6);
+    const recentStartKey = toLocalDateKey(recentStartDate);
+    const recentLogs = logs.filter((entry) => {
+      const key = toLocalDateKey(entry.timestamp);
+      return key >= recentStartKey && key <= todayKey;
+    });
+    const recentWorkouts = workouts.filter((entry) => {
+      const key = toLocalDateKey(entry.timestamp);
+      return key >= recentStartKey && key <= todayKey;
+    });
+    const recentTotals = recentLogs.reduce((sum, entry) => ({
+      calories: sum.calories + entry.calories,
+      protein: sum.protein + entry.protein,
+      carbs: sum.carbs + entry.carbs,
+      fats: sum.fats + entry.fats,
+    }), { calories: 0, protein: 0, carbs: 0, fats: 0 });
+    const recentWorkoutCalories = recentWorkouts.reduce((sum, entry) => sum + (Number(entry.caloriesBurnt) || 0), 0);
+    const loggedDays = new Set(recentLogs.map((entry) => toLocalDateKey(entry.timestamp))).size;
+    const number = (value: number) => Math.round((Number(value) || 0) * 10) / 10;
+    const planStartMs = currentPlan?.hasPlan ? new Date(currentPlan.startDate).getTime() : Number.POSITIVE_INFINITY;
+    const dailyTrends = Array.from({ length: 7 }, (_, offset) => {
+      const day = new Date(recentStartDate);
+      day.setDate(day.getDate() + offset);
+      const dayKey = toLocalDateKey(day);
+      const dayLogs = recentLogs.filter((entry) => toLocalDateKey(entry.timestamp) === dayKey);
+      const dayWorkouts = recentWorkouts.filter((entry) => toLocalDateKey(entry.timestamp) === dayKey);
+      const totals = dayLogs.reduce((sum, entry) => ({
+        calories: sum.calories + entry.calories,
+        protein: sum.protein + entry.protein,
+        carbs: sum.carbs + entry.carbs,
+        fats: sum.fats + entry.fats,
+      }), { calories: 0, protein: 0, carbs: 0, fats: 0 });
+      const planDayWorkouts = currentPlan?.hasPlan
+        ? dayWorkouts.filter((entry) => new Date(entry.timestamp).getTime() >= planStartMs)
+        : dayWorkouts;
+      const workoutCalories = planDayWorkouts.reduce((sum, entry) => sum + (Number(entry.caloriesBurnt) || 0), 0);
+      const thermicEffect = calculateThermicEffectOfFood({
+        proteinG: totals.protein,
+        carbohydrateG: totals.carbs,
+        dietaryFatG: totals.fats,
+      });
+      const dayStart = new Date(day);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(dayStart);
+      dayEnd.setDate(dayEnd.getDate() + 1);
+      const activePlanMs = currentPlan?.hasPlan
+        ? Math.max(0, Math.min(dayEnd.getTime(), Date.now()) - Math.max(dayStart.getTime(), planStartMs))
+        : 0;
+      const dayRestingCalories = currentPlan?.hasPlan
+        ? (activePlanMs / (1000 * 60 * 60 * 24)) * currentPlan.restingCalories
+        : 0;
+      const isPlanDay = activePlanMs > 0;
+      const totalBurned = dayRestingCalories + workoutCalories + (isPlanDay ? thermicEffect : 0);
+      const dayLabel = parseLocalDateKey(dayKey).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+      const nutritionLine = `${dayLabel}: protein ${number(totals.protein)} g · carbs ${number(totals.carbs)} g · fat ${number(totals.fats)} g · ${dayWorkouts.length} workout(s), ${number(dayWorkouts.reduce((sum, entry) => sum + (Number(entry.caloriesBurnt) || 0), 0))} kcal workout burn`;
+      const energyLine = currentPlan?.hasPlan && isPlanDay
+        ? `${dayLabel}: ${number(totals.calories)} kcal consumed · ${number(totalBurned)} kcal estimated burned · ${number(totalBurned - totals.calories)} kcal deficit`
+        : `${dayLabel}: ${number(totals.calories)} kcal consumed · ${number(workoutCalories)} kcal burned in logged workouts (resting burn unavailable)`;
+      const bodyCompositionLine = currentPlan?.hasPlan && isPlanDay
+        ? `${dayLabel}: body fat ${number(calculateDailyFatMassChangeGrams({
+            weightKg: currentPlan.currentWeight,
+            proteinG: totals.protein,
+            carbohydrateG: totals.carbs,
+            dietaryFatG: totals.fats,
+            calorieIntake: totals.calories,
+            workoutCalories,
+            restingCalories: dayRestingCalories,
+          }))} g · wet muscle mass ${number(calculateDailyWetMuscleMassChangeGrams({
+            weightKg: currentPlan.currentWeight,
+            proteinG: totals.protein,
+            carbohydrateG: totals.carbs,
+            dietaryFatG: totals.fats,
+            calorieIntake: totals.calories,
+            workoutCalories,
+            restingCalories: dayRestingCalories,
+          }))} g`
+        : `${dayLabel}: outside active plan dates`;
+      return { nutritionLine, energyLine, bodyCompositionLine };
+    });
+    const kg = (grams: number) => `${number(grams / 1000)} kg`;
+    const lines = [
+      'PRIMATE FUEL — PERSONAL NUTRITION & PLAN REPORT',
+      `Generated: ${new Date().toLocaleString()}`,
+      '',
+      'ACTIVE PLAN',
+    ];
+    if (currentPlan?.hasPlan) {
+      const planStartLabel = parseLocalDateKey(toLocalDateKey(currentPlan.startDate)).toLocaleDateString([], {
+        year: 'numeric', month: 'short', day: 'numeric',
+      });
+      lines.push(
+        `User: ${currentPlan.userName}`,
+        `Plan: ${currentPlan.planName}`,
+        `Period: from ${planStartLabel} · ${currentPlan.daysElapsed} days elapsed · ${currentPlan.daysRemaining > 0 ? `${currentPlan.daysRemaining} days remaining` : 'goal date reached'}`,
+        `Weight goal: ${currentPlan.currentWeight} kg → ${currentPlan.targetWeight} kg`,
+        `Progress: ${number(currentPlan.progressPercent)}% · projected finish ${currentPlan.projectedDate}`,
+        `Resting energy estimate: ${number(currentPlan.restingCalories)} kcal/day`,
+        `Plan totals: ${number(currentPlan.totalCalorieConsumed).toLocaleString()} kcal consumed · ${number(currentPlan.totalCalorieBurnt).toLocaleString()} kcal burned · ${number(currentPlan.totalCalorieDeficit).toLocaleString()} kcal deficit`,
+        `Average daily deficit: ${number(currentPlan.averageCalorieDeficit).toLocaleString()} kcal/day`,
+        `Estimated body composition change: weight ${kg(currentPlan.totalWeightChangeGrams)} · fat ${kg(currentPlan.totalFatMassChangeGrams)} · muscle ${kg(currentPlan.totalMuscleMassChangeGrams)}`,
+      );
+    } else {
+      lines.push('No active plan.');
+    }
+    lines.push('', `NUTRITION & ACTIVITY — ${dateLabel.toUpperCase()}`);
+    lines.push(
+      `Food logged: ${filteredLogs.length} item(s) · ${number(dailyTotals.calories).toLocaleString()} kcal`,
+      `Macros: protein ${number(dailyTotals.protein)} g · carbs ${number(dailyTotals.carbs)} g · fat ${number(dailyTotals.fats)} g`,
+      `Targets: ${targets.calories} kcal · protein ${targets.protein} g · carbs ${targets.carbs} g · fat ${targets.fats} g`,
+    );
+    if (filteredLogs.length) {
+      lines.push('Meals:', ...filteredLogs.map((entry) => `• ${entry.dish} (${number(entry.portion)} portion) — ${number(entry.calories)} kcal; P ${number(entry.protein)} g, C ${number(entry.carbs)} g, F ${number(entry.fats)} g`));
+    }
+    const selectedWorkoutCalories = filteredWorkouts.reduce((sum, entry) => sum + (Number(entry.caloriesBurnt) || 0), 0);
+    lines.push(`Workouts: ${filteredWorkouts.length} session(s) · ${number(selectedWorkoutCalories).toLocaleString()} kcal burned`);
+    if (filteredWorkouts.length) lines.push(...filteredWorkouts.map((entry) => `• ${entry.name} — ${number(entry.caloriesBurnt)} kcal`));
+    lines.push(
+      '',
+      `LAST 7 DAYS (${recentStartKey} to ${todayKey})`,
+      `Food logged on ${loggedDays} of 7 days · ${number(recentTotals.calories).toLocaleString()} kcal total (${number(recentTotals.calories / 7).toLocaleString()} kcal/day average)`,
+      `Macros: protein ${number(recentTotals.protein)} g · carbs ${number(recentTotals.carbs)} g · fat ${number(recentTotals.fats)} g`,
+      `Workouts: ${recentWorkouts.length} session(s) · ${number(recentWorkoutCalories).toLocaleString()} kcal burned`,
+      '',
+      'DAILY NUTRITION & ACTIVITY TREND',
+      ...dailyTrends.map((trend) => trend.nutritionLine),
+      '',
+      'CALORIES CONSUMED VS BURNED — DAILY TREND',
+      ...dailyTrends.map((trend) => trend.energyLine),
+      '',
+      'MODELED BODY FAT VS WET MUSCLE MASS — DAILY TREND',
+      ...(currentPlan?.hasPlan
+        ? ['Estimates based on logged food/activity and the active plan; these are modeled changes, not measured body composition.', ...dailyTrends.map((trend) => trend.bodyCompositionLine)]
+        : ['Unavailable without an active plan and resting energy estimate.']),
+      '',
+      'Report drafted from the data currently recorded in Primate Fuel.',
+      '',
+      'ABOUT PRIMATE FUEL',
+      'Homepage: https://project-primate.vercel.app/',
+      'Primate Fuel brings food logs, nutrition targets, workouts, calorie balance, and active-plan progress together in one personal dashboard. Track the habits that shape your day, follow your nutrition and activity trends, and see how your plan is progressing toward your goals.',
+    );
+    return lines.join('\n');
+  };
+
+  const openExportReport = () => {
+    setExportStatus('');
+    setIsExportReportExpanded(false);
+    const report = buildExportReport();
+    const foodSummary = report.match(/Food logged on (\d+) of 7 days · .*?\(([\d,.]+) kcal\/day average\)/);
+    const workoutSummary = report.match(/Workouts: (\d+) session\(s\) · ([\d,.]+) kcal burned/);
+    const weekStart = parseLocalDateKey(todayKey);
+    weekStart.setDate(weekStart.getDate() - 6);
+    const formatPeriodDate = (date: Date) => date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    setExportPeriod(`${formatPeriodDate(weekStart)}–${formatPeriodDate(parseLocalDateKey(todayKey))}`);
+    setExportSummary(foodSummary && workoutSummary
+      ? `Over the past week, you logged food on ${foodSummary[1]} of 7 days, averaging ${foodSummary[2]} kcal a day, and completed ${workoutSummary[1]} ${Number(workoutSummary[1]) === 1 ? 'workout' : 'workouts'}.`
+      : 'Your nutrition, activity, active plan, and 7-day trends are gathered into one report.');
+    setExportReport(report);
+  };
+
+  const copyExportReport = async () => {
+    try {
+      await navigator.clipboard.writeText(exportReport);
+      setExportStatus('Report copied. Paste it into Gemini, Meta AI, or another app.');
+    } catch {
+      setExportStatus('Could not copy automatically. Select the report text and copy it.');
+    }
+  };
+
+  const shareExportReport = async () => {
+    if (!navigator.share) {
+      await copyExportReport();
+      return;
+    }
+    try {
+      await navigator.share({ title: 'Primate Fuel report', text: exportReport });
+      setExportStatus('Report shared.');
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      setExportStatus('Sharing is unavailable here. Copy the report and paste it into another app.');
+    }
+  };
+
+  const openWhatsAppDraft = () => {
+    if (!exportReport) return;
+    const url = `https://wa.me/?text=${encodeURIComponent(exportReport)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+    setExportStatus('WhatsApp opened with the report drafted. Choose a recipient and send when ready.');
+  };
 
   // Handlers
   const handleLogMeal = async (entry: MealLogEntry): Promise<boolean> => {
@@ -511,13 +733,60 @@ export default function Home() {
     <>
       <Header
         onRefresh={loadData}
+        onExport={openExportReport}
         isLoading={isLoading}
         userName={plan?.userName}
       />
+      {exportReport && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm" onMouseDown={(event) => {
+          if (event.target === event.currentTarget) setExportReport('');
+        }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="export-report-title" className="app-card-surface flex max-h-[88vh] w-full max-w-md flex-col overflow-y-auto rounded-[22px] border border-slate-700/80 shadow-2xl">
+            <div className="flex items-center justify-between gap-4 px-5 pb-3 pt-5">
+              <div className="flex items-center gap-3">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-amber-300/10 text-amber-300"><Sparkles aria-hidden="true" className="h-4 w-4" /></span>
+                <div className="flex flex-col justify-center">
+                  <div className="text-[8px] font-bold leading-none tracking-[.18em] text-amber-200">PERSONALIZED SUMMARY</div>
+                  <h2 id="export-report-title" className="mt-0.5 text-[17px] font-bold leading-tight text-white">A note for your coach</h2>
+                </div>
+              </div>
+              <button type="button" aria-label="Close report" onClick={() => setExportReport('')} className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-white/[0.06] hover:text-white"><X aria-hidden="true" className="h-4 w-4" /></button>
+            </div>
+
+            <div className="space-y-3 px-5 pb-3">
+              <div className="rounded-xl bg-gradient-to-br from-amber-300/[0.09] via-emerald-300/[0.04] to-transparent p-4">
+                <div className="text-[9px] font-bold tracking-wider text-amber-200">WEEKLY CHECK-IN</div>
+                <p className="mt-2 text-[12px] leading-relaxed text-slate-200">“{exportSummary}”</p>
+                <p className="mt-3 text-[9px] text-slate-500">Summary based on your logged data · {exportPeriod}</p>
+              </div>
+
+              <div className="overflow-hidden rounded-xl bg-white/[0.035]">
+                <button type="button" aria-expanded={isExportReportExpanded} aria-controls="full-nutrition-report" onClick={() => setIsExportReportExpanded((expanded) => !expanded)} className="flex w-full items-center gap-2.5 p-3 text-left transition-colors hover:bg-white/[0.035]">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-emerald-300/10 text-emerald-300"><FileText aria-hidden="true" className="h-3.5 w-3.5" /></span>
+                  <span className="min-w-0 flex-1"><span className="block truncate text-[10px] font-semibold text-slate-200">Full nutrition report</span><span className="mt-0.5 block text-[9px] text-slate-500">Plan · macros · meals · 7-day trends</span></span>
+                  <ChevronDown aria-hidden="true" className={`h-4 w-4 shrink-0 text-slate-500 transition-transform ${isExportReportExpanded ? 'rotate-180' : ''}`} />
+                </button>
+                {isExportReportExpanded && <pre id="full-nutrition-report" aria-label="Full report preview" className="max-h-56 overflow-y-auto whitespace-pre-wrap break-words border-t border-white/[0.06] px-3 py-3 font-sans text-[10px] leading-relaxed text-slate-300">{exportReport}</pre>}
+              </div>
+
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-0" aria-label="Common sharing apps">
+                  <button type="button" aria-label="Draft report in WhatsApp" title="Draft report in WhatsApp" onClick={openWhatsAppDraft} className="grid h-8 w-8 place-items-center rounded-lg text-emerald-400 transition-colors hover:bg-emerald-400/10 hover:text-emerald-300"><WhatsappLogo aria-hidden="true" size={20} weight="regular" /></button>
+                </div>
+                <div className="flex items-center gap-0">
+                  <button type="button" aria-label="Copy report" title="Copy report" onClick={copyExportReport} className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-white/[0.06] hover:text-white"><Copy aria-hidden="true" className="h-4 w-4" /></button>
+                  <button type="button" aria-label="Share report" title="Share report" onClick={shareExportReport} className="grid h-8 w-8 place-items-center rounded-lg text-emerald-300 transition-colors hover:bg-emerald-300/10 hover:text-emerald-200"><Share2 aria-hidden="true" className="h-4 w-4" /></button>
+                </div>
+              </div>
+              {exportStatus && <p role="status" aria-live="polite" className="text-[10px] text-emerald-300">{exportStatus}</p>}
+            </div>
+          </section>
+        </div>
+      )}
       {profileSaveToast}
       {onboardingGuide}
 
-      <div className={`flex-1 px-4 md:px-8 py-4 space-y-4 overflow-y-auto ${activeTab === 'log' ? 'pb-32' : ''}`}>
+      <div onScroll={handleContentScroll} className="min-h-0 flex-1 overflow-y-auto px-4 py-4 pb-32 space-y-4 md:px-8">
         {/* Tab 1: Today Dashboard */}
         {activeTab === 'today' && (
           <div className="space-y-4 animate-in fade-in duration-200">
@@ -668,6 +937,7 @@ export default function Home() {
               <QuickLogger
                 recipes={[...recipes, ...packaged]}
                 userName={plan?.userName}
+                isBottomNavHidden={isBottomNavHidden}
                 onboardingHighlight={onboardingStep === 0 && activeOnboardingTask?.id === 'meal'}
                 onLogMeal={handleLogMeal}
                 onNavigateToRecipes={() => setActiveTab('recipes')}
@@ -676,6 +946,7 @@ export default function Home() {
               <WorkoutLogger
                 workoutNames={workoutNames}
                 userName={plan?.userName}
+                isBottomNavHidden={isBottomNavHidden}
                 onboardingHighlight={onboardingStep === 0 && activeOnboardingTask?.id === 'workout'}
                 onLogWorkout={handleLogWorkout}
               />
@@ -718,6 +989,7 @@ export default function Home() {
         currentTab={activeTab}
         onChangeTab={setActiveTab}
         avatar={avatar}
+        isHidden={isBottomNavHidden}
         onOpenProfile={() => {
           setOpenNewPlan(false);
           setShowProfile(true);

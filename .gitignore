@@ -1,6 +1,8 @@
 node_modules/
 .next/
 out/
+app/icon-mocks/
+app/export-mocks/
 .env*.local
 credentials.json
 *.json.key

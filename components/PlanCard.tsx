@@ -1,8 +1,13 @@
 'use client';
 
-import React, { useId, useState } from 'react';
+import React, { useId, useRef, useState } from 'react';
 import { PlanAnalytics } from '@/types/nutrition';
 import { ArrowRight, Info, Share2 } from 'lucide-react';
+import { BowlFoodIcon } from '@phosphor-icons/react/dist/csr/BowlFood';
+import { LightningIcon } from '@phosphor-icons/react/dist/csr/Lightning';
+import { FireIcon } from '@phosphor-icons/react/dist/csr/Fire';
+import { TargetIcon } from '@phosphor-icons/react/dist/csr/Target';
+import { CalendarDotsIcon } from '@phosphor-icons/react/dist/csr/CalendarDots';
 
 const INVITATION_URL = 'https://project-primate.vercel.app/';
 
@@ -102,6 +107,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
   const [shareMessage, setShareMessage] = useState('');
   const [sharing, setSharing] = useState(false);
   const [selectedCoreMetric, setSelectedCoreMetric] = useState(3);
+  const metricSwipeStart = useRef<{ x: number; y: number } | null>(null);
   const gaugeGradientId = useId().replace(/:/g, '');
   if (!plan) return null;
 
@@ -112,12 +118,12 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
   const isWeightGain = weightDeltaKg > 0;
   const progressBarWidth = Math.min(100, Math.abs(plan.progressPercent));
   const coreMetrics = [
-    { label: 'Total Consumed', value: plan.totalCalorieConsumed.toLocaleString(), unit: 'kcal', emoji: '🥣', blueFire: false, highlight: false, accentStart: '#7dd3fc', accentEnd: '#2563eb', glow: 'rgba(56,189,248,0.5)' },
-    { label: 'Total Burnt incl. TEF', value: plan.totalCalorieBurnt.toLocaleString(), unit: 'kcal', emoji: '⚡', blueFire: false, highlight: false, accentStart: '#fde047', accentEnd: '#f59e0b', glow: 'rgba(250,204,21,0.5)' },
-    { label: 'Resting Burn', value: plan.restingCalories.toLocaleString(), unit: 'kcal/d', emoji: '🔥', blueFire: true, highlight: false, accentStart: '#38bdf8', accentEnd: '#2563eb', glow: 'rgba(56,189,248,0.5)' },
-    { label: 'Avg Daily Deficit', value: plan.averageCalorieDeficit.toLocaleString(), unit: 'kcal/d', emoji: '🔥', blueFire: false, highlight: false, accentStart: '#fb923c', accentEnd: '#ef4444', glow: 'rgba(249,115,22,0.5)' },
-    { label: 'Total Deficit', value: plan.totalCalorieDeficit.toLocaleString(), unit: 'kcal', emoji: '📉', blueFire: false, highlight: true, accentStart: '#34d399', accentEnd: '#059669', glow: 'rgba(52,211,153,0.48)' },
-    { label: 'Days on Plan', value: String(plan.daysElapsed), unit: 'days', emoji: '📅', blueFire: false, highlight: false, accentStart: '#60a5fa', accentEnd: '#4f46e5', glow: 'rgba(96,165,250,0.5)' },
+    { label: 'Total Consumed', value: plan.totalCalorieConsumed.toLocaleString(), unit: 'kcal', Icon: BowlFoodIcon, iconColor: '#34d399', highlight: false, accentStart: '#34d399', accentEnd: '#059669', glow: 'rgba(52,211,153,0.58)' },
+    { label: 'Total Burnt incl. TEF', value: plan.totalCalorieBurnt.toLocaleString(), unit: 'kcal', Icon: LightningIcon, iconColor: '#fcd34d', highlight: false, accentStart: '#fde047', accentEnd: '#f59e0b', glow: 'rgba(250,204,21,0.5)' },
+    { label: 'Resting Burn', value: plan.restingCalories.toLocaleString(), unit: 'kcal/d', Icon: FireIcon, iconColor: '#38bdf8', highlight: false, accentStart: '#38bdf8', accentEnd: '#2563eb', glow: 'rgba(56,189,248,0.5)' },
+    { label: 'Avg Daily Deficit', value: plan.averageCalorieDeficit.toLocaleString(), unit: 'kcal/d', Icon: TargetIcon, iconColor: '#ef4444', highlight: false, accentStart: '#fb923c', accentEnd: '#ef4444', glow: 'rgba(239,68,68,0.58)' },
+    { label: 'Total Deficit', value: plan.totalCalorieDeficit.toLocaleString(), unit: 'kcal', Icon: FireIcon, iconColor: '#fb923c', highlight: false, accentStart: '#fb923c', accentEnd: '#ea580c', glow: 'rgba(251,146,60,0.58)' },
+    { label: 'Days on Plan', value: String(plan.daysElapsed), unit: 'days', Icon: CalendarDotsIcon, iconColor: '#818cf8', highlight: false, accentStart: '#60a5fa', accentEnd: '#4f46e5', glow: 'rgba(129,140,248,0.55)' },
   ];
   const handleShare = async () => {
     setSharing(true);
@@ -204,7 +210,26 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
           const selectedMetric = coreMetrics[selectedCoreMetric];
           const bottomMetrics = coreMetrics.filter((_, index) => index !== selectedCoreMetric);
           return (
-            <div className="mx-auto flex w-full max-w-[360px] flex-col items-center">
+            <div
+              className="mx-auto flex w-full max-w-[360px] flex-col items-center touch-pan-y"
+              onTouchStart={(event) => {
+                const touch = event.touches[0];
+                metricSwipeStart.current = { x: touch.clientX, y: touch.clientY };
+                // Keep metric swipes from also changing the surrounding plan card.
+                event.stopPropagation();
+              }}
+              onTouchEnd={(event) => {
+                const start = metricSwipeStart.current;
+                metricSwipeStart.current = null;
+                event.stopPropagation();
+                if (!start) return;
+                const touch = event.changedTouches[0];
+                const dx = touch.clientX - start.x;
+                const dy = touch.clientY - start.y;
+                if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.25) return;
+                setSelectedCoreMetric((current) => (current + (dx < 0 ? 1 : -1) + coreMetrics.length) % coreMetrics.length);
+              }}
+            >
               <div className="relative h-[276px] w-[276px] max-w-full">
                 <svg viewBox="0 0 260 260" className="absolute inset-0 h-full w-full rotate-[135deg]" aria-hidden="true">
                   <defs>
@@ -217,13 +242,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
                   <circle cx="130" cy="130" r="103" fill="none" stroke={`url(#${gaugeGradientId})`} strokeWidth="13" strokeDasharray="485 647" strokeLinecap="round" style={{ filter: `drop-shadow(0 0 8px ${selectedMetric.glow})` }} />
                 </svg>
                 <div key={selectedMetric.label} className="metric-selection-enter absolute inset-[30px] flex flex-col items-center justify-center rounded-full bg-[radial-gradient(circle_at_50%_38%,rgba(45,61,86,0.34),rgba(15,23,42,0.08)_68%)] text-center">
-                  <span
-                    aria-hidden="true"
-                    className="mb-2 text-[32px] leading-none"
-                    style={{ filter: `${selectedMetric.blueFire ? 'hue-rotate(190deg) saturate(1.25) ' : ''}drop-shadow(0 0 7px ${selectedMetric.glow})` }}
-                  >
-                    {selectedMetric.emoji}
-                  </span>
+                  <selectedMetric.Icon aria-hidden="true" className="mb-2" size={34} weight="fill" color={selectedMetric.iconColor} style={{ filter: `drop-shadow(0 0 7px ${selectedMetric.glow})` }} />
                   <span className="max-w-[172px] text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">
                     {selectedMetric.label}
                   </span>
@@ -252,8 +271,8 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
                           className="pointer-events-none absolute -left-[4px] top-0 -bottom-2 w-px bg-gradient-to-b from-transparent via-slate-400/35 to-slate-400/35"
                         />
                       )}
-                      <span className="flex h-8 items-center justify-center text-[22px] transition-transform group-active:scale-95">
-                        <span aria-hidden="true" style={{ filter: `${metric.blueFire ? 'hue-rotate(190deg) saturate(1.25) ' : ''}drop-shadow(0 0 4px ${metric.glow})` }}>{metric.emoji}</span>
+                      <span className="flex h-8 items-center justify-center transition-transform group-active:scale-95">
+                        <metric.Icon aria-hidden="true" size={24} weight="fill" color={metric.iconColor} style={{ filter: `drop-shadow(0 0 4px ${metric.glow})` }} />
                       </span>
                     </button>
                   );
@@ -269,7 +288,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
       <div className="grid grid-cols-2 gap-2 relative z-10 max-sm:hidden">
         {/* Metric 1: Total Calorie Consumed */}
         <div className="app-card-raised rounded-xl p-2.5 flex items-center gap-2.5">
-          <span aria-hidden="true" className="w-8 h-8 flex items-center justify-center text-[20px] leading-none flex-shrink-0">🥣</span>
+          <span aria-hidden="true" className="w-8 h-8 flex items-center justify-center flex-shrink-0 text-emerald-300"><BowlFoodIcon size={23} weight="fill" color="#34d399" style={{ filter: 'drop-shadow(0 0 6px rgba(52,211,153,0.58))' }} /></span>
           <div className="min-w-0">
             <span className="text-[10px] text-slate-400 font-medium block truncate">
               Total Consumed
@@ -285,7 +304,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
 
         {/* Metric 2: Total Calorie Burnt */}
         <div className="app-card-raised rounded-xl p-2.5 flex items-center gap-2.5">
-          <span aria-hidden="true" className="w-8 h-8 flex items-center justify-center text-[20px] leading-none flex-shrink-0">⚡</span>
+          <span aria-hidden="true" className="w-8 h-8 flex items-center justify-center flex-shrink-0 text-amber-300"><LightningIcon size={23} weight="fill" color="#fcd34d" style={{ filter: 'drop-shadow(0 0 6px rgba(250,204,21,0.55))' }} /></span>
           <div className="min-w-0">
             <span className="text-[10px] text-slate-400 font-medium block truncate">
               Total Burnt incl. TEF
@@ -301,7 +320,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
 
         {/* Metric 3: Resting Burn Baseline */}
         <div className="app-card-raised rounded-xl p-2.5 flex items-center gap-2.5">
-          <span aria-hidden="true" className="w-8 h-8 flex items-center justify-center text-[20px] leading-none flex-shrink-0 [filter:hue-rotate(190deg)_saturate(1.25)]">🔥</span>
+          <span aria-hidden="true" className="w-8 h-8 flex items-center justify-center flex-shrink-0"><FireIcon size={23} weight="fill" color="#38bdf8" style={{ filter: 'drop-shadow(0 0 6px rgba(56,189,248,0.58))' }} /></span>
           <div className="min-w-0">
             <span className="text-[10px] text-slate-400 font-medium block truncate">
               Resting Burn
@@ -317,7 +336,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
 
         {/* Metric 4: Avg Daily Deficit */}
         <div className="app-card-raised rounded-xl p-2.5 flex items-center gap-2.5">
-          <span aria-hidden="true" className="w-8 h-8 flex items-center justify-center text-[20px] leading-none flex-shrink-0">🔥</span>
+          <span aria-hidden="true" className="w-8 h-8 flex items-center justify-center flex-shrink-0"><TargetIcon size={23} weight="fill" color="#ef4444" style={{ filter: 'drop-shadow(0 0 6px rgba(239,68,68,0.62))' }} /></span>
           <div className="min-w-0">
             <span className="text-[10px] text-slate-400 font-medium block truncate">
               Avg Daily Deficit
@@ -333,7 +352,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
 
         {/* Metric 5: Total Deficit */}
         <div className="app-card-raised rounded-xl p-2.5 flex items-center gap-2.5">
-          <span aria-hidden="true" className="w-8 h-8 flex items-center justify-center text-[20px] leading-none flex-shrink-0">📉</span>
+          <span aria-hidden="true" className="w-8 h-8 flex items-center justify-center flex-shrink-0"><FireIcon size={23} weight="fill" color="#fb923c" style={{ filter: 'drop-shadow(0 0 6px rgba(251,146,60,0.62))' }} /></span>
           <div className="min-w-0">
             <span className="text-[10px] text-slate-400 font-medium block truncate">
               Total Deficit
@@ -349,7 +368,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
 
         {/* Metric 6: Days on Plan */}
         <div className="app-card-raised rounded-xl p-2.5 flex items-center gap-2.5">
-          <span aria-hidden="true" className="w-8 h-8 flex items-center justify-center text-[20px] leading-none flex-shrink-0">📅</span>
+          <span aria-hidden="true" className="w-8 h-8 flex items-center justify-center flex-shrink-0 text-indigo-300"><CalendarDotsIcon size={23} weight="fill" color="#818cf8" style={{ filter: 'drop-shadow(0 0 6px rgba(129,140,248,0.58))' }} /></span>
           <div className="min-w-0">
             <span className="text-[10px] text-slate-400 font-medium block truncate">
               Days on Plan
@@ -390,8 +409,8 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
           <div
             className={`progress-fill-raised h-full max-w-full rounded-full transition-all duration-700 ${
               plan.progressPercent >= 0
-                ? 'bg-gradient-to-r from-emerald-500 to-teal-400'
-                : 'bg-gradient-to-r from-rose-500 to-orange-400'
+                ? 'bg-gradient-to-r from-emerald-500 to-teal-400 text-emerald-200'
+                : 'bg-gradient-to-r from-rose-500 to-orange-400 text-rose-200'
             }`}
             style={{ width: `${progressBarWidth}%` }}
           />
