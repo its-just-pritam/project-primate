@@ -1,4 +1,8 @@
-# 🥑 Primate Fuel
+<p align="center">
+  <img src="public/logo-mark.svg" alt="Primate Fuel logo" width="80" />
+</p>
+
+<h1 align="center">Primate Fuel</h1>
 
 A mobile-first food, workout and nutrition tracker that uses **Google Sheets as its database**. Log meals built from your own recipes, track workouts, follow calorie-deficit plans, and watch your progress in charts.
 
@@ -13,6 +17,8 @@ Built with Next.js 14 (App Router), React 18, Tailwind CSS, Recharts and the Goo
 - **Trends** – N-day average intake, macro and calorie charts, and deficit projections.
 - **Plans** – create, edit and soft-delete plans, each with a target weight, resting calories, start date and optional comment. A plan is `ACTIVE` once its start date arrives, otherwise `INACTIVE`; deleted plans stay visible as `DELETED`.
 - **Profile** – edit user details and pick one of 10 avatars (stored in the sheet).
+- **Weekly export** – draft a shareable nutrition and activity report with seven-day trends, including calories consumed versus burned and estimated body-fat versus wet-muscle changes. Copy or share it, or open WhatsApp with the report prefilled for a recipient you choose.
+- **Mobile navigation** – the bottom menu hides while scrolling down and returns while scrolling up; meal and workout submit buttons move with it.
 
 ## Getting started
 
@@ -80,3 +86,5 @@ types/          Shared TypeScript types
 
 - Meal and workout deletes remove the sheet row, after verifying the row still matches. Plans are soft-deleted through the `Status` column.
 - Plan totals only count activity on or after the plan's start date.
+- The `app/icon-mocks` and `app/export-mocks` directories are local-only prototypes and are git-ignored; they are not part of the deployed app.
+- The Manrope font is loaded with `next/font/google`, so production builds need access to Google Fonts during compilation.

@@ -79,7 +79,7 @@ const cardClass = 'group rounded-2xl border border-slate-800/90 bg-[#0d141e]/80 
 
 export default function LandingPage() {
   return (
-    <div className="relative -mb-32 min-h-screen overflow-hidden bg-[#080e16] text-slate-100" style={{ fontFamily: 'var(--font-manrope), sans-serif' }}>
+    <div className="relative min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain bg-[#080e16] text-slate-100" style={{ fontFamily: 'var(--font-manrope), sans-serif' }}>
       <ScrollReveal>
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-56 left-1/2 h-[620px] w-[920px] -translate-x-1/2 rounded-full bg-emerald-500/[0.09] blur-[120px]" />
