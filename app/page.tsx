@@ -50,6 +50,8 @@ const ONBOARDING_TASKS: { id: OnboardingTaskId; title: string; description: stri
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('today');
+  const [isBottomNavHidden, setIsBottomNavHidden] = useState(false);
+  const lastContentScrollTop = useRef(0);
   const [logs, setLogs] = useState<MealLogEntry[]>([]);
   const [workouts, setWorkouts] = useState<WorkoutEntry[]>([]);
   const [showProfile, setShowProfile] = useState(false);
@@ -91,6 +93,25 @@ export default function Home() {
   );
   const todayKey = toLocalDateKey(new Date());
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    setIsBottomNavHidden(false);
+    lastContentScrollTop.current = 0;
+  }, [activeTab]);
+
+  const handleContentScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    const scrollTop = event.currentTarget.scrollTop;
+    const scrollDelta = scrollTop - lastContentScrollTop.current;
+    lastContentScrollTop.current = scrollTop;
+
+    if (window.matchMedia('(min-width: 768px)').matches || scrollTop < 32) {
+      setIsBottomNavHidden(false);
+    } else if (scrollDelta > 5) {
+      setIsBottomNavHidden(true);
+    } else if (scrollDelta < -5) {
+      setIsBottomNavHidden(false);
+    }
+  };
 
   const announceProfileSave = (message: string) => {
     setProfileSaveNotice(message);
@@ -765,7 +786,7 @@ export default function Home() {
       {profileSaveToast}
       {onboardingGuide}
 
-      <div className={`flex-1 px-4 md:px-8 py-4 space-y-4 overflow-y-auto ${activeTab === 'log' ? 'pb-32' : ''}`}>
+      <div onScroll={handleContentScroll} className={`min-h-0 flex-1 px-4 md:px-8 py-4 space-y-4 overflow-y-auto ${activeTab === 'log' ? 'pb-32' : ''}`}>
         {/* Tab 1: Today Dashboard */}
         {activeTab === 'today' && (
           <div className="space-y-4 animate-in fade-in duration-200">
@@ -966,6 +987,7 @@ export default function Home() {
         currentTab={activeTab}
         onChangeTab={setActiveTab}
         avatar={avatar}
+        isHidden={isBottomNavHidden}
         onOpenProfile={() => {
           setOpenNewPlan(false);
           setShowProfile(true);
