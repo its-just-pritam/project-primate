@@ -10,6 +10,7 @@ interface QuickLoggerProps {
   onLogMeal: (entry: MealLogEntry) => Promise<boolean>;
   onNavigateToRecipes: () => void;
   onboardingHighlight?: boolean;
+  isBottomNavHidden?: boolean;
 }
 
 export const QuickLogger: React.FC<QuickLoggerProps> = ({
@@ -18,6 +19,7 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
   onLogMeal,
   onNavigateToRecipes,
   onboardingHighlight = false,
+  isBottomNavHidden = false,
 }) => {
   const [selectedRecipeId, setSelectedRecipeId] = useState<string>(
     recipes[0]?.id || ''
@@ -306,7 +308,7 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
         </div>
 
         {/* Big Submit Button */}
-        <div className="fixed inset-x-0 bottom-0 z-30 bg-[#090d16] px-4 pt-3 pb-[calc(5rem+env(safe-area-inset-bottom))]">
+        <div className={`fixed inset-x-0 bottom-0 z-30 bg-[#090d16] px-4 pt-3 transition-[padding] duration-300 ${isBottomNavHidden ? 'pb-[max(1rem,env(safe-area-inset-bottom))]' : 'pb-[calc(5rem+env(safe-area-inset-bottom))]'}`}>
           <button
             type="submit"
             disabled={isSubmitting}

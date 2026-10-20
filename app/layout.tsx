@@ -40,7 +40,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${manrope.variable} bg-[#090d16] text-slate-100 min-h-dvh antialiased flex justify-center`}>
-        <main className="w-full max-w-md md:max-w-none h-dvh flex flex-col pb-32 shadow-2xl bg-[#0b101b] border-x border-slate-900/60 relative">
+        <main className="w-full max-w-md md:max-w-none h-dvh flex flex-col shadow-2xl bg-[#0b101b] border-x border-slate-900/60 relative">
           {children}
         </main>
         <InstallPrompt />

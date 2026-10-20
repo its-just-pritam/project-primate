@@ -786,7 +786,7 @@ export default function Home() {
       {profileSaveToast}
       {onboardingGuide}
 
-      <div onScroll={handleContentScroll} className={`min-h-0 flex-1 px-4 md:px-8 py-4 space-y-4 overflow-y-auto ${activeTab === 'log' ? 'pb-32' : ''}`}>
+      <div onScroll={handleContentScroll} className="min-h-0 flex-1 overflow-y-auto px-4 py-4 pb-32 space-y-4 md:px-8">
         {/* Tab 1: Today Dashboard */}
         {activeTab === 'today' && (
           <div className="space-y-4 animate-in fade-in duration-200">
@@ -937,6 +937,7 @@ export default function Home() {
               <QuickLogger
                 recipes={[...recipes, ...packaged]}
                 userName={plan?.userName}
+                isBottomNavHidden={isBottomNavHidden}
                 onboardingHighlight={onboardingStep === 0 && activeOnboardingTask?.id === 'meal'}
                 onLogMeal={handleLogMeal}
                 onNavigateToRecipes={() => setActiveTab('recipes')}
@@ -945,6 +946,7 @@ export default function Home() {
               <WorkoutLogger
                 workoutNames={workoutNames}
                 userName={plan?.userName}
+                isBottomNavHidden={isBottomNavHidden}
                 onboardingHighlight={onboardingStep === 0 && activeOnboardingTask?.id === 'workout'}
                 onLogWorkout={handleLogWorkout}
               />
