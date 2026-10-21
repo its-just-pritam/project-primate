@@ -936,6 +936,25 @@ export async function updateRecipe(
       userEmail
     );
   }
+
+  // Keep this user's existing meal logs linked to the recipe after a rename.
+  if (targetName !== dish) {
+    const foodRows = await getEmailScopedRowsWithHeaders(sheets, 'Food', userEmail);
+    const dishColumn = findUniqueHeaderIndex(foodRows.headers, 'Dish', ['dish', 'name', 'food'], 'Food');
+    const updates = foodRows.rows
+      .filter(({ row }) => String(row[dishColumn] || '').trim() === dish)
+      .map(({ rowNumber }) => ({
+        range: `Food!${columnLetters(dishColumn + 1)}${rowNumber}`,
+        values: [[targetName]],
+      }));
+
+    if (updates.length > 0) {
+      await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId: SPREADSHEET_ID,
+        requestBody: { valueInputOption: 'USER_ENTERED', data: updates },
+      });
+    }
+  }
   return { success: true, isLive: true };
 }
 
