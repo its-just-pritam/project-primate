@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ success: true, isLive: result.isLive });
   } catch (error: any) {
+    console.error('POST /api/packaged failed:', error);
     return NextResponse.json(
       { error: error?.message || 'Failed to add packaged food' },
       { status: 500 }
@@ -75,6 +76,7 @@ export async function PUT(req: NextRequest) {
     });
     return NextResponse.json({ success: true, isLive: result.isLive });
   } catch (error: any) {
+    console.error('PUT /api/packaged failed:', error);
     return NextResponse.json(
       { error: error?.message || 'Failed to update packaged food' },
       { status: 500 }

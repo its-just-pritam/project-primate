@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { PlanAnalytics, PlanInput, PlanSummary, ProfileUpdate } from '@/types/nutrition';
-import { ArrowLeft, ChevronDown, Eye, EyeOff, Info, LogOut, Mail, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Eye, EyeOff, Info, LogOut, Mail, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import { AVATARS } from '@/lib/avatars';
+import { cacheGarminAccessToken, clearGarminAccessToken, responseBody, setGarminTokenCacheScope } from '@/lib/garminClient';
 
 interface ProfileScreenProps {
   avatar: string;
@@ -263,6 +264,89 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
   const [passwordSectionOpen, setPasswordSectionOpen] = useState(false);
+  const [garminConnected, setGarminConnected] = useState(false);
+  const [garminLive, setGarminLive] = useState(false);
+  const [garminMaskedKey, setGarminMaskedKey] = useState('');
+  const [garminKeyDraft, setGarminKeyDraft] = useState('');
+  const [garminKeyVisible, setGarminKeyVisible] = useState(false);
+  const [garminKeyBusy, setGarminKeyBusy] = useState(false);
+  const [garminKeyLoading, setGarminKeyLoading] = useState(true);
+  const [garminSectionOpen, setGarminSectionOpen] = useState(false);
+  const [garminKeyError, setGarminKeyError] = useState('');
+  const [garminKeyNotice, setGarminKeyNotice] = useState('');
+  const [garminCacheScope, setGarminCacheScope] = useState<string | null>(null);
+
+  const loadGarminStatus = async () => {
+    setGarminKeyLoading(true);
+    try {
+      const response = await fetch('/api/garmin/integration', { cache: 'no-store' });
+      const body = await responseBody(response);
+      const scope = typeof body.cacheScope === 'string' ? body.cacheScope : null;
+      setGarminConnected(Boolean(body.connected));
+      setGarminLive(Boolean(body.isLive));
+      setGarminMaskedKey(typeof body.apiKeyMasked === 'string' ? body.apiKeyMasked : '');
+      setGarminCacheScope(scope);
+      setGarminTokenCacheScope(scope);
+    } catch (statusError) {
+      setGarminKeyError(statusError instanceof Error ? statusError.message : 'Could not load Garmin settings.');
+    } finally {
+      setGarminKeyLoading(false);
+    }
+  };
+
+  useEffect(() => { void loadGarminStatus(); }, []);
+
+  const saveGarminKey = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!garminKeyDraft.trim() || garminKeyBusy) return;
+    setGarminKeyBusy(true);
+    setGarminKeyError('');
+    setGarminKeyNotice('');
+    try {
+      const response = await fetch('/api/garmin/integration', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store',
+        body: JSON.stringify({ apiKey: garminKeyDraft.trim() }),
+      });
+      const body = await responseBody(response);
+      const scope = typeof body.cacheScope === 'string' ? body.cacheScope : garminCacheScope;
+      setGarminCacheScope(scope);
+      setGarminTokenCacheScope(scope);
+      clearGarminAccessToken(scope);
+      if (typeof body.accessToken === 'string' && typeof body.expiresAt === 'number' && typeof body.cacheScope === 'string') {
+        cacheGarminAccessToken(body.accessToken, body.expiresAt, body.cacheScope);
+      }
+      setGarminKeyDraft('');
+      setGarminKeyVisible(false);
+      setGarminKeyNotice('Garmin API key verified and saved.');
+      await loadGarminStatus();
+    } catch (saveError) {
+      setGarminKeyError(saveError instanceof Error ? saveError.message : 'Could not save the Garmin API key.');
+    } finally {
+      setGarminKeyBusy(false);
+    }
+  };
+
+  const disconnectGarmin = async () => {
+    if (!window.confirm('Disconnect Garmin and remove the saved API key from your account?')) return;
+    setGarminKeyBusy(true);
+    setGarminKeyError('');
+    setGarminKeyNotice('');
+    try {
+      const response = await fetch('/api/garmin/integration', { method: 'DELETE', cache: 'no-store' });
+      await responseBody(response);
+      clearGarminAccessToken(garminCacheScope);
+      setGarminConnected(false);
+      setGarminMaskedKey('');
+      setGarminKeyDraft('');
+      setGarminKeyNotice('Garmin disconnected and the saved key was removed.');
+    } catch (disconnectError) {
+      setGarminKeyError(disconnectError instanceof Error ? disconnectError.message : 'Could not disconnect Garmin.');
+    } finally {
+      setGarminKeyBusy(false);
+    }
+  };
 
   // ACTIVE first, then INACTIVE, then DELETED; within a status, earliest start date first.
   const STATUS_ORDER = { ACTIVE: 0, INACTIVE: 1, DELETED: 2 } as const;
@@ -501,19 +585,69 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           {error && <p className="text-xs text-red-400">{error}</p>}
         </form>
 
-        <section className="border-y border-slate-700/70">
+        <section className="overflow-hidden rounded-2xl border border-slate-700/70 bg-white/[0.025]">
+          <button type="button" aria-expanded={garminSectionOpen} aria-controls="garmin-profile-settings" onClick={() => setGarminSectionOpen((open) => !open)} className="flex w-full items-center justify-between gap-3 p-4 text-left transition hover:bg-white/[0.025]">
+            <div>
+              <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-300">Garmin Connect</h3>
+              <p className="mt-1 text-xs text-slate-500">{garminKeyLoading ? 'Checking connection…' : garminConnected ? 'Connected to your Garmin account' : 'Manage your Garmin connection and API key'}</p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${garminConnected ? 'bg-emerald-400/10 text-emerald-300' : 'bg-slate-800 text-slate-400'}`}>
+                {garminKeyLoading ? 'CHECKING' : garminConnected ? 'CONNECTED' : 'NOT CONNECTED'}
+              </span>
+              <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${garminSectionOpen ? 'rotate-180' : ''}`} />
+            </div>
+          </button>
+
+          {garminSectionOpen && <div id="garmin-profile-settings" className="space-y-3 border-t border-slate-700/70 px-4 pb-4 pt-3">
+          {garminKeyLoading ? <p className="text-xs text-slate-500">Loading integration settings…</p> : <>
+            {garminConnected && (
+              <div className="flex items-center justify-between gap-2 rounded-xl bg-slate-950/70 px-3 py-2.5">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-medium text-slate-500">Saved API key</p>
+                  <p className="truncate font-mono text-xs text-slate-300">{garminMaskedKey || '••••••••'}</p>
+                </div>
+              </div>
+            )}
+            {!garminLive && <p className="text-xs leading-5 text-amber-200/80">Google Sheets is not connected, so the API key cannot be saved.</p>}
+            <form onSubmit={saveGarminKey} className="space-y-2.5">
+              <label className="block space-y-1.5">
+                <span className="text-xs font-medium text-slate-300">{garminConnected ? 'Replace API key' : 'Garmin Personal API key'}</span>
+                <span className="relative block">
+                  <input type={garminKeyVisible ? 'text' : 'password'} autoComplete="off" spellCheck={false} required value={garminKeyDraft} onChange={(event) => setGarminKeyDraft(event.target.value)} placeholder={garminConnected ? 'Paste a new key to replace' : 'Paste your personal API key'} className={`${inputCls} pr-12`} />
+                  <button type="button" aria-label={garminKeyVisible ? 'Hide new API key' : 'Show new API key'} onClick={() => setGarminKeyVisible((visible) => !visible)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 transition hover:text-white">{garminKeyVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
+                </span>
+              </label>
+              <div className="flex items-start gap-1.5 text-[10px] leading-4 text-slate-500"><ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-300" /><span>Your key is saved in your User sheet row and stays masked here.</span></div>
+              {garminKeyError && <p role="alert" className="text-xs text-rose-300">{garminKeyError}</p>}
+              {garminKeyNotice && <p role="status" className="text-xs text-emerald-300">{garminKeyNotice}</p>}
+              <div className="flex items-center gap-2">
+                <button type="submit" disabled={garminKeyBusy || !garminKeyDraft.trim() || !garminLive} className="flex-1 rounded-xl bg-sky-400/10 px-2.5 py-2.5 text-center text-[11px] font-semibold text-sky-200 transition hover:bg-sky-400/15 disabled:cursor-not-allowed disabled:opacity-45">
+                  {garminKeyBusy ? 'Verifying and saving…' : garminConnected ? 'Verify and update key' : 'Verify and connect'}
+                </button>
+                {garminConnected && <button type="button" onClick={() => void disconnectGarmin()} disabled={garminKeyBusy} className="flex-1 rounded-xl px-2.5 py-2.5 text-center text-[11px] font-medium text-rose-300 transition hover:bg-rose-400/10 disabled:cursor-not-allowed disabled:opacity-50">{garminKeyBusy ? 'Disconnecting…' : 'Remove connection'}</button>}
+              </div>
+            </form>
+          </>}
+          </div>}
+        </section>
+
+        <section className="overflow-hidden rounded-2xl border border-slate-700/70 bg-white/[0.025]">
           <button
             type="button"
             aria-expanded={passwordSectionOpen}
             aria-controls="change-password-form"
             onClick={() => setPasswordSectionOpen((open) => !open)}
-            className="w-full flex items-center justify-between py-2 text-left"
+            className="flex w-full items-center justify-between gap-3 p-4 text-left transition hover:bg-white/[0.025]"
           >
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Change password</span>
-            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${passwordSectionOpen ? 'rotate-180' : ''}`} />
+            <span>
+              <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-300">Change password</span>
+              <span className="mt-1 block text-xs text-slate-500">Update your account password</span>
+            </span>
+            <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 ${passwordSectionOpen ? 'rotate-180' : ''}`} />
           </button>
           {passwordSectionOpen && (
-            <form id="change-password-form" onSubmit={handleChangePassword} className="space-y-3 pt-2 pb-3">
+            <form id="change-password-form" onSubmit={handleChangePassword} className="space-y-3 border-t border-slate-700/70 px-4 pb-4 pt-3">
               <PasswordField
                 label="New password"
                 value={newPassword}
