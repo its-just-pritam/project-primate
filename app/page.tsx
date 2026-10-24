@@ -83,6 +83,7 @@ export default function Home() {
   const [plan, setPlan] = useState<PlanAnalytics | null>(null);
   const [activePlans, setActivePlans] = useState<PlanAnalytics[]>([]);
   const [planIdx, setPlanIdx] = useState(0);
+  const [planCarouselIdx, setPlanCarouselIdx] = useState(0);
   const [exportReport, setExportReport] = useState('');
   const [exportSummary, setExportSummary] = useState('');
   const [exportPeriod, setExportPeriod] = useState('');
@@ -175,6 +176,7 @@ export default function Home() {
           if (planData.plan.avatar && AVATARS.includes(planData.plan.avatar)) setAvatar(planData.plan.avatar);
           setActivePlans(planData.plan.hasPlan ? planData.activePlans || [planData.plan] : []);
           setPlanIdx(0);
+          setPlanCarouselIdx(0);
         }
       }
     } catch (err) {
@@ -266,6 +268,10 @@ export default function Home() {
 
   // The plan currently shown in the swipeable cards drives the budget and trends
   const currentPlan = activePlans[planIdx] ?? plan;
+  const handlePlanCarouselChange = (index: number) => {
+    setPlanCarouselIdx(index);
+    if (index < activePlans.length) setPlanIdx(index);
+  };
 
   useEffect(() => {
     if (currentPlan?.hasPlan && currentPlan.restingCalories) {
@@ -634,7 +640,10 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...p, user: plan?.userName }),
       });
-      if (!res.ok) throw new Error('Failed to save packaged food');
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error || `Failed to save packaged food (${res.status})`);
+      }
       await loadData();
       return true;
     } catch (err) {
@@ -650,7 +659,10 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...p, user: plan?.userName }),
       });
-      if (!res.ok) throw new Error('Failed to update packaged food');
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error || `Failed to update packaged food (${res.status})`);
+      }
       await loadData();
       return true;
     } catch (err) {
@@ -793,7 +805,7 @@ export default function Home() {
             {initialLoading ? (
               <PlanCardSkeleton />
             ) : (
-              <PlanCarousel plans={activePlans} index={planIdx} onIndexChange={setPlanIdx} />
+              <PlanCarousel plans={activePlans} index={planCarouselIdx} onIndexChange={handlePlanCarouselChange} />
             )}
             {!initialLoading && plan && !plan.hasPlan && (
               <div className="flex flex-col items-center gap-3 py-3">

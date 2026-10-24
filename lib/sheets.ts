@@ -115,9 +115,9 @@ const SHEET_HEADER_ALIASES: Record<string, string[]> = {
   dish: ['dish', 'name', 'food'], portion: ['portion', 'quantity'],
   timestamp: ['timestamp', 'timestamputc', 'createdat', 'createdatutc', 'date'],
   ingredient: ['ingredient'], quantity: ['quantity', 'amount'],
-  calories: ['calories', 'calorieskcal', 'caloriesburnt', 'caloriesburntkcal'], protein: ['protein'], carbs: ['carbs', 'carbohydrates'],
-  fats: ['fat', 'fats'], calcium: ['calcium'], iron: ['iron'], potassium: ['potassium'], sodium: ['sodium'],
-  vitaminc: ['vitaminc', 'vitamincmg'], vitaminb12: ['vitaminb12', 'vitaminb12mcg'], vitamind: ['vitamind', 'vitamindmcg'],
+  calories: ['calories', 'calorieskcal', 'caloriesburnt', 'caloriesburntkcal'], protein: ['protein', 'proteing'], carbs: ['carbs', 'carbsg', 'carbohydrates', 'carbohydratesg'],
+  fats: ['fat', 'fatg', 'fats'], calcium: ['calcium', 'calciummg'], iron: ['iron', 'ironmg'], potassium: ['potassium', 'potassiummg'], sodium: ['sodium', 'sodiummg'],
+  vitaminc: ['vitaminc', 'vitamincmg'], vitaminb12: ['vitaminb12', 'vitaminb12mcg'], vitamind: ['vitamind', 'vitamindmcg', 'vitamindiu'],
 };
 
 /** Build complete rows from named fields, placing every value under its matching header. */
@@ -418,6 +418,80 @@ export async function changeSheetUserPassword(username: string, newPassword: str
     range: `User!G${matches[0].rowNumber}`,
     valueInputOption: 'RAW',
     requestBody: { values: [[passwordHash]] },
+  });
+  return true;
+}
+
+export type StoredGarminIntegration = {
+  integration: string;
+  apiKey: string;
+  isLive: boolean;
+};
+
+async function findUserIntegrationColumns(sheets: any, email: string) {
+  const result = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: 'User!A1:Z',
+  });
+  const rows: any[][] = result.data.values || [];
+  const headers = rows[0] || [];
+  const headerIndex = (label: string) => {
+    const matches = headers.flatMap((header, index) => normalizeSheetHeader(header) === normalizeSheetHeader(label) ? [index] : []);
+    if (matches.length !== 1) throw new Error(`User sheet must have exactly one ${label} column`);
+    return matches[0];
+  };
+  const emailColumn = headerIndex('Email');
+  const integrationColumn = headerIndex('Integration');
+  const apiKeyColumn = headerIndex('Integration API Key');
+  const normalizedEmail = email.trim().toLowerCase();
+  const matches = rows.slice(1)
+    .map((row, index) => ({ row, rowNumber: index + 2 }))
+    .filter(({ row }) => String(row[emailColumn] || '').trim().toLowerCase() === normalizedEmail);
+  if (matches.length !== 1) throw new Error('User record was not found or is duplicated');
+  return { ...matches[0], integrationColumn, apiKeyColumn };
+}
+
+export async function getStoredGarminIntegration(email: string): Promise<StoredGarminIntegration> {
+  const sheets = getGoogleSheetsClient();
+  if (!sheets) return { integration: '', apiKey: '', isLive: false };
+  const match = await findUserIntegrationColumns(sheets, email);
+  return {
+    integration: String(match.row[match.integrationColumn] || '').trim(),
+    apiKey: String(match.row[match.apiKeyColumn] || '').trim(),
+    isLive: true,
+  };
+}
+
+export async function saveGarminIntegration(email: string, apiKey: string): Promise<boolean> {
+  const sheets = getGoogleSheetsClient();
+  if (!sheets) return false;
+  const match = await findUserIntegrationColumns(sheets, email);
+  await sheets.spreadsheets.values.batchUpdate({
+    spreadsheetId: SPREADSHEET_ID,
+    requestBody: {
+      valueInputOption: 'RAW',
+      data: [
+        { range: `User!${columnLetters(match.integrationColumn + 1)}${match.rowNumber}`, values: [['Garmin Connect']] },
+        { range: `User!${columnLetters(match.apiKeyColumn + 1)}${match.rowNumber}`, values: [[apiKey]] },
+      ],
+    },
+  });
+  return true;
+}
+
+export async function removeGarminIntegration(email: string): Promise<boolean> {
+  const sheets = getGoogleSheetsClient();
+  if (!sheets) return false;
+  const match = await findUserIntegrationColumns(sheets, email);
+  await sheets.spreadsheets.values.batchUpdate({
+    spreadsheetId: SPREADSHEET_ID,
+    requestBody: {
+      valueInputOption: 'RAW',
+      data: [
+        { range: `User!${columnLetters(match.integrationColumn + 1)}${match.rowNumber}`, values: [['']] },
+        { range: `User!${columnLetters(match.apiKeyColumn + 1)}${match.rowNumber}`, values: [['']] },
+      ],
+    },
   });
   return true;
 }
