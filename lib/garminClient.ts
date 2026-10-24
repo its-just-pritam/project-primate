@@ -34,12 +34,12 @@ export function clearGarminDailySummaryCache(scope?: string | null) {
     return;
   }
   const prefix = `${scope}:`;
-  for (const key of dailySummaryCache.keys()) {
+  dailySummaryCache.forEach((_value, key) => {
     if (key.startsWith(prefix)) dailySummaryCache.delete(key);
-  }
-  for (const key of chartDataCache.keys()) {
+  });
+  chartDataCache.forEach((_value, key) => {
     if (key.startsWith(prefix)) chartDataCache.delete(key);
-  }
+  });
 }
 
 export function setGarminTokenCacheScope(scope: string | null) {
