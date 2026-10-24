@@ -13,7 +13,7 @@ import { LightningIcon } from '@phosphor-icons/react/dist/csr/Lightning';
 import { MoonIcon } from '@phosphor-icons/react/dist/csr/Moon';
 import { PulseIcon } from '@phosphor-icons/react/dist/csr/Pulse';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { fetchGarminData, responseBody } from '@/lib/garminClient';
+import { cacheGarminChartData, fetchGarminData, getCachedGarminChartData, getGarminTokenCacheScope, responseBody } from '@/lib/garminClient';
 
 function previousDate(date: string) {
   const previous = new Date(`${date}T00:00:00.000Z`);
@@ -332,16 +332,24 @@ function SleepWeekDetails({ date, data, loading, error }: { date: string; data: 
   );
 }
 
-export function SummaryDashboard({ date, data, deviceName, onDisconnect }: { date: string; data: unknown; deviceName: string | null; onDisconnect?: () => void }) {
+export function SummaryDashboard({ date, data, deviceName }: { date: string; data: unknown; deviceName: string | null }) {
   const [activeChart, setActiveChart] = useState<GarminChartMetric | null>(null);
   const chartTouchStart = useRef<{ x: number; y: number } | null>(null);
+  const [initialSleepData] = useState(() => {
+    const scope = getGarminTokenCacheScope();
+    return scope ? getCachedGarminChartData(scope, 'sleep', previousDate(date)) : null;
+  });
+  const [initialWeekData] = useState(() => {
+    const scope = getGarminTokenCacheScope();
+    return scope ? getCachedGarminChartData(scope, 'weekly', date) : null;
+  });
   const [sleepLoading, setSleepLoading] = useState(false);
-  const [sleepData, setSleepData] = useState<unknown>(null);
+  const [sleepData, setSleepData] = useState<unknown>(initialSleepData);
   const [sleepError, setSleepError] = useState('');
   const [weekLoading, setWeekLoading] = useState(false);
-  const [weekData, setWeekData] = useState<unknown>(null);
+  const [weekData, setWeekData] = useState<unknown>(initialWeekData);
   const [weekError, setWeekError] = useState('');
-  const [weekLoaded, setWeekLoaded] = useState(false);
+  const [weekLoaded, setWeekLoaded] = useState(initialWeekData !== null);
   const sleepDate = previousDate(date);
   const envelope = asRecord(data);
   const days = Array.isArray(data) ? data : Array.isArray(envelope.data) ? envelope.data : [];
@@ -375,6 +383,14 @@ export function SummaryDashboard({ date, data, deviceName, onDisconnect }: { dat
   const oxygenAverage = metric(pulseOx, 'avgValue', 'averageSpo2') ?? metric(summary, 'averageSpo2');
   useEffect(() => {
     let current = true;
+    const scope = getGarminTokenCacheScope();
+    const cached = scope ? getCachedGarminChartData(scope, 'sleep', sleepDate) : null;
+    if (cached !== null) {
+      setSleepData(cached);
+      setSleepError('');
+      setSleepLoading(false);
+      return () => { current = false; };
+    }
     setSleepLoading(true);
     setSleepError('');
     setSleepData(null);
@@ -386,7 +402,10 @@ export function SummaryDashboard({ date, data, deviceName, onDisconnect }: { dat
     })
       .then(responseBody)
       .then((body) => {
-        if (current) setSleepData(body.data);
+        if (current) {
+          setSleepData(body.data);
+          if (scope) cacheGarminChartData(scope, 'sleep', sleepDate, body.data);
+        }
       })
       .catch((err: unknown) => {
         if (current) setSleepError(err instanceof Error ? err.message : 'Could not load your sleep week.');
@@ -404,6 +423,14 @@ export function SummaryDashboard({ date, data, deviceName, onDisconnect }: { dat
     }
     setActiveChart(kind);
     if (kind === 'sleep' || weekLoaded || weekLoading) return;
+    const scope = getGarminTokenCacheScope();
+    const cached = scope ? getCachedGarminChartData(scope, 'weekly', date) : null;
+    if (cached !== null) {
+      setWeekData(cached);
+      setWeekLoaded(true);
+      setWeekError('');
+      return;
+    }
     setWeekLoading(true);
     setWeekError('');
     fetchGarminData('/api/garmin/weekly', {
@@ -416,6 +443,7 @@ export function SummaryDashboard({ date, data, deviceName, onDisconnect }: { dat
       .then((body) => {
         setWeekData(body.data);
         setWeekLoaded(true);
+        if (scope) cacheGarminChartData(scope, 'weekly', date, body.data);
       })
       .catch((err: unknown) => setWeekError(err instanceof Error ? err.message : 'Could not load your 7-day data.'))
       .finally(() => setWeekLoading(false));
@@ -462,8 +490,6 @@ export function SummaryDashboard({ date, data, deviceName, onDisconnect }: { dat
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1">
             <GarminLogo className="h-4 w-auto text-slate-200" />
-            {summary.includesActivityData === true && <span className="rounded-full bg-sky-400/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-sky-300">Synced</span>}
-            {onDisconnect && <button type="button" onClick={onDisconnect} className="text-[9px] font-medium text-slate-500 underline-offset-2 transition hover:text-rose-300 hover:underline">Disconnect</button>}
           </div>
         </div>
 

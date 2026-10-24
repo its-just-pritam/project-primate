@@ -2,11 +2,52 @@
 
 const pendingTokenRequests = new Map<string, Promise<string>>();
 let currentCacheScope: string | null = null;
+type DailySummaryCacheEntry = { date: string; data: unknown; deviceName: string | null };
+const dailySummaryCache = new Map<string, DailySummaryCacheEntry>();
+type GarminChartCacheKind = 'weekly' | 'sleep';
+const chartDataCache = new Map<string, unknown>();
 
 const tokenCacheKey = (scope: string) => `garmin-connect-access-token-${scope}`;
+const dailySummaryKey = (scope: string, date: string) => `${scope}:${date}`;
+const chartCacheKey = (scope: string, kind: GarminChartCacheKind, date: string) => `${scope}:${kind}:${date}`;
+
+export function getCachedGarminChartData(scope: string, kind: GarminChartCacheKind, date: string) {
+  return chartDataCache.has(chartCacheKey(scope, kind, date)) ? chartDataCache.get(chartCacheKey(scope, kind, date)) : null;
+}
+
+export function cacheGarminChartData(scope: string, kind: GarminChartCacheKind, date: string, data: unknown) {
+  chartDataCache.set(chartCacheKey(scope, kind, date), data);
+}
+
+export function getCachedGarminDailySummary(scope: string, date: string) {
+  return dailySummaryCache.get(dailySummaryKey(scope, date)) ?? null;
+}
+
+export function cacheGarminDailySummary(scope: string, summary: DailySummaryCacheEntry) {
+  dailySummaryCache.set(dailySummaryKey(scope, summary.date), summary);
+}
+
+export function clearGarminDailySummaryCache(scope?: string | null) {
+  if (!scope) {
+    dailySummaryCache.clear();
+    chartDataCache.clear();
+    return;
+  }
+  const prefix = `${scope}:`;
+  dailySummaryCache.forEach((_value, key) => {
+    if (key.startsWith(prefix)) dailySummaryCache.delete(key);
+  });
+  chartDataCache.forEach((_value, key) => {
+    if (key.startsWith(prefix)) chartDataCache.delete(key);
+  });
+}
 
 export function setGarminTokenCacheScope(scope: string | null) {
   currentCacheScope = scope;
+}
+
+export function getGarminTokenCacheScope() {
+  return currentCacheScope;
 }
 
 export function cacheGarminAccessToken(accessToken: string, expiresAt: number, scope: string) {
