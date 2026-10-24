@@ -5,7 +5,7 @@ import type { FormEvent } from 'react';
 import { Activity, LoaderCircle, ShieldCheck } from 'lucide-react';
 import { SummaryDashboard } from '@/components/GarminSummaryDashboard';
 import { GarminLogo } from '@/components/GarminLogo';
-import { cacheGarminAccessToken, clearGarminAccessToken, fetchGarminData, responseBody, setGarminTokenCacheScope } from '@/lib/garminClient';
+import { cacheGarminAccessToken, cacheGarminDailySummary, clearGarminAccessToken, clearGarminDailySummaryCache, fetchGarminData, getCachedGarminDailySummary, getGarminTokenCacheScope, responseBody, setGarminTokenCacheScope } from '@/lib/garminClient';
 
 function currentLocalDate() {
   const now = new Date();
@@ -13,20 +13,26 @@ function currentLocalDate() {
 }
 
 export function GarminCarouselCard({ isActive }: { isActive: boolean }) {
+  const [initialSummary] = useState(() => {
+    const scope = getGarminTokenCacheScope();
+    return scope ? getCachedGarminDailySummary(scope, currentLocalDate()) : null;
+  });
   const [reloadKey, setReloadKey] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [connected, setConnected] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState(!initialSummary);
+  const [connected, setConnected] = useState<boolean | null>(initialSummary ? true : null);
   const [cacheScope, setCacheScope] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState('');
   const [connecting, setConnecting] = useState(false);
-  const [result, setResult] = useState<{ date: string; data: unknown; deviceName: string | null } | null>(null);
+  const [result, setResult] = useState<{ date: string; data: unknown; deviceName: string | null } | null>(initialSummary);
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (!isActive) return;
     let current = true;
     const date = currentLocalDate();
-    setLoading(true);
+    const knownScope = getGarminTokenCacheScope();
+    const hasFreshCachedSummary = Boolean(knownScope && getCachedGarminDailySummary(knownScope, date));
+    if (!hasFreshCachedSummary) setLoading(true);
     setError('');
 
     const loadToday = async () => {
@@ -39,6 +45,13 @@ export function GarminCarouselCard({ isActive }: { isActive: boolean }) {
         setGarminTokenCacheScope(scope);
         setConnected(Boolean(status.connected));
         if (!status.connected) return;
+        if (scope) {
+          const cached = getCachedGarminDailySummary(scope, date);
+          if (cached) {
+            setResult(cached);
+            return;
+          }
+        }
 
         const response = await fetchGarminData('/api/garmin/test', {
           method: 'POST',
@@ -46,7 +59,11 @@ export function GarminCarouselCard({ isActive }: { isActive: boolean }) {
           body: JSON.stringify({ date }),
         });
         const body = await responseBody(response);
-        if (current) setResult({ date: body.date, data: body.data, deviceName: typeof body.deviceName === 'string' ? body.deviceName : null });
+        const summary = { date: body.date, data: body.data, deviceName: typeof body.deviceName === 'string' ? body.deviceName : null };
+        if (current) {
+          setResult(summary);
+          if (scope) cacheGarminDailySummary(scope, summary);
+        }
       } catch (loadError) {
         if (current) setError(loadError instanceof Error ? loadError.message : 'Could not load today’s Garmin data.');
       } finally {
@@ -74,6 +91,7 @@ export function GarminCarouselCard({ isActive }: { isActive: boolean }) {
       const scope = typeof body.cacheScope === 'string' ? body.cacheScope : null;
       setCacheScope(scope);
       setGarminTokenCacheScope(scope);
+      clearGarminDailySummaryCache(scope);
       clearGarminAccessToken(scope);
       if (typeof body.accessToken === 'string' && typeof body.expiresAt === 'number' && typeof body.cacheScope === 'string') {
         cacheGarminAccessToken(body.accessToken, body.expiresAt, body.cacheScope);
@@ -89,21 +107,7 @@ export function GarminCarouselCard({ isActive }: { isActive: boolean }) {
     }
   };
 
-  const disconnect = async () => {
-    if (!window.confirm('Disconnect Garmin and remove the saved API key?')) return;
-    try {
-      const response = await fetch('/api/garmin/integration', { method: 'DELETE', cache: 'no-store' });
-      await responseBody(response);
-      clearGarminAccessToken(cacheScope);
-      setResult(null);
-      setConnected(false);
-      setError('');
-    } catch (disconnectError) {
-      setError(disconnectError instanceof Error ? disconnectError.message : 'Could not disconnect Garmin.');
-    }
-  };
-
-  if (result) return <SummaryDashboard date={result.date} data={result.data} deviceName={result.deviceName} onDisconnect={disconnect} />;
+  if (result) return <SummaryDashboard date={result.date} data={result.data} deviceName={result.deviceName} />;
 
   return (
     <section className="app-card-surface relative min-h-[230px] overflow-hidden rounded-2xl px-4 pb-4 pt-3 text-slate-100">

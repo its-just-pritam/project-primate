@@ -1398,11 +1398,73 @@ export async function appendWorkout(
   await appendRowsForUser(
     sheets,
     'Workouts',
-    [{ name: entry.name, timestamp: entry.timestamp, calories: entry.caloriesBurnt }],
+    [{ name: entry.name, timestamp: entry.timestamp, calories: entry.caloriesBurnt, source: 'DIRECT' }],
     entry.user,
     userEmail
   );
   return { success: true, isLive: true };
+}
+
+/** Reconcile only this user's Garmin-sourced rows for one local date. */
+export async function reconcileGarminWorkoutsForDate(
+  entries: WorkoutEntry[],
+  userEmail: string,
+  date: string,
+  timeZone: string
+): Promise<{ imported: number; deleted: number }> {
+  const sheets = getGoogleSheetsClient();
+  if (!sheets) throw new Error('Google Sheets is not configured');
+  const { headers, rows } = await getEmailScopedRowsWithHeaders(sheets, 'Workouts', userEmail);
+  const nameColumn = findUniqueHeaderIndex(headers, 'Name', ['name', 'workout', 'workoutname'], 'Workouts');
+  const timestampColumn = findUniqueHeaderIndex(headers, 'Created At', ['timestamp', 'timestamputc', 'createdat', 'createdatutc', 'date'], 'Workouts');
+  const caloriesColumn = findUniqueHeaderIndex(headers, 'Calories Burnt', ['calories', 'calorieskcal', 'caloriesburnt', 'caloriesburntkcal'], 'Workouts');
+  const sourceColumn = findUniqueHeaderIndex(headers, 'Source', ['source'], 'Workouts');
+  const dateFormatter = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' });
+  const localDate = (value: Date) => {
+    const parts = dateFormatter.formatToParts(value);
+    const part = (type: string) => parts.find((item) => item.type === type)?.value || '';
+    return `${part('year')}-${part('month')}-${part('day')}`;
+  };
+  const signature = (name: string, timestamp: string, calories: number) =>
+    `${name.trim()}\u0000${new Date(timestamp).toISOString()}\u0000${calories}`;
+  const desired = new Map<string, WorkoutEntry>();
+  for (const entry of entries) desired.set(signature(entry.name, entry.timestamp, entry.caloriesBurnt), entry);
+
+  const targetRows = rows.filter(({ row }) => {
+    if (String(row[sourceColumn] || '').trim() !== 'Garmin Connect') return false;
+    const timestamp = new Date(String(row[timestampColumn] || ''));
+    return Number.isFinite(timestamp.getTime()) && localDate(timestamp) === date;
+  });
+  const keptSignatures = new Set<string>();
+  const staleRows: number[] = [];
+  for (const { row, rowNumber } of targetRows) {
+    const timestamp = new Date(String(row[timestampColumn] || ''));
+    const key = signature(String(row[nameColumn] || ''), timestamp.toISOString(), Number(row[caloriesColumn]) || 0);
+    if (desired.has(key) && !keptSignatures.has(key)) {
+      keptSignatures.add(key);
+    } else {
+      staleRows.push(rowNumber);
+    }
+  }
+
+  const missing = Array.from(desired.entries()).filter(([key]) => !keptSignatures.has(key)).map(([, entry]) => entry);
+  if (missing.length) {
+    await appendRowsForUser(sheets, 'Workouts', missing.map((entry) => ({
+      name: entry.name, timestamp: new Date(entry.timestamp).toISOString(), calories: entry.caloriesBurnt, source: 'Garmin Connect',
+    })), missing[0].user, userEmail);
+  }
+  if (staleRows.length) {
+    const metadata = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
+    const sheetId = metadata.data.sheets?.find((sheet: any) => sheet.properties?.title === 'Workouts')?.properties?.sheetId;
+    if (sheetId === undefined || sheetId === null) throw new Error('Workouts sheet not found');
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId: SPREADSHEET_ID,
+      requestBody: { requests: [...staleRows].sort((a, b) => b - a).map((rowNumber) => ({
+        deleteDimension: { range: { sheetId, dimension: 'ROWS', startIndex: rowNumber - 1, endIndex: rowNumber } },
+      })) },
+    });
+  }
+  return { imported: missing.length, deleted: staleRows.length };
 }
 
 export async function updateProfile(

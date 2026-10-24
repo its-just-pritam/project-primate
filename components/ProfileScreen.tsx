@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { PlanAnalytics, PlanInput, PlanSummary, ProfileUpdate } from '@/types/nutrition';
 import { ArrowLeft, ChevronDown, Eye, EyeOff, Info, LogOut, Mail, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import { AVATARS } from '@/lib/avatars';
-import { cacheGarminAccessToken, clearGarminAccessToken, responseBody, setGarminTokenCacheScope } from '@/lib/garminClient';
+import { cacheGarminAccessToken, clearGarminAccessToken, clearGarminDailySummaryCache, responseBody, setGarminTokenCacheScope } from '@/lib/garminClient';
 
 interface ProfileScreenProps {
   avatar: string;
@@ -313,6 +313,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       const scope = typeof body.cacheScope === 'string' ? body.cacheScope : garminCacheScope;
       setGarminCacheScope(scope);
       setGarminTokenCacheScope(scope);
+      clearGarminDailySummaryCache(scope);
       clearGarminAccessToken(scope);
       if (typeof body.accessToken === 'string' && typeof body.expiresAt === 'number' && typeof body.cacheScope === 'string') {
         cacheGarminAccessToken(body.accessToken, body.expiresAt, body.cacheScope);
@@ -337,6 +338,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       const response = await fetch('/api/garmin/integration', { method: 'DELETE', cache: 'no-store' });
       await responseBody(response);
       clearGarminAccessToken(garminCacheScope);
+      clearGarminDailySummaryCache(garminCacheScope);
       setGarminConnected(false);
       setGarminMaskedKey('');
       setGarminKeyDraft('');
@@ -503,7 +505,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="min-h-0 flex-1 flex flex-col bg-[#0b101b]">
       <header className="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-md border-b border-slate-800/80 px-4 py-3 flex items-center gap-3">
         <button
           type="button"
@@ -518,7 +520,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       {successToast}
       {onboardingGuide}
 
-      <div className="flex-1 px-4 py-5 space-y-6">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#0b101b] px-4 py-5 space-y-6">
         <section className="space-y-2.5">
           <div className="flex items-center gap-3">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-3xl shadow-lg shadow-emerald-500/20">

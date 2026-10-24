@@ -52,6 +52,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('today');
   const [isBottomNavHidden, setIsBottomNavHidden] = useState(false);
   const lastContentScrollTop = useRef(0);
+  const garminSyncStarted = useRef(false);
   const [logs, setLogs] = useState<MealLogEntry[]>([]);
   const [workouts, setWorkouts] = useState<WorkoutEntry[]>([]);
   const [showProfile, setShowProfile] = useState(false);
@@ -140,7 +141,7 @@ export default function Home() {
     try {
       const [mealsRes, workoutsRes, recipesRes, planRes, onboardingRes] = await Promise.all([
         fetch('/api/meals'),
-        fetch('/api/workouts'),
+        fetch('/api/workouts', { cache: 'no-store' }),
         fetch('/api/recipes'),
         fetch('/api/plan'),
         fetch('/api/onboarding'),
@@ -159,6 +160,26 @@ export default function Home() {
       if (workoutsRes.ok) {
         const workoutsData = await workoutsRes.json();
         setWorkouts(workoutsData.workouts || []);
+      }
+
+      // Sync once in the background so the initial dashboard load is not held up by Garmin.
+      if (!garminSyncStarted.current) {
+        garminSyncStarted.current = true;
+        void fetch('/api/garmin/activities', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          cache: 'no-store',
+          body: JSON.stringify({ date: toLocalDateKey(new Date()), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }),
+        }).then(async (syncResponse) => {
+          if (!syncResponse.ok) return;
+          const refreshedWorkouts = await fetch('/api/workouts', { cache: 'no-store' });
+          if (refreshedWorkouts.ok) {
+            const refreshedData = await refreshedWorkouts.json();
+            setWorkouts(refreshedData.workouts || []);
+          }
+        }).catch((syncError) => {
+          console.error('Garmin workout sync failed:', syncError);
+        });
       }
 
       if (recipesRes.ok) {

@@ -105,6 +105,46 @@ export async function getGarminDeviceName(accessToken: string): Promise<string |
   }
 }
 
+/** Return the Garmin activities recorded on the requested local calendar day. */
+export async function getGarminActivitiesForDate(accessToken: string, date: string): Promise<Record<string, unknown>[]> {
+  // Match the activity-list request used by scripts/garmin-activities.sh. Garmin's
+  // search response is commonly wrapped in `activityList` or `data`, not `activities`.
+  const limit = 100;
+  const matches: Record<string, unknown>[] = [];
+  for (let page = 0; page < 10; page += 1) {
+    const params = new URLSearchParams({ start: String(page * limit), limit: String(limit) });
+    const response = await fetch(`${GARMIN_API}/activitylist-service/activities/search/activities?${params}`, {
+      headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!response.ok) throw new Error(`Garmin activities request failed (${response.status}).`);
+    const payload: unknown = await response.json();
+    const wrapped = payload && typeof payload === 'object' ? payload as Record<string, unknown> : {};
+    const candidates: unknown[] = Array.isArray(payload) ? payload :
+      Array.isArray(wrapped.activityList) ? wrapped.activityList :
+      Array.isArray(wrapped.data) ? wrapped.data :
+      Array.isArray(wrapped.activities) ? wrapped.activities : [];
+    if (!Array.isArray(payload) && !Array.isArray(wrapped.activityList) && !Array.isArray(wrapped.data) && !Array.isArray(wrapped.activities)) {
+      throw new Error('Garmin returned an unrecognized activity-list response.');
+    }
+    let reachedOlderActivity = false;
+    for (const item of candidates) {
+      if (!item || typeof item !== 'object') continue;
+      const activity = item as Record<string, unknown>;
+      const start = String(activity.startTimeLocal || activity.startTimeGMT || activity.startTime || '');
+      const activityDate = start.slice(0, 10);
+      if (activityDate === date) matches.push(activity);
+      else if (activityDate && activityDate < date) reachedOlderActivity = true;
+    }
+    // Garmin returns recent activities first. Once a page reaches an earlier day,
+    // all of today's entries have been collected without paging through history.
+    if (reachedOlderActivity) return matches;
+    if (candidates.length < limit) return matches;
+  }
+  throw new Error('Garmin activity list exceeded the sync limit; skipped reconciliation to avoid removing valid workouts.');
+}
+
 export async function getGarminDailySummaries(accessToken: string, startDate: string, endDate: string): Promise<unknown> {
   const params = new URLSearchParams({ startDate, endDate });
   const response = await fetch(`${GARMIN_API}/usersummary-service/v2/dailysummaries?${params}`, {
