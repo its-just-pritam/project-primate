@@ -22,7 +22,7 @@ import { TrendsView } from '@/components/TrendsView';
 import { PlanCarousel } from '@/components/PlanCarousel';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { WhatsappLogo } from '@phosphor-icons/react/dist/csr/WhatsappLogo';
-import { Plus, ChevronLeft, ChevronRight, CheckCircle2, ChevronDown, Copy, FileText, Share2, Sparkles, X } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, CheckCircle2, ChevronDown, Copy, Dumbbell, FileText, Share2, Sparkles, Utensils, X } from 'lucide-react';
 import { toLocalDateKey, parseLocalDateKey } from '@/lib/localDate';
 import { calculateDailyFatMassChangeGrams, calculateDailyWetMuscleMassChangeGrams, calculateThermicEffectOfFood } from '@/lib/bodyComposition';
 import { ProfileScreen } from '@/components/ProfileScreen';
@@ -943,10 +943,10 @@ export default function Home() {
             <div className="log-mode-switch relative flex bg-slate-950/70 p-1.5 rounded-2xl">
               <span
                 aria-hidden="true"
-                className={`pointer-events-none absolute inset-y-1.5 left-1.5 w-[calc(50%-0.375rem)] rounded-xl transition-[transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                className={`log-mode-switch-indicator pointer-events-none absolute inset-y-1.5 left-1.5 z-[1] w-[calc(50%-0.375rem)] rounded-xl transition-[transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
                   logMode === 'meal'
-                    ? 'translate-x-0 bg-gradient-to-br from-emerald-200 to-emerald-400 shadow-[0_5px_16px_rgba(16,185,129,0.2),inset_0_1px_0_rgba(255,255,255,0.55)]'
-                    : 'translate-x-full bg-gradient-to-br from-orange-300 via-orange-400 to-rose-400 shadow-[0_5px_16px_rgba(251,146,60,0.2),inset_0_1px_0_rgba(255,255,255,0.45)]'
+                    ? 'translate-x-0 bg-gradient-to-br from-emerald-200/90 via-emerald-300/85 to-teal-400/80 shadow-[0_6px_18px_rgba(16,185,129,0.24),inset_0_1px_0_rgba(255,255,255,0.68),inset_0_-1px_0_rgba(6,78,59,0.22)]'
+                    : 'translate-x-full bg-gradient-to-br from-orange-200/90 via-orange-300/85 to-rose-400/80 shadow-[0_6px_18px_rgba(251,146,60,0.22),inset_0_1px_0_rgba(255,255,255,0.62),inset_0_-1px_0_rgba(124,45,18,0.2)]'
                 }`}
               />
               {(['meal', 'workout'] as const).map((m) => (
@@ -954,13 +954,16 @@ export default function Home() {
                   key={m}
                   type="button"
                   onClick={() => setLogMode(m)}
-                    className={`relative z-10 flex-1 py-3 text-xs font-semibold rounded-xl transition-colors duration-200 ${
+                    className={`relative z-10 flex-1 rounded-xl py-3 text-xs font-semibold transition-colors duration-200 ${
                     logMode === m
                       ? 'text-slate-950'
-                      : 'text-slate-400 hover:text-white'
+                      : 'text-slate-300 hover:text-white'
                   }`}
                 >
-                  {m === 'meal' ? 'Meal' : 'Workout'}
+                  <span className="flex items-center justify-center gap-2">
+                    {m === 'meal' ? <Utensils aria-hidden="true" className="h-4 w-4" /> : <Dumbbell aria-hidden="true" className="h-4 w-4" />}
+                    {m === 'meal' ? 'Meal' : 'Workout'}
+                  </span>
                 </button>
               ))}
             </div>
