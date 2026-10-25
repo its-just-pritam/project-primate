@@ -52,6 +52,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onChangeTab, a
               </button>
             );
           }
+          if (!Icon) return null;
           return (
             <button
               key={tab.id}

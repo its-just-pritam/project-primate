@@ -263,7 +263,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
         </div>
 
         <div className="flex min-w-0 flex-col items-center p-3.5 text-center">
-          <span className="mb-1 block text-center text-[11px] font-semibold text-emerald-400">
+          <span className="mb-1 block text-center text-[11px] font-semibold text-slate-400">
             {daysToShow}-Day Avg Protein
           </span>
           <div className="flex items-baseline justify-center gap-1.5">
