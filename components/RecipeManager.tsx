@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
+import { flushSync } from 'react-dom';
 import { Recipe, MICRO_FIELDS } from '@/types/nutrition';
-import { Plus, BookOpen, Check, ChefHat, ChevronDown, Trash2, Pencil, Package, Search, X } from 'lucide-react';
+import { Plus, BookOpen, Check, Trash2, Pencil, Package, Search, X } from 'lucide-react';
 import { IngredientBreakdown } from './IngredientBreakdown';
 import { PackagedForm, PackagedInput } from './PackagedForm';
 
@@ -12,18 +13,90 @@ interface RecipeManagerProps {
   ingredientNames: string[];
   ingredientUnits?: Record<string, { baseQuantity: number; unit: string }>;
   onAddPackaged: (p: PackagedInput) => Promise<boolean>;
-  onUpdatePackaged: (p: PackagedInput) => Promise<boolean>;
+  onUpdatePackaged: (p: PackagedInput, originalDish?: string) => Promise<boolean>;
   onAddRecipe: (dish: string, items: { ingredient: string; quantity: number }[]) => Promise<boolean>;
   onUpdateRecipe: (originalDish: string, newDish: string, items: { ingredient: string; quantity: number }[]) => Promise<boolean>;
   onboardingHighlight?: boolean;
 }
+
+interface RecipeEditorFormProps {
+  formId: string;
+  editingName: string | null;
+  name: string;
+  setName: (value: string) => void;
+  items: { ingredient: string; quantity: string }[];
+  ingredientUnits: Record<string, { baseQuantity: number; unit: string }>;
+  knownIngredients: string[];
+  isSubmitting: boolean;
+  onboardingHighlight: boolean;
+  onSubmit: (event: React.FormEvent) => void;
+  onCancel: () => void;
+  onUpdateItem: (index: number, field: 'ingredient' | 'quantity', value: string) => void;
+  onRemoveItem: (index: number) => void;
+  onAddItem: () => void;
+  embedded?: boolean;
+}
+
+const RecipeEditorForm: React.FC<RecipeEditorFormProps> = ({
+  formId, editingName, name, setName, items, ingredientUnits, knownIngredients,
+  isSubmitting, onboardingHighlight, onSubmit, onCancel, onUpdateItem,
+  onRemoveItem, onAddItem, embedded = false,
+}) => (
+  <form id={formId} onSubmit={onSubmit} className={`space-y-4 ${embedded ? 'border-t border-white/10 pt-3' : 'border-y border-slate-700/70 py-3'} animate-in fade-in slide-in-from-top-2 duration-200 ${onboardingHighlight ? 'onboarding-glow-fields' : ''}`}>
+    {!embedded && (
+      <h3 className="flex items-center gap-1.5 text-sm font-bold text-white">
+        <BookOpen className="h-4 w-4 text-emerald-400" /> New Recipe
+      </h3>
+    )}
+    <div className="space-y-2.5">
+      {!embedded && <div>
+        <label className="mb-1 block text-xs font-medium text-slate-300">Dish</label>
+        <input type="text" placeholder="e.g. your recipe name" value={name} onChange={(event) => setName(event.target.value)} required className="log-input h-11 w-full rounded-xl px-3 text-sm text-white focus:outline-none" />
+      </div>}
+      <div className="space-y-2">
+        <div className="grid grid-cols-[1fr_80px_32px] gap-2 text-xs font-medium text-slate-300"><span>Ingredient</span><span>Quantity</span><span /></div>
+        {items.map((item, index) => {
+          const info = ingredientUnits[item.ingredient.trim()];
+          const quantity = parseFloat(item.quantity);
+          const unitHint = info
+            ? `1 qty = ${info.baseQuantity}${info.unit ? ` ${info.unit}` : ''}${quantity > 0 ? ` · ${Math.round(quantity * info.baseQuantity * 100) / 100}${info.unit ? ` ${info.unit}` : ''} total` : ''}`
+            : '';
+          return (
+            <div key={index} className="space-y-1">
+              <div className="grid grid-cols-[1fr_80px_32px] items-center gap-2">
+                <input type="text" list="known-ingredients" placeholder="e.g. Egg" value={item.ingredient} onChange={(event) => onUpdateItem(index, 'ingredient', event.target.value)} required className="log-input h-10 w-full rounded-xl px-3 text-sm text-white focus:outline-none" />
+                <input type="number" step="any" min="0" placeholder="1" value={item.quantity} onChange={(event) => onUpdateItem(index, 'quantity', event.target.value)} required className="log-input h-10 w-full rounded-xl px-3 text-sm text-white focus:outline-none" />
+                <button type="button" aria-label="Remove ingredient" disabled={items.length === 1} onClick={() => onRemoveItem(index)} className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:text-red-400 disabled:opacity-30"><Trash2 className="h-4 w-4" /></button>
+              </div>
+              {unitHint && <p className="pl-1 text-[10px] text-slate-500">{unitHint}</p>}
+            </div>
+          );
+        })}
+        <datalist id="known-ingredients">{knownIngredients.map((ingredient) => <option key={ingredient} value={ingredient} />)}</datalist>
+      </div>
+    </div>
+    <div className="flex items-center justify-between gap-2 pt-1">
+      <button type="button" onClick={onAddItem} className="inline-flex h-9 items-center gap-1 whitespace-nowrap rounded-xl px-2 text-xs font-semibold text-emerald-400 hover:bg-emerald-400/10 hover:text-emerald-300"><Plus className="h-3.5 w-3.5" /> Add Ingredient</button>
+      <div className="flex shrink-0 items-center gap-2">
+        <button type="button" onClick={onCancel} className="h-9 w-[4.4rem] rounded-xl bg-white/[0.05] text-xs font-semibold text-slate-300 hover:bg-white/[0.09]">Cancel</button>
+        <button type="submit" disabled={isSubmitting} className="h-9 w-[4.4rem] rounded-xl bg-gradient-to-br from-emerald-200 to-emerald-400 text-xs font-bold text-slate-950 shadow-[0_6px_16px_rgba(16,185,129,0.14)] transition-all disabled:bg-none disabled:bg-slate-800 disabled:text-slate-500 disabled:shadow-none">{isSubmitting ? 'Saving...' : editingName ? (embedded ? 'Update' : 'Update Recipe') : 'Save Recipe'}</button>
+      </div>
+    </div>
+  </form>
+);
+
+const NEW_RECIPE_DRAFT_ID = '__new_recipe_draft__';
+const NEW_PACKAGED_DRAFT_ID = '__new_packaged_draft__';
 
 export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged = [], ingredientNames, ingredientUnits = {}, onAddPackaged, onUpdatePackaged, onAddRecipe, onUpdateRecipe, onboardingHighlight = false }) => {
   const [showPackagedForm, setShowPackagedForm] = useState(false);
   const [editingPackaged, setEditingPackaged] = useState<Recipe | null>(null);
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
   const [showAddForm, setShowAddForm] = useState(false);
+  const [newItemKind, setNewItemKind] = useState<'recipe' | 'packaged' | null>(null);
   const [editingName, setEditingName] = useState<string | null>(null);
+  const [packagedName, setPackagedName] = useState('');
+  const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [items, setItems] = useState<{ ingredient: string; quantity: string }[]>([
     { ingredient: '', quantity: '' },
@@ -36,9 +109,83 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
   const catalog = [...recipes, ...packaged];
   const showSearch = catalog.length >= 10;
   const normalizedSearch = searchQuery.trim().toLocaleLowerCase();
+  const draftRecipe: Recipe | null = newItemKind ? {
+    id: newItemKind === 'recipe' ? NEW_RECIPE_DRAFT_ID : NEW_PACKAGED_DRAFT_ID,
+    name: newItemKind === 'recipe' ? name || 'New Recipe' : 'New Packaged Food',
+    servingUnit: '1 serving',
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fats: 0,
+    isPackaged: newItemKind === 'packaged',
+  } : null;
   const filteredCatalog = normalizedSearch
     ? catalog.filter((recipe) => recipe.name.toLocaleLowerCase().includes(normalizedSearch))
     : catalog;
+  const expandedRecipeIndex = filteredCatalog.findIndex((recipe) => expandedIds[recipe.id]);
+  const hiddenSiblingIndex = expandedRecipeIndex < 0
+    ? -1
+    : expandedRecipeIndex % 2 === 0
+      ? expandedRecipeIndex + 1
+      : expandedRecipeIndex - 1;
+  const visibleCatalog = filteredCatalog.filter((_, index) => index !== hiddenSiblingIndex);
+  const catalogRows: Recipe[][] = [];
+  let closedRow: Recipe[] = [];
+  visibleCatalog.forEach((recipe) => {
+    if (expandedIds[recipe.id]) {
+      if (closedRow.length) catalogRows.push(closedRow);
+      closedRow = [];
+      catalogRows.push([recipe]);
+      return;
+    }
+    closedRow.push(recipe);
+    if (closedRow.length === 2) {
+      catalogRows.push(closedRow);
+      closedRow = [];
+    }
+  });
+  if (closedRow.length) catalogRows.push(closedRow);
+  if (draftRecipe) catalogRows.unshift([draftRecipe]);
+  const verticalRowIndexes = catalogRows.flatMap((row, index) =>
+    row.length === 2 && !row.some((recipe) => expandedIds[recipe.id]) ? [index] : []
+  );
+  const firstVerticalRowIndex = verticalRowIndexes[0] ?? -1;
+  const lastVerticalRowIndex = verticalRowIndexes.at(-1) ?? -1;
+
+  const animateRecipeLayout = (recipeId: string, updateState: () => void) => {
+    const update = () => flushSync(updateState);
+    if (document.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.startViewTransition(update);
+    } else {
+      update();
+    }
+  };
+
+  const toggleRecipe = (recipeId: string) => animateRecipeLayout(recipeId, () => {
+    setExpandedIds((previous) => previous[recipeId] ? {} : { [recipeId]: true });
+  });
+
+  const startNewRecipe = () => animateRecipeLayout(NEW_RECIPE_DRAFT_ID, () => {
+    setNewItemKind('recipe');
+    setShowAddForm(true);
+    setEditingName(null);
+    setEditingRecipeId(null);
+    setEditingPackaged(null);
+    setName('');
+    setItems([{ ingredient: '', quantity: '' }]);
+    setExpandedIds({ [NEW_RECIPE_DRAFT_ID]: true });
+  });
+
+  const startNewPackaged = () => animateRecipeLayout(NEW_PACKAGED_DRAFT_ID, () => {
+    setNewItemKind('packaged');
+    setShowPackagedForm(true);
+    setShowAddForm(false);
+    setEditingName(null);
+    setEditingRecipeId(null);
+    setEditingPackaged(null);
+    setPackagedName('');
+    setExpandedIds({ [NEW_PACKAGED_DRAFT_ID]: true });
+  });
 
   const updateItem = (idx: number, field: 'ingredient' | 'quantity', value: string) =>
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, [field]: value } : it)));
@@ -57,39 +204,139 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
     setIsSubmitting(false);
 
     if (ok) {
+      const updatedRecipeId = editingRecipeId;
       setSuccessToast(editingName ? `Updated "${name.trim()}"!` : `Saved "${name.trim()}" to recipes!`);
       setTimeout(() => setSuccessToast(null), 3000);
-      setName('');
-      setItems([{ ingredient: '', quantity: '' }]);
-      setShowAddForm(false);
-      setEditingName(null);
+      const reset = () => {
+        setName('');
+        setItems([{ ingredient: '', quantity: '' }]);
+        setShowAddForm(false);
+        setEditingName(null);
+        setEditingRecipeId(null);
+        setNewItemKind(null);
+        if (updatedRecipeId || newItemKind) setExpandedIds({});
+      };
+      if (updatedRecipeId) animateRecipeLayout(updatedRecipeId, reset);
+      else reset();
     }
   };
 
   const closeForm = () => {
-    setShowAddForm(false);
-    setEditingName(null);
-    setName('');
-    setItems([{ ingredient: '', quantity: '' }]);
+    const editedRecipe = editingName ? catalog.find((recipe) => recipe.name === editingName) : undefined;
+    const reset = () => {
+      setShowAddForm(false);
+      setEditingName(null);
+      setEditingRecipeId(null);
+      setName('');
+      setItems([{ ingredient: '', quantity: '' }]);
+      const wasNewDraft = newItemKind === 'recipe';
+      setNewItemKind(null);
+      if (editedRecipe || wasNewDraft) setExpandedIds({});
+    };
+    if (editedRecipe) animateRecipeLayout(editedRecipe.id, reset);
+    else reset();
+  };
+
+  const cancelPackagedEdit = () => {
+    const edited = editingPackaged;
+    const reset = () => {
+      setShowPackagedForm(false);
+      setEditingPackaged(null);
+      setPackagedName('');
+      const wasNewDraft = newItemKind === 'packaged';
+      setNewItemKind(null);
+      if (edited || wasNewDraft) setExpandedIds({});
+    };
+    if (edited) animateRecipeLayout(edited.id, reset);
+    else reset();
   };
 
   const startEdit = (r: Recipe) => {
-    setEditingName(r.name);
-    setName(r.name);
-    setItems(
-      r.ingredients && r.ingredients.length > 0
-        ? r.ingredients.map((i) => ({ ingredient: i.name, quantity: String(i.quantity ?? 1) }))
-        : [{ ingredient: '', quantity: '' }]
-    );
-    setShowAddForm(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    animateRecipeLayout(r.id, () => {
+      setEditingName(r.name);
+      setEditingRecipeId(r.id);
+      setName(r.name);
+      setItems(
+        r.ingredients && r.ingredients.length > 0
+          ? r.ingredients.map((i) => ({ ingredient: i.name, quantity: String(i.quantity ?? 1) }))
+          : [{ ingredient: '', quantity: '' }]
+      );
+      setShowAddForm(true);
+      setNewItemKind(null);
+      setExpandedIds({ [r.id]: true });
+    });
   };
 
   const startEditPackaged = (r: Recipe) => {
-    setEditingPackaged(r);
-    setShowPackagedForm(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    animateRecipeLayout(r.id, () => {
+      setEditingPackaged(r);
+      setPackagedName(r.name);
+      setNewItemKind(null);
+      setShowPackagedForm(true);
+      setExpandedIds({ [r.id]: true });
+    });
   };
+
+  const recipeEditorForm = showAddForm ? (
+    <RecipeEditorForm
+      formId={editingRecipeId ? `recipe-editor-${editingRecipeId.replace(/[^a-zA-Z0-9_-]/g, '-')}` : newItemKind === 'recipe' ? `recipe-editor-${NEW_RECIPE_DRAFT_ID}` : 'new-recipe-editor'}
+      editingName={editingName}
+      name={name}
+      setName={setName}
+      items={items}
+      ingredientUnits={ingredientUnits}
+      knownIngredients={knownIngredients}
+      isSubmitting={isSubmitting}
+      onboardingHighlight={onboardingHighlight}
+      onSubmit={handleSubmit}
+      onCancel={closeForm}
+      onUpdateItem={updateItem}
+      onRemoveItem={(index) => setItems((previous) => previous.filter((_, itemIndex) => itemIndex !== index))}
+      onAddItem={() => setItems((previous) => [...previous, { ingredient: '', quantity: '' }])}
+      embedded={!!editingName || newItemKind === 'recipe'}
+    />
+  ) : null;
+
+  const packagedEditorForm = showPackagedForm ? (
+    <PackagedForm
+      formId={editingPackaged ? `packaged-editor-${editingPackaged.id.replace(/[^a-zA-Z0-9_-]/g, '-')}` : newItemKind === 'packaged' ? `packaged-editor-${NEW_PACKAGED_DRAFT_ID}` : 'new-packaged-editor'}
+      editingName={editingPackaged?.name}
+      initialValues={editingPackaged ? {
+        dish: editingPackaged.name,
+        calories: editingPackaged.calories,
+        protein: editingPackaged.protein,
+        carbs: editingPackaged.carbs,
+        fats: editingPackaged.fats,
+        quantity: 1,
+        micros: editingPackaged.micros,
+      } : undefined}
+      dishName={editingPackaged ? packagedName : undefined}
+      onDishNameChange={editingPackaged ? setPackagedName : undefined}
+      hideNameField={!!editingPackaged}
+      onCancel={cancelPackagedEdit}
+      onSubmit={async (value, originalDish) => {
+        const edited = editingPackaged;
+        const ok = edited ? await onUpdatePackaged(value, originalDish ?? edited.name) : await onAddPackaged(value);
+        if (ok) {
+          const reset = () => {
+            setShowPackagedForm(false);
+            setEditingPackaged(null);
+            setPackagedName('');
+            const wasNewDraft = newItemKind === 'packaged';
+            setNewItemKind(null);
+            if (edited || wasNewDraft) setExpandedIds({});
+          };
+          if (edited) animateRecipeLayout(edited.id, reset);
+          else reset();
+          setSuccessToast(edited ? `Updated "${value.dish}"!` : `Saved "${value.dish}" as packaged food!`);
+          setTimeout(() => setSuccessToast(null), 3000);
+        }
+        return ok;
+      }}
+      embedded={!!editingPackaged || newItemKind === 'packaged'}
+      embeddedDivider={!!editingPackaged}
+    />
+  ) : null;
 
   return (
     <div className="space-y-4">
@@ -106,9 +353,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
       {/* Header with Add Button */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-base font-bold text-white flex items-center gap-2">
-            <ChefHat className="w-5 h-5 text-emerald-400" /> Recipe Catalog
-          </h2>
+          <h2 className="text-base font-bold text-white">Recipe Catalog</h2>
           <p className="text-xs text-slate-400">Pre-saved meals with standard macro values</p>
         </div>
 
@@ -118,8 +363,8 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
               type="button"
               aria-label="Add packaged food"
               title="Add packaged food with its nutrition information"
-              onClick={() => setShowPackagedForm(true)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.05] hover:bg-amber-500/10 text-amber-300 text-xs font-semibold active:scale-95 transition-all ${onboardingHighlight ? 'onboarding-glow onboarding-recipe-glow-a' : ''}`}
+              onClick={startNewPackaged}
+              className={`recipe-action-glass recipe-action-glass-amber flex h-10 w-10 shrink-0 items-center justify-center rounded-full p-0 text-amber-200 active:scale-95 ${onboardingHighlight ? 'onboarding-glow onboarding-recipe-glow-a' : ''}`}
             >
               <Package className="w-4 h-4" />
             </button>
@@ -127,8 +372,8 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
               type="button"
               aria-label="Add new recipe"
               title="Create a new recipe from ingredients"
-              onClick={() => setShowAddForm(true)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md active:scale-95 transition-all ${onboardingHighlight ? 'onboarding-glow onboarding-recipe-glow-b' : ''}`}
+              onClick={startNewRecipe}
+              className={`recipe-action-glass recipe-action-glass-emerald flex h-10 w-10 shrink-0 items-center justify-center rounded-full p-0 text-emerald-50 active:scale-95 ${onboardingHighlight ? 'onboarding-glow onboarding-recipe-glow-b' : ''}`}
             >
               <Plus className="w-4 h-4" />
             </button>
@@ -136,150 +381,9 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
         )}
       </div>
 
-      {showPackagedForm && (
-        <PackagedForm
-          editingName={editingPackaged?.name}
-          initialValues={
-            editingPackaged
-              ? {
-                  dish: editingPackaged.name,
-                  // The stored per-serving values are scaled back; the form saves as-is for 1 serving
-                  calories: editingPackaged.calories,
-                  protein: editingPackaged.protein,
-                  carbs: editingPackaged.carbs,
-                  fats: editingPackaged.fats,
-                  quantity: 1,
-                  micros: editingPackaged.micros,
-                }
-              : undefined
-          }
-          onCancel={() => {
-            setShowPackagedForm(false);
-            setEditingPackaged(null);
-          }}
-          onSubmit={async (p) => {
-            const ok = editingPackaged
-              ? await onUpdatePackaged(p)
-              : await onAddPackaged(p);
-            if (ok) {
-              setShowPackagedForm(false);
-              setEditingPackaged(null);
-              setSuccessToast(
-                editingPackaged
-                  ? `Updated "${p.dish}"!`
-                  : `Saved "${p.dish}" as packaged food!`
-              );
-              setTimeout(() => setSuccessToast(null), 3000);
-            }
-            return ok;
-          }}
-        />
-      )}
+      {showPackagedForm && !editingPackaged && newItemKind !== 'packaged' && packagedEditorForm}
 
-      {/* Add Recipe Form Modal / Card */}
-      {showAddForm && (
-        <form
-          onSubmit={handleSubmit}
-          className={`space-y-4 border-y border-slate-700/70 py-3 animate-in fade-in slide-in-from-top-2 duration-200 ${onboardingHighlight ? 'onboarding-glow-fields' : ''}`}
-        >
-          <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
-            <BookOpen className="w-4 h-4 text-emerald-400" /> {editingName ? 'Edit Recipe' : 'New Recipe'}
-          </h3>
-
-          <div className="space-y-2.5">
-            <div>
-              <label className="text-xs font-medium text-slate-300 block mb-1">Dish</label>
-              <input
-                type="text"
-                placeholder="e.g. your recipe name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                className="log-input w-full h-11 rounded-xl px-3 text-sm text-white focus:outline-none"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <div className="grid grid-cols-[1fr_80px_32px] gap-2 text-xs font-medium text-slate-300">
-                <span>Ingredient</span>
-                <span>Quantity</span>
-                <span />
-              </div>
-              {items.map((it, idx) => {
-                const info = ingredientUnits[it.ingredient.trim()];
-                const qty = parseFloat(it.quantity);
-                const unitHint = info
-                  ? `1 qty = ${info.baseQuantity}${info.unit ? ` ${info.unit}` : ''}` +
-                    (qty > 0 ? ` · ${Math.round(qty * info.baseQuantity * 100) / 100}${info.unit ? ` ${info.unit}` : ''} total` : '')
-                  : '';
-                return (
-                <div key={idx} className="space-y-1">
-                <div className="grid grid-cols-[1fr_80px_32px] gap-2 items-center">
-                  <input
-                    type="text"
-                    list="known-ingredients"
-                    placeholder="e.g. Egg"
-                    value={it.ingredient}
-                    onChange={(e) => updateItem(idx, 'ingredient', e.target.value)}
-                    required
-                    className="log-input w-full h-11 rounded-xl px-3 text-sm text-white focus:outline-none"
-                  />
-                  <input
-                    type="number"
-                    step="any"
-                    min="0"
-                    placeholder="1"
-                    value={it.quantity}
-                    onChange={(e) => updateItem(idx, 'quantity', e.target.value)}
-                    required
-                    className="log-input w-full h-11 rounded-xl px-3 text-sm text-white focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    aria-label="Remove ingredient"
-                    disabled={items.length === 1}
-                    onClick={() => setItems((prev) => prev.filter((_, i) => i !== idx))}
-                    className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-400 disabled:opacity-30"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-                {unitHint && <p className="text-[10px] text-slate-500 pl-1">{unitHint}</p>}
-                </div>
-                );
-              })}
-              <datalist id="known-ingredients">
-                {knownIngredients.map((n) => (
-                  <option key={n} value={n} />
-                ))}
-              </datalist>
-              <button
-                type="button"
-                onClick={() => setItems((prev) => [...prev, { ingredient: '', quantity: '' }])}
-                className="flex items-center gap-1 text-xs font-semibold text-emerald-400 hover:text-emerald-300"
-              >
-                <Plus className="w-3.5 h-3.5" /> Add ingredient
-              </button>
-            </div>
-          </div>
-          <div className="flex gap-2 pt-1">
-            <button
-              type="button"
-              onClick={closeForm}
-              className="flex-1 py-2.5 rounded-xl bg-white/[0.05] text-slate-300 font-semibold text-xs hover:bg-white/[0.09]"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex-1 py-2.5 rounded-xl bg-gradient-to-br from-emerald-200 to-emerald-400 text-slate-950 font-bold text-xs shadow-[0_6px_16px_rgba(16,185,129,0.14)] transition-all disabled:bg-none disabled:bg-slate-800 disabled:text-slate-500 disabled:shadow-none"
-            >
-              {isSubmitting ? 'Saving...' : editingName ? 'Update Recipe' : 'Save Recipe'}
-            </button>
-          </div>
-        </form>
-      )}
+      {showAddForm && !editingName && newItemKind !== 'recipe' && recipeEditorForm}
 
       {/* Recipe List Cards */}
       {showSearch && (
@@ -305,9 +409,9 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
           )}
         </div>
       )}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 items-start">
-        {recipes.length === 0 && packaged.length === 0 && (
-          <div className="app-card-surface md:col-span-2 rounded-2xl px-5 py-8 text-center">
+      <div>
+        {recipes.length === 0 && packaged.length === 0 && !draftRecipe && (
+          <div className="app-card-surface w-full rounded-2xl px-5 py-8 text-center">
             <p className="text-sm font-semibold text-slate-100">Let’s add your first favorites</p>
             <p className="mt-1 text-xs text-slate-400">Build a personal food catalog to make logging meals quicker.</p>
             <div className="mt-3 space-y-2 text-left text-xs text-slate-400 sm:mx-auto sm:w-fit">
@@ -316,33 +420,66 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
             </div>
           </div>
         )}
-        {filteredCatalog.map((r) => {
-          const isOpen = !!expandedIds[r.id];
+        {catalogRows.map((row, rowIndex) => {
+          const hasVerticalDivider = verticalRowIndexes.includes(rowIndex);
+          const fadesTop = rowIndex === firstVerticalRowIndex;
+          const fadesBottom = rowIndex === lastVerticalRowIndex;
           return (
+              <div key={row.map((recipe) => recipe.id).join(':')} className="relative flex flex-wrap gap-x-1.5">
+                {hasVerticalDivider && <span aria-hidden="true" className={`recipe-partition-vertical ${fadesTop ? 'recipe-partition-fade-top' : ''} ${fadesBottom ? 'recipe-partition-fade-bottom' : ''}`} />}
+                {row.map((r) => {
+                  const isOpen = !!expandedIds[r.id];
+                  const isRecipeDraftCard = newItemKind === 'recipe' && r.id === NEW_RECIPE_DRAFT_ID;
+                  const isPackagedDraftCard = newItemKind === 'packaged' && r.id === NEW_PACKAGED_DRAFT_ID;
+                  const isPackagedEditCard = editingPackaged?.id === r.id;
+                  const isEditingCard = editingRecipeId === r.id || isPackagedEditCard || isRecipeDraftCard || isPackagedDraftCard;
+                  const recipeFormId = `recipe-editor-${r.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+                  const packagedFormId = `packaged-editor-${r.id.replace(/[^a-zA-Z0-9_-]/g, '-')}`;
+                  return (
           <div
             key={r.id}
-            onClick={() => setExpandedIds((p) => ({ ...p, [r.id]: !p[r.id] }))}
-            className="app-card-raised rounded-2xl p-3.5 space-y-2 transition-all cursor-pointer"
+            onClick={(event) => {
+              if (isEditingCard) return;
+              if ((event.target as HTMLElement).closest('button, input, textarea, select, form, label, summary')) return;
+              toggleRecipe(r.id);
+            }}
+            style={{ viewTransitionName: `recipe-card-${r.id.replace(/[^a-zA-Z0-9_-]/g, '-')}` }}
+            className={`recipe-glass-card cursor-pointer p-3.5 ${isOpen ? 'recipe-glass-card-open w-full rounded-2xl' : 'recipe-glass-card-closed w-[calc(50%-0.1875rem)]'}`}
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-sm font-bold text-white tracking-tight flex items-center gap-2">
-                  {r.name}
-                  {r.isPackaged && (
+            {!isPackagedDraftCard && <div className="flex items-center justify-between">
+              <div className="min-w-0 flex-1">
+                <h4 className="flex min-w-0 items-center gap-1.5 text-sm font-bold tracking-tight text-white">
+                  {isPackagedEditCard ? (
+                    <input
+                      form={packagedFormId}
+                      aria-label="Packaged food name"
+                      autoFocus
+                      required
+                      value={packagedName}
+                      onChange={(event) => setPackagedName(event.target.value)}
+                      className="min-w-0 w-full border-b border-amber-400/50 bg-transparent text-sm font-bold tracking-tight text-white outline-none placeholder:text-slate-500 focus:border-amber-300"
+                    />
+                  ) : editingRecipeId === r.id || isRecipeDraftCard ? (
+                    <input
+                      form={recipeFormId}
+                      aria-label="Recipe name"
+                      autoFocus
+                      required
+                      value={name}
+                      placeholder="New recipe name"
+                      onChange={(event) => setName(event.target.value)}
+                      className="min-w-0 w-full border-b border-emerald-400/50 bg-transparent text-sm font-bold tracking-tight text-white outline-none placeholder:text-slate-500 focus:border-emerald-300"
+                    />
+                  ) : <span className="truncate">{r.name}</span>}
+                  {r.isPackaged && !isPackagedEditCard && (
                     <span className="shrink-0 px-1 py-px rounded border border-amber-500/30 bg-amber-500/10 text-amber-400 text-[10px] font-semibold uppercase leading-none tracking-wide">
                       Pkg
                     </span>
                   )}
                 </h4>
-                <p className="text-[11px] text-slate-400 font-medium">
-                  Unit: {r.servingUnit}
-                </p>
               </div>
-              <div className="flex items-center gap-1 text-right">
-                <span className="text-base font-black text-white">
-                  {r.calories} <span className="text-xs font-normal text-slate-400">kcal</span>
-                </span>
-                {!r.isPackaged && (
+              <div className="ml-1 flex shrink-0 items-center gap-1 text-right">
+                {!isEditingCard && !r.isPackaged && (
                 <button
                   type="button"
                   aria-label={`Edit ${r.name}`}
@@ -355,7 +492,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
                   <Pencil className="w-3.5 h-3.5" />
                 </button>
                 )}
-                {r.isPackaged && (
+                {!isEditingCard && r.isPackaged && (
                 <button
                   type="button"
                   aria-label={`Edit ${r.name}`}
@@ -369,25 +506,35 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
                 </button>
                 )}
               </div>
-            </div>
+            </div>}
 
-            <div className="flex items-center gap-2 pt-1 border-t border-slate-800/60 text-[11px] font-medium">
-              <span className="text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-md">
-                Protein: {r.protein}g
-              </span>
-              <span className="text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md">
-                Carbs: {r.carbs}g
-              </span>
-              <span className="text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-md">
-                Fats: {r.fats}g
-              </span>
-              <ChevronDown
-                className={`w-4 h-4 text-slate-500 ml-auto transition-transform ${isOpen ? 'rotate-180' : ''}`}
-              />
-            </div>
+            {(editingRecipeId === r.id || isRecipeDraftCard) && recipeEditorForm}
+            {(editingPackaged?.id === r.id || isPackagedDraftCard) && packagedEditorForm}
 
-            {isOpen && (
-              <div className="space-y-2">
+            {!isEditingCard && <div className="space-y-1 pt-1 border-t border-slate-800/60 text-[9px] font-medium">
+              <div className="flex justify-start gap-1.5">
+                <span className="inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-md bg-white/[0.06] px-2 py-1 text-white">
+                  <span>Energy</span><span className="font-bold">{r.calories} kcal</span>
+                </span>
+                <span className="inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-md bg-sky-500/10 px-2 py-1 text-sky-400">
+                  <span>Fats</span><span className="font-bold">{r.fats}g</span>
+                </span>
+              </div>
+              <div className="flex justify-start gap-1.5">
+                <span className="inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-md bg-rose-500/10 px-2 py-1 text-rose-400">
+                  <span>Protein</span><span className="font-bold">{r.protein}g</span>
+                </span>
+                <span className="inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-md bg-amber-500/10 px-2 py-1 text-amber-400">
+                  <span>Carbs</span><span className="font-bold">{r.carbs}g</span>
+                </span>
+              </div>
+            </div>}
+
+            {!isEditingCard && <div
+              aria-hidden={!isOpen}
+              className={`grid overflow-hidden transition-[grid-template-rows,opacity,margin] duration-300 ease-out ${isOpen ? 'mt-2 grid-rows-[1fr] opacity-100' : 'mt-0 grid-rows-[0fr] opacity-0'}`}
+            >
+              <div className="min-h-0 overflow-hidden space-y-2">
                 {r.micros && (
                   <div>
                     <h5 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
@@ -407,12 +554,16 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
                 )}
                 {!r.isPackaged && <IngredientBreakdown ingredients={r.ingredients} />}
               </div>
-            )}
+            </div>}
           </div>
+                  );
+                })}
+                {rowIndex < catalogRows.length - 1 && <div aria-hidden="true" className="my-2 h-px w-full bg-gradient-to-r from-transparent via-slate-400/35 to-transparent" />}
+              </div>
           );
         })}
-        {normalizedSearch && filteredCatalog.length === 0 && (
-          <div className="app-card-surface md:col-span-2 rounded-2xl px-5 py-8 text-center">
+        {normalizedSearch && filteredCatalog.length === 0 && !draftRecipe && (
+          <div className="app-card-surface w-full rounded-2xl px-5 py-8 text-center">
             <p className="text-sm font-semibold text-slate-100">No matching recipes</p>
             <p className="mt-1 text-xs text-slate-400">Try another name or clear your search.</p>
           </div>

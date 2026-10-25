@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import { Package, Camera, ImageUp } from 'lucide-react';
+import { Camera, ImageUp } from 'lucide-react';
 import { MICRO_FIELDS, Micronutrients } from '@/types/nutrition';
 
 export interface PackagedInput {
@@ -15,12 +15,19 @@ export interface PackagedInput {
 }
 
 interface PackagedFormProps {
-  onSubmit: (p: PackagedInput) => Promise<boolean>;
+  onSubmit: (p: PackagedInput, originalDish?: string) => Promise<boolean>;
   onCancel: () => void;
-  /** When set, the form operates in edit mode (dish name is locked). */
+  /** Original name used to identify the row when editing. */
   editingName?: string;
   /** Pre-populated values when editing an existing item. */
   initialValues?: Partial<PackagedInput>;
+  /** Render inside an existing recipe card. */
+  embedded?: boolean;
+  embeddedDivider?: boolean;
+  formId?: string;
+  dishName?: string;
+  onDishNameChange?: (value: string) => void;
+  hideNameField?: boolean;
 }
 
 const inputCls =
@@ -33,8 +40,10 @@ const MACROS = [
   { key: 'fats', label: 'Fat (g)' },
 ] as const;
 
-export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel, editingName, initialValues }) => {
+export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel, editingName, initialValues, embedded = false, embeddedDivider = false, formId, dishName, onDishNameChange, hideNameField = false }) => {
   const [name, setName] = useState(initialValues?.dish ?? '');
+  const currentName = dishName ?? name;
+  const changeName = onDishNameChange ?? setName;
   const [quantity, setQuantity] = useState(initialValues?.quantity != null ? String(initialValues.quantity) : '1');
   const [macros, setMacros] = useState<Record<string, string>>(() => {
     if (!initialValues) return {};
@@ -80,7 +89,7 @@ export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel, 
         )
       );
       const productName = guessProductName(ocrLines);
-      if (productName) setName(productName);
+      if (productName) changeName(productName);
 
       const parsed = parseNutritionLabel(data.text);
       const toStr = (o: Record<string, number | undefined>) =>
@@ -111,10 +120,10 @@ export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel, 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || isSubmitting) return;
+    if (!currentName.trim() || isSubmitting) return;
     setIsSubmitting(true);
     const ok = await onSubmit({
-      dish: name.trim(),
+      dish: currentName.trim(),
       quantity: n(quantity) > 0 ? n(quantity) : 1,
       calories: n(macros.calories),
       protein: n(macros.protein),
@@ -123,20 +132,17 @@ export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel, 
       micros: Object.fromEntries(
         MICRO_FIELDS.map((f) => [f.key, n(micros[f.key])])
       ) as unknown as Micronutrients,
-    });
+    }, editingName);
     setIsSubmitting(false);
     if (!ok) alert('Failed to save packaged food');
   };
 
   return (
     <form
+      id={formId}
       onSubmit={handleSubmit}
-      className="space-y-4 border-y border-slate-700/70 py-3 animate-in fade-in slide-in-from-top-2 duration-200"
+      className={`space-y-4 ${embedded ? embeddedDivider ? 'border-t border-white/10 pt-3' : '' : 'border-y border-slate-700/70 py-3'} animate-in fade-in slide-in-from-top-2 duration-200`}
     >
-      <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
-        <Package className="w-4 h-4 text-amber-400" /> {editingName ? 'Edit Packaged Food' : 'New Packaged Food'}
-      </h3>
-
       <div className="space-y-1.5">
         <div className="grid grid-cols-2 gap-2">
           <button
@@ -180,17 +186,16 @@ export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel, 
         )}
       </div>
 
-      <div className="grid grid-cols-[1fr_80px] gap-2">
+      {!hideNameField && <div className="grid grid-cols-[1fr_80px] gap-2">
         <div>
           <label className="text-xs font-medium text-slate-300 block mb-1">Name</label>
           <input
             type="text"
             placeholder="e.g. Classic Chicken Egg Roll"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={currentName}
+            onChange={(e) => changeName(e.target.value)}
             required
-            disabled={!!editingName}
-            className={`${inputCls} disabled:opacity-60`}
+            className={inputCls}
           />
         </div>
         <div>
@@ -204,7 +209,7 @@ export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel, 
             className={inputCls}
           />
         </div>
-      </div>
+      </div>}
       <p className="text-[10px] text-slate-500 -mt-2">
         Enter the nutrition values for this many servings; they are saved as-is.
       </p>
@@ -263,7 +268,7 @@ export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel, 
           disabled={isSubmitting}
           className="flex-1 py-2.5 rounded-xl bg-gradient-to-br from-amber-200 to-yellow-400 text-slate-950 font-bold text-xs shadow-[0_6px_16px_rgba(245,158,11,0.16)] disabled:bg-none disabled:bg-slate-800 disabled:text-slate-500 disabled:shadow-none"
         >
-          {isSubmitting ? 'Saving...' : editingName ? 'Update Packaged Food' : 'Save Packaged Food'}
+          {isSubmitting ? 'Saving...' : editingName ? 'Update' : 'Save'}
         </button>
       </div>
     </form>

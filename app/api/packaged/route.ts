@@ -52,6 +52,7 @@ export async function PUT(req: NextRequest) {
     const session = await getCurrentSession();
     if (!session) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     const dish = String(body.dish || '').trim();
+    const originalDish = String(body.originalDish || dish).trim();
     const quantity = Number(body.quantity) > 0 ? Number(body.quantity) : 1;
 
     if (!dish) {
@@ -65,6 +66,7 @@ export async function PUT(req: NextRequest) {
 
     const result = await updatePackaged({
       dish,
+      originalDish,
       quantity,
       user: session.name,
       email: session.username,

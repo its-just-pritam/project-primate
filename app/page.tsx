@@ -673,12 +673,12 @@ export default function Home() {
     }
   };
 
-  const handleUpdatePackaged = async (p: PackagedInput): Promise<boolean> => {
+  const handleUpdatePackaged = async (p: PackagedInput, originalDish?: string): Promise<boolean> => {
     try {
       const res = await fetch('/api/packaged', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...p, user: plan?.userName }),
+        body: JSON.stringify({ ...p, originalDish, user: plan?.userName }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);

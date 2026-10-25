@@ -113,7 +113,7 @@ export const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ workoutNames, user
         <button
           type="submit"
           disabled={isSubmitting}
-          className={`mx-auto w-full max-w-2xl py-4 rounded-2xl bg-gradient-to-br from-orange-300 via-orange-400 to-rose-400 hover:brightness-110 active:scale-[0.98] text-slate-950 font-bold text-sm shadow-[0_12px_30px_rgba(251,146,60,0.16),inset_0_1px_0_rgba(255,255,255,0.42)] transition-all flex items-center justify-center gap-2 disabled:opacity-50 ${onboardingHighlight ? 'onboarding-workout-glow' : ''}`}
+          className={`relative -translate-y-3 mx-auto w-full max-w-2xl py-4 rounded-2xl bg-gradient-to-br from-orange-300 via-orange-400 to-rose-400 hover:brightness-110 active:scale-[0.98] text-slate-950 font-bold text-sm shadow-[0_12px_30px_rgba(251,146,60,0.16),inset_0_1px_0_rgba(255,255,255,0.42)] transition-all flex items-center justify-center gap-2 disabled:opacity-50 ${onboardingHighlight ? 'onboarding-workout-glow' : ''}`}
         >
           <Dumbbell className="w-4 h-4 stroke-[2.5]" />
           {isSubmitting ? 'Recording to Sheet...' : 'Log This Workout'}
