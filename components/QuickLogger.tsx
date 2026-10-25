@@ -312,7 +312,7 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
           <button
             type="submit"
             disabled={isSubmitting}
-            className="mx-auto w-full max-w-2xl py-4 rounded-2xl bg-gradient-to-br from-emerald-200 via-emerald-300 to-teal-400 hover:brightness-105 active:scale-[0.98] text-slate-950 font-bold text-sm shadow-[0_12px_30px_rgba(16,185,129,0.15),inset_0_1px_0_rgba(255,255,255,0.58)] transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
+            className="relative -translate-y-3 mx-auto w-full max-w-2xl py-4 rounded-2xl bg-gradient-to-br from-emerald-200 via-emerald-300 to-teal-400 hover:brightness-105 active:scale-[0.98] text-slate-950 font-bold text-sm shadow-[0_12px_30px_rgba(16,185,129,0.15),inset_0_1px_0_rgba(255,255,255,0.58)] transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
           >
             {isSubmitting ? (
               <span className="flex items-center gap-2">

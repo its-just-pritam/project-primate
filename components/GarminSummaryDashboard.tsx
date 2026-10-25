@@ -48,7 +48,7 @@ function formatDuration(seconds: number) {
   return hours ? `${hours}h ${minutes}m` : `${minutes}m`;
 }
 
-function SummaryCard({ icon: Icon, label, value, unit, detail, tint = 'sky', active = false, onClick }: {
+function SummaryCard({ icon: Icon, label, value, unit, tint = 'sky', active = false, onClick }: {
   icon: ElementType;
   label: string;
   value: string;
@@ -78,7 +78,6 @@ function SummaryCard({ icon: Icon, label, value, unit, detail, tint = 'sky', act
           <span className="min-w-0 truncate whitespace-nowrap text-sm font-black text-white" style={active ? { color: iconColor.color } : undefined}>{value}</span>
           {unit && <span className="shrink-0 text-[10px] text-slate-400">{unit}</span>}
         </div>
-        {detail && <p className="truncate text-[9px] leading-3 text-slate-500">{detail}</p>}
       </div>
     </button>
   );
@@ -534,7 +533,6 @@ export function SummaryDashboard({ date, data, deviceName }: { date: string; dat
               <span className="flex items-baseline gap-1">
                 <span className="block truncate whitespace-nowrap text-sm font-black text-white" style={activeChart === 'sleep' ? { color: '#c4b5fd' } : undefined}>{sleepSeconds !== undefined ? formatDuration(sleepSeconds) : '—'}</span>
               </span>
-              <span className="block truncate text-[9px] leading-3 text-slate-500">{sleepLoading ? 'Loading sleep data…' : sleepError ? 'Sleep data unavailable' : activeChart === 'sleep' ? '7-day sleep chart' : 'Tap to view sleep week'}</span>
             </span>
           </button>
         </div>

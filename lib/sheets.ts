@@ -879,6 +879,7 @@ export async function appendPackaged(p: {
 
 export async function updatePackaged(p: {
   dish: string;
+  originalDish?: string;
   quantity: number;
   user: string;
   email: string;
@@ -911,9 +912,10 @@ export async function updatePackaged(p: {
     vitaminB12: findUniqueHeaderIndex(headers, 'Vitamin B12', ['vitaminb12', 'vitaminb12mcg']),
     vitaminD: findUniqueHeaderIndex(headers, 'Vitamin D', ['vitamind', 'vitamindiu', 'vitamindmcg']),
   };
-  const match = rows.find(({ row }) => String(row[columns.dish] || '').trim() === p.dish && String(row[columns.user] || '').trim() === p.user);
+  const originalDish = (p.originalDish ?? p.dish).trim();
+  const match = rows.find(({ row }) => String(row[columns.dish] || '').trim() === originalDish && String(row[columns.user] || '').trim() === p.user);
   if (!match) {
-    throw new Error(`Packaged item "${p.dish}" was not found`);
+    throw new Error(`Packaged item "${originalDish}" was not found`);
   }
 
   const fields: Record<string, unknown> = {

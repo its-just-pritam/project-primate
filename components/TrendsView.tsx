@@ -242,36 +242,35 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
   return (
     <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 md:gap-4 md:items-stretch [&>*]:min-w-0">
       <div className="md:col-span-2">
-        <h2 className="text-base font-bold text-white flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-emerald-400" /> Nutrition Analytics
-        </h2>
+        <h2 className="text-base font-bold text-white">Nutrition Analytics</h2>
         <p className="text-xs text-slate-400">Daily intake vs your target goals</p>
       </div>
 
       {/* KPI Stats */}
-      <div className="grid grid-cols-2 gap-2.5 md:col-span-2">
-        <div className="app-card-raised rounded-2xl p-3.5">
-          <span className="text-[11px] font-semibold text-slate-400 block mb-1">
+      <div className="liquid-glass-panel relative grid grid-cols-2 overflow-hidden rounded-2xl md:col-span-2">
+        <span aria-hidden="true" className="pointer-events-none absolute inset-y-3 left-1/2 z-10 w-px bg-white/15" />
+        <div className="flex min-w-0 flex-col items-center p-3.5 text-center">
+          <span className="mb-1 block text-center text-[11px] font-semibold text-slate-400">
             {daysToShow}-Day Avg Calories
           </span>
-          <div className="flex items-baseline gap-1.5">
+          <div className="flex items-baseline justify-center gap-1.5">
             <span className="text-2xl font-black text-white">{avgCalories}</span>
-            <span className="text-xs text-slate-500">kcal/day</span>
+            <span className="text-xs text-slate-400">kcal</span>
           </div>
-          <p className="text-[10px] text-emerald-400 mt-1 flex items-center gap-1">
+          <p className="mt-1 flex items-center justify-center gap-1 text-[10px] text-emerald-400">
             <Award className="w-3 h-3" /> Limit: {targets.calories} kcal
           </p>
         </div>
 
-        <div className="app-card-raised rounded-2xl p-3.5">
-          <span className="text-[11px] font-semibold text-emerald-400 block mb-1">
+        <div className="flex min-w-0 flex-col items-center p-3.5 text-center">
+          <span className="mb-1 block text-center text-[11px] font-semibold text-slate-400">
             {daysToShow}-Day Avg Protein
           </span>
-          <div className="flex items-baseline gap-1.5">
+          <div className="flex items-baseline justify-center gap-1.5">
             <span className="text-2xl font-black text-white">{avgProtein}</span>
-            <span className="text-xs text-slate-500">g/day</span>
+            <span className="text-xs text-slate-500">g</span>
           </div>
-          <p className="text-[10px] text-emerald-400 mt-1 flex items-center gap-1">
+          <p className="mt-1 flex items-center justify-center gap-1 text-[10px] text-emerald-400">
             <Award className="w-3 h-3" /> Target: {targets.protein}g
           </p>
         </div>

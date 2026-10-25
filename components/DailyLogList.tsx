@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
+import { flushSync } from 'react-dom';
 import { MealLogEntry, MICRO_FIELDS } from '@/types/nutrition';
-import { Clock, UtensilsCrossed, ChevronDown, Trash2 } from 'lucide-react';
+import { Clock, UtensilsCrossed, Trash2 } from 'lucide-react';
 import { IngredientBreakdown } from './IngredientBreakdown';
 
 interface DailyLogListProps {
@@ -11,8 +12,7 @@ interface DailyLogListProps {
 }
 
 export const DailyLogList: React.FC<DailyLogListProps> = ({ logs, onDelete }) => {
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const toggle = (key: string) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   const formatTime = (isoString: string) => {
     try {
@@ -20,6 +20,39 @@ export const DailyLogList: React.FC<DailyLogListProps> = ({ logs, onDelete }) =>
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } catch {
       return '';
+    }
+  };
+
+  const entries = logs.map((item, index) => ({ item, key: item.id || String(index) }));
+  const expandedIndex = entries.findIndex(({ key }) => key === expandedKey);
+  const hiddenSiblingIndex = expandedIndex < 0 ? -1 : expandedIndex % 2 === 0 ? expandedIndex + 1 : expandedIndex - 1;
+  const visibleEntries = entries.filter((_, index) => index !== hiddenSiblingIndex);
+  const rows: typeof entries[] = [];
+  let closedRow: typeof entries = [];
+  visibleEntries.forEach((entry) => {
+    if (entry.key === expandedKey) {
+      if (closedRow.length) rows.push(closedRow);
+      closedRow = [];
+      rows.push([entry]);
+      return;
+    }
+    closedRow.push(entry);
+    if (closedRow.length === 2) {
+      rows.push(closedRow);
+      closedRow = [];
+    }
+  });
+  if (closedRow.length) rows.push(closedRow);
+  const verticalRowIndexes = rows.flatMap((row, index) => row.length === 2 ? [index] : []);
+  const firstVerticalRowIndex = verticalRowIndexes[0] ?? -1;
+  const lastVerticalRowIndex = verticalRowIndexes.at(-1) ?? -1;
+
+  const toggle = (key: string) => {
+    const update = () => flushSync(() => setExpandedKey((current) => current === key ? null : key));
+    if (document.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      document.startViewTransition(update);
+    } else {
+      update();
     }
   };
 
@@ -46,17 +79,23 @@ export const DailyLogList: React.FC<DailyLogListProps> = ({ logs, onDelete }) =>
         </span>
       </div>
 
-      <div className="space-y-2">
-        {logs.map((item, idx) => {
-          const key = item.id || String(idx);
-          const isOpen = !!expanded[key];
-          return (
+      <div>
+        {rows.map((row, rowIndex) => (
+          <div key={row.map(({ key }) => key).join(':')} className="relative flex flex-wrap gap-x-1.5">
+            {row.length === 2 && <span aria-hidden="true" className={`recipe-partition-vertical ${rowIndex === firstVerticalRowIndex ? 'recipe-partition-fade-top' : ''} ${rowIndex === lastVerticalRowIndex ? 'recipe-partition-fade-bottom' : ''}`} />}
+            {row.map(({ item, key }) => {
+              const isOpen = expandedKey === key;
+              return (
           <div
             key={key}
-            onClick={() => toggle(key)}
-            className="app-card-raised rounded-2xl p-3.5 transition-all cursor-pointer"
+            onClick={(event) => {
+              if ((event.target as HTMLElement).closest('button, input, textarea, select')) return;
+              toggle(key);
+            }}
+            style={{ viewTransitionName: `meal-card-${key.replace(/[^a-zA-Z0-9_-]/g, '-')}` }}
+            className={`recipe-glass-card cursor-pointer p-3.5 ${isOpen ? 'recipe-glass-card-open w-full rounded-2xl' : 'recipe-glass-card-closed w-[calc(50%-0.1875rem)]'}`}
           >
-            <div className="flex items-start justify-between">
+            <div className="flex items-start justify-between gap-2">
               <div>
                 <div className="flex items-center gap-2">
                   <h4 className="text-sm font-bold text-white tracking-tight">
@@ -74,10 +113,7 @@ export const DailyLogList: React.FC<DailyLogListProps> = ({ logs, onDelete }) =>
                 </div>
               </div>
 
-              <div className="flex items-center gap-1 text-right">
-                <span className="text-sm font-black text-white">
-                  {Math.round(item.calories)} <span className="text-xs font-normal text-slate-400">kcal</span>
-                </span>
+              <div className="flex shrink-0 items-center gap-1 text-right">
                 {onDelete && item.id && (
                   <button
                     type="button"
@@ -93,27 +129,19 @@ export const DailyLogList: React.FC<DailyLogListProps> = ({ logs, onDelete }) =>
                 )}              </div>
             </div>
 
-            {/* Macro details pills */}
-            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-800/60 text-[11px] font-medium">
-              <span className="text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-md">
-                P: {item.protein}g
-              </span>
-              <span className="text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md">
-                C: {item.carbs}g
-              </span>
-              <span className="text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-md">
-                F: {item.fats}g
-              </span>
-              <div className="ml-auto flex items-center gap-1">
-
-                <ChevronDown
-                  className={`w-4 h-4 text-slate-500 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-                />
+            <div className="mt-2 space-y-1 border-t border-slate-800/60 pt-2 text-[9px] font-medium">
+              <div className="flex justify-start gap-1.5">
+                <span className="inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-md bg-white/[0.06] px-2 py-1 text-white"><span>Energy</span><span className="font-bold">{Math.round(item.calories)} kcal</span></span>
+                <span className="inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-md bg-sky-500/10 px-2 py-1 text-sky-400"><span>Fats</span><span className="font-bold">{item.fats}g</span></span>
+              </div>
+              <div className="flex justify-start gap-1.5">
+                <span className="inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-md bg-rose-500/10 px-2 py-1 text-rose-400"><span>Protein</span><span className="font-bold">{item.protein}g</span></span>
+                <span className="inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-md bg-amber-500/10 px-2 py-1 text-amber-400"><span>Carbs</span><span className="font-bold">{item.carbs}g</span></span>
               </div>
             </div>
 
-            {isOpen && (
-              <div className="mt-2 space-y-2">
+            <div aria-hidden={!isOpen} className={`grid overflow-hidden transition-[grid-template-rows,opacity,margin] duration-300 ease-out ${isOpen ? 'mt-2 grid-rows-[1fr] opacity-100' : 'mt-0 grid-rows-[0fr] opacity-0'}`}>
+              <div className="min-h-0 overflow-hidden space-y-2">
                 {item.micros && (
                   <div>
                     <h5 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
@@ -133,10 +161,13 @@ export const DailyLogList: React.FC<DailyLogListProps> = ({ logs, onDelete }) =>
                 )}
                 <IngredientBreakdown ingredients={item.ingredients} />
               </div>
-            )}
+            </div>
           </div>
-          );
-        })}
+              );
+            })}
+            {rowIndex < rows.length - 1 && <div aria-hidden="true" className="my-2 h-px w-full bg-gradient-to-r from-transparent via-slate-400/35 to-transparent" />}
+          </div>
+        ))}
       </div>
     </div>
   );
