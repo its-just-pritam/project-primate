@@ -21,7 +21,7 @@ const escapeSvgText = (value: string) =>
   })[character] || character);
 
 async function createPlanShareImage(plan: PlanAnalytics): Promise<File> {
-  const userName = escapeSvgText(plan.userName || 'A Primate Fuel user');
+  const userName = escapeSvgText(plan.userName || 'A Platito user');
   const planName = escapeSvgText(plan.planName || 'Active plan');
   const projectedDate = escapeSvgText(plan.projectedDate || 'Keep going');
   const weightDeltaKg = plan.totalWeightChangeGrams / 1000;
@@ -42,7 +42,7 @@ async function createPlanShareImage(plan: PlanAnalytics): Promise<File> {
       </defs>
       <rect width="1080" height="1740" fill="url(#bg)"/>
       <circle cx="980" cy="105" r="220" fill="#10b981" opacity=".08"/>
-      <text x="72" y="96" fill="#6ee7b7" font-family="Arial, sans-serif" font-size="24" font-weight="700" letter-spacing="5">PRIMATE FUEL</text>
+      <text x="72" y="96" fill="#6ee7b7" font-family="Boldonse, Arial, sans-serif" font-size="24" font-weight="400" letter-spacing="1">PLATITO</text>
       <rect x="72" y="142" width="220" height="42" rx="21" fill="#064e3b"/>
       <text x="182" y="170" text-anchor="middle" fill="#a7f3d0" font-family="Arial, sans-serif" font-size="18" font-weight="700" letter-spacing="2">ACTIVE PLAN</text>
       <text x="72" y="246" fill="#ffffff" font-family="Arial, sans-serif" font-size="48" font-weight="700">${planName}</text>
@@ -72,7 +72,7 @@ async function createPlanShareImage(plan: PlanAnalytics): Promise<File> {
       <text x="108" y="1502" fill="#ffffff" font-family="Arial, sans-serif" font-size="30" font-weight="700">${projectedDate}</text>
       <text x="974" y="1458" text-anchor="end" fill="#94a3b8" font-family="Arial, sans-serif" font-size="20" font-weight="600" letter-spacing="2">TIME LEFT</text>
       <text x="974" y="1502" text-anchor="end" fill="#ffffff" font-family="Arial, sans-serif" font-size="30" font-weight="700">${plan.daysRemaining > 0 ? `~${plan.daysRemaining} days` : '—'}</text>
-      <text x="72" y="1600" fill="#e2e8f0" font-family="Arial, sans-serif" font-size="27" font-weight="600">Join me on Primate Fuel</text>
+      <text x="72" y="1600" fill="#e2e8f0" font-family="Boldonse, Arial, sans-serif" font-size="27" font-weight="400">Join me on Platito</text>
       <text x="72" y="1650" fill="#6ee7b7" font-family="Arial, sans-serif" font-size="25">${INVITATION_URL}</text>
       <rect x="72" y="1684" width="936" height="4" rx="2" fill="url(#accent)"/>
       <text x="72" y="1722" fill="#64748b" font-family="Arial, sans-serif" font-size="18">Track nutrition. Build habits. Reach your goal.</text>
@@ -92,7 +92,7 @@ async function createPlanShareImage(plan: PlanAnalytics): Promise<File> {
     const blob = await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob((result) => result ? resolve(result) : reject(new Error('Could not create the plan image.')), 'image/png');
     });
-    return new File([blob], 'primate-fuel-active-plan.png', { type: 'image/png' });
+    return new File([blob], 'platito-active-plan.png', { type: 'image/png' });
   } finally {
     URL.revokeObjectURL(svgUrl);
   }
@@ -132,8 +132,8 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
       const image = await createPlanShareImage(plan);
       const shareData = {
         files: [image],
-        title: `${plan.userName}'s active plan on Primate Fuel`,
-        text: `${plan.userName} invited you to join Primate Fuel: ${INVITATION_URL}`,
+        title: `${plan.userName}'s active plan on Platito`,
+        text: `${plan.userName} invited you to join Platito: ${INVITATION_URL}`,
       };
       if (navigator.canShare?.({ files: [image] }) && navigator.share) {
         try {

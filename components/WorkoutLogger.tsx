@@ -113,9 +113,9 @@ export const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({ workoutNames, user
         <button
           type="submit"
           disabled={isSubmitting}
-          className={`relative -translate-y-3 mx-auto w-full max-w-2xl py-4 rounded-2xl bg-gradient-to-br from-orange-300 via-orange-400 to-rose-400 hover:brightness-110 active:scale-[0.98] text-slate-950 font-bold text-sm shadow-[0_12px_30px_rgba(251,146,60,0.16),inset_0_1px_0_rgba(255,255,255,0.42)] transition-all flex items-center justify-center gap-2 disabled:opacity-50 ${onboardingHighlight ? 'onboarding-workout-glow' : ''}`}
+          className={`relative -translate-y-3 mx-auto flex w-full max-w-2xl items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-orange-200/90 via-orange-300/85 to-rose-400/80 py-3.5 text-sm font-bold text-slate-950 shadow-[0_6px_18px_rgba(251,146,60,0.22),inset_0_1px_0_rgba(255,255,255,0.62),inset_0_-1px_0_rgba(124,45,18,0.2)] transition-all hover:brightness-105 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-300 disabled:cursor-not-allowed disabled:opacity-50 ${onboardingHighlight ? 'onboarding-workout-glow' : ''}`}
         >
-          <Dumbbell className="w-4 h-4 stroke-[2.5]" />
+          <Dumbbell className="h-4 w-4 stroke-[2.5] text-slate-950" />
           {isSubmitting ? 'Recording to Sheet...' : 'Log This Workout'}
         </button>
       </div>

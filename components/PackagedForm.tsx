@@ -28,6 +28,7 @@ interface PackagedFormProps {
   dishName?: string;
   onDishNameChange?: (value: string) => void;
   hideNameField?: boolean;
+  photoActionsAccessory?: React.ReactNode;
 }
 
 const inputCls =
@@ -40,11 +41,10 @@ const MACROS = [
   { key: 'fats', label: 'Fat (g)' },
 ] as const;
 
-export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel, editingName, initialValues, embedded = false, embeddedDivider = false, formId, dishName, onDishNameChange, hideNameField = false }) => {
+export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel, editingName, initialValues, embedded = false, embeddedDivider = false, formId, dishName, onDishNameChange, hideNameField = false, photoActionsAccessory }) => {
   const [name, setName] = useState(initialValues?.dish ?? '');
   const currentName = dishName ?? name;
   const changeName = onDishNameChange ?? setName;
-  const [quantity, setQuantity] = useState(initialValues?.quantity != null ? String(initialValues.quantity) : '1');
   const [macros, setMacros] = useState<Record<string, string>>(() => {
     if (!initialValues) return {};
     const { calories, protein, carbs, fats } = initialValues;
@@ -124,7 +124,7 @@ export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel, 
     setIsSubmitting(true);
     const ok = await onSubmit({
       dish: currentName.trim(),
-      quantity: n(quantity) > 0 ? n(quantity) : 1,
+      quantity: 1,
       calories: n(macros.calories),
       protein: n(macros.protein),
       carbs: n(macros.carbs),
@@ -144,14 +144,14 @@ export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel, 
       className={`space-y-4 ${embedded ? embeddedDivider ? 'border-t border-white/10 pt-3' : '' : 'border-y border-slate-700/70 py-3'} animate-in fade-in slide-in-from-top-2 duration-200`}
     >
       <div className="space-y-1.5">
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-5">
           <button
             type="button"
             disabled={scanState.busy}
             onClick={() => cameraRef.current?.click()}
             className="log-control-button flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-slate-200 text-xs font-semibold disabled:opacity-50"
           >
-            <Camera className="w-4 h-4" /> Take photo
+            <Camera className="w-4 h-4" /> Capture
           </button>
           <button
             type="button"
@@ -159,8 +159,9 @@ export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel, 
             onClick={() => uploadRef.current?.click()}
             className="log-control-button flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-slate-200 text-xs font-semibold disabled:opacity-50"
           >
-            <ImageUp className="w-4 h-4" /> Upload label
+            <ImageUp className="w-4 h-4" /> Upload
           </button>
+          {photoActionsAccessory}
         </div>
         {[cameraRef, uploadRef].map((ref, i) => (
           <input
@@ -186,33 +187,17 @@ export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel, 
         )}
       </div>
 
-      {!hideNameField && <div className="grid grid-cols-[1fr_80px] gap-2">
-        <div>
-          <label className="text-xs font-medium text-slate-300 block mb-1">Name</label>
-          <input
-            type="text"
-            placeholder="e.g. Classic Chicken Egg Roll"
-            value={currentName}
-            onChange={(e) => changeName(e.target.value)}
-            required
-            className={inputCls}
-          />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-slate-300 block mb-1">Servings</label>
-          <input
-            type="number"
-            step="any"
-            min="0"
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-            className={inputCls}
-          />
-        </div>
+      {!hideNameField && <div>
+        <input
+          type="text"
+          aria-label="Packaged food name"
+          placeholder="New packaged food name"
+          value={currentName}
+          onChange={(e) => changeName(e.target.value)}
+          required
+          className="min-w-0 w-full border-b border-amber-400/50 bg-transparent text-sm font-bold tracking-tight text-white outline-none placeholder:text-slate-500 focus:border-amber-300"
+        />
       </div>}
-      <p className="text-[10px] text-slate-500 -mt-2">
-        Enter the nutrition values for this many servings; they are saved as-is.
-      </p>
 
       <div className="grid grid-cols-2 gap-2">
         {MACROS.map((m) => (

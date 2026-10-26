@@ -2,13 +2,11 @@
 
 import React, { useEffect, useState } from 'react';
 import { PlanAnalytics, PlanInput, PlanSummary, ProfileUpdate } from '@/types/nutrition';
-import { ArrowLeft, ChevronDown, Eye, EyeOff, Info, LogOut, Mail, Plus, ShieldCheck, Trash2 } from 'lucide-react';
-import { AVATARS } from '@/lib/avatars';
+import { ChevronDown, Eye, EyeOff, Info, LogOut, Mail, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import { cacheGarminAccessToken, clearGarminAccessToken, clearGarminDailySummaryCache, responseBody, setGarminTokenCacheScope } from '@/lib/garminClient';
+import { Header } from './Header';
 
 interface ProfileScreenProps {
-  avatar: string;
-  onAvatarChange: (avatar: string) => Promise<void> | void;
   plan: PlanAnalytics | null;
   onClose: () => void;
   startWithNewPlan?: boolean;
@@ -17,6 +15,10 @@ interface ProfileScreenProps {
   successToast?: React.ReactNode;
   onProfileSaveSuccess?: (message: string) => void;
   keepOpenDuringOnboarding?: boolean;
+  onRefresh: () => void;
+  onExport: () => void;
+  isLoading: boolean;
+  onContentScroll: (event: React.UIEvent<HTMLDivElement>) => void;
   onSave: (profile: ProfileUpdate) => Promise<boolean>;
   onAddPlan: (plan: PlanInput) => Promise<boolean>;
   onDeletePlan: (rowNumber: number, comment: string) => Promise<boolean>;
@@ -242,8 +244,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   successToast,
   onProfileSaveSuccess,
   keepOpenDuringOnboarding = false,
-  avatar,
-  onAvatarChange,
+  onRefresh,
+  onExport,
+  isLoading,
+  onContentScroll,
   onSave,
   onAddPlan,
   onDeletePlan,
@@ -254,7 +258,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const [height, setHeight] = useState(String(plan?.heightCm ?? ''));
   const [perWeek, setPerWeek] = useState(String(plan?.workoutsPerWeek ?? ''));
   const [saving, setSaving] = useState(false);
-  const [draftAvatar, setDraftAvatar] = useState(avatar);
   const [error, setError] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
@@ -376,9 +379,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     workoutsPerWeek: plan?.workoutsPerWeek ?? 0,
   };
 
-  const avatarDirty = draftAvatar !== avatar;
   const userDirty =
-    avatarDirty ||
     userName.trim() !== savedUser.userName ||
     (parseFloat(weight) || 0) !== savedUser.weightKg ||
     (parseFloat(height) || 0) !== savedUser.heightCm ||
@@ -386,7 +387,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
   const handleSaveUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (avatarDirty) await onAvatarChange(draftAvatar);
     const detailsDirty =
       userName.trim() !== savedUser.userName ||
       (parseFloat(weight) || 0) !== savedUser.weightKg ||
@@ -506,61 +506,25 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
   return (
     <div className="min-h-0 flex-1 flex flex-col bg-[#0b101b]">
-      <header className="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-md border-b border-slate-800/80 px-4 py-3 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Back"
-          className="p-1.5 -ml-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="text-base font-bold tracking-tight text-white">Profile</h1>
-      </header>
+      <Header
+        onRefresh={onRefresh}
+        onExport={onExport}
+        isLoading={isLoading}
+        rightContent={(
+          <button
+            type="submit"
+            form="user-form"
+            disabled={saving || !userDirty}
+            className="inline-flex h-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-200 to-emerald-400 px-4 text-sm font-semibold leading-none text-slate-950 transition-all disabled:cursor-not-allowed disabled:bg-none disabled:bg-slate-800 disabled:text-slate-500 disabled:shadow-none disabled:hover:bg-slate-800"
+          >
+            {saving ? 'Saving...' : 'Save'}
+          </button>
+        )}
+      />
       {successToast}
       {onboardingGuide}
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#0b101b] px-4 py-5 space-y-6">
-        <section className="space-y-2.5">
-          <div className="flex items-center gap-3">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-3xl shadow-lg shadow-emerald-500/20">
-              {draftAvatar}
-            </div>
-            <div>
-              <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Avatar</h3>
-              <p className="text-xs text-slate-500">Pick one that suits you</p>
-            </div>
-            <button
-              type="submit"
-              form="user-form"
-              disabled={saving || !userDirty}
-              className="ml-auto px-4 py-2 rounded-xl bg-gradient-to-br from-emerald-200 to-emerald-400 text-slate-950 font-semibold text-sm disabled:bg-none disabled:bg-slate-800 disabled:shadow-none disabled:hover:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed transition-all"
-            >
-              {saving ? 'Saving...' : 'Save'}
-            </button>
-          </div>
-          <div className="grid grid-cols-7 gap-2">
-            {AVATARS.map((a) => (
-              <button
-                key={a}
-                type="button"
-                aria-label={`Choose avatar ${a}`}
-                aria-pressed={a === draftAvatar}
-                onClick={() => setDraftAvatar(a)}
-                className={`h-12 rounded-xl text-2xl flex items-center justify-center border transition-all active:scale-95 ${
-                  a === draftAvatar
-                  ? 'bg-emerald-400/15 border-transparent shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
-                    : 'bg-white/[0.035] border-transparent hover:bg-white/[0.07]'
-                }`}
-              >
-                {a}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <hr className="w-full border-slate-700/70" />
-
+      <div onScroll={onContentScroll} className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#0b101b] px-4 pt-5 pb-32 space-y-6">
         <form id="user-form" onSubmit={handleSaveUser} className={`space-y-2.5 ${onboardingHighlight === 'profile' ? 'onboarding-glow-fields' : ''}`}>
           <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">User</h3>
           <FormField label="Name" value={userName} onChange={setUserName} props={{ type: 'text' }} />
@@ -625,9 +589,9 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               {garminKeyNotice && <p role="status" className="text-xs text-emerald-300">{garminKeyNotice}</p>}
               <div className="flex items-center gap-2">
                 <button type="submit" disabled={garminKeyBusy || !garminKeyDraft.trim() || !garminLive} className="flex-1 rounded-xl bg-sky-400/10 px-2.5 py-2.5 text-center text-[11px] font-semibold text-sky-200 transition hover:bg-sky-400/15 disabled:cursor-not-allowed disabled:opacity-45">
-                  {garminKeyBusy ? 'Verifying and saving…' : garminConnected ? 'Verify and update key' : 'Verify and connect'}
+                  {garminKeyBusy ? (garminConnected ? 'Updating…' : 'Verifying and saving…') : garminConnected ? 'Update' : 'Verify and connect'}
                 </button>
-                {garminConnected && <button type="button" onClick={() => void disconnectGarmin()} disabled={garminKeyBusy} className="flex-1 rounded-xl px-2.5 py-2.5 text-center text-[11px] font-medium text-rose-300 transition hover:bg-rose-400/10 disabled:cursor-not-allowed disabled:opacity-50">{garminKeyBusy ? 'Disconnecting…' : 'Remove connection'}</button>}
+                {garminConnected && <button type="button" onClick={() => void disconnectGarmin()} disabled={garminKeyBusy} className="flex-1 rounded-xl px-2.5 py-2.5 text-center text-[11px] font-medium text-rose-300 transition hover:bg-rose-400/10 disabled:cursor-not-allowed disabled:opacity-50">{garminKeyBusy ? 'Disconnecting…' : 'Disconnect'}</button>}
               </div>
             </form>
           </>}

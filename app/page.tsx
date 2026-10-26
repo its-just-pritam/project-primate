@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Header } from '@/components/Header';
-import { AVATARS, DEFAULT_AVATAR } from '@/lib/avatars';
 import {
   PlanCardSkeleton,
   MacroRingsSkeleton,
@@ -63,7 +62,6 @@ export default function Home() {
     timestamp: string;
   } | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
-  const [avatar, setAvatar] = useState(DEFAULT_AVATAR);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [openNewPlan, setOpenNewPlan] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState<number | null>(null);
@@ -108,11 +106,11 @@ export default function Home() {
 
     if (window.matchMedia('(min-width: 768px)').matches || scrollTop < 32) {
       setIsBottomNavHidden(false);
-    } else if (scrollDelta > 5) {
-      setIsBottomNavHidden(true);
-    } else if (scrollDelta < -5) {
-      setIsBottomNavHidden(false);
+      return;
     }
+
+    if (scrollDelta > 5) setIsBottomNavHidden(true);
+    else if (scrollDelta < -5) setIsBottomNavHidden(false);
   };
 
   const announceProfileSave = (message: string) => {
@@ -194,7 +192,6 @@ export default function Home() {
         const planData = await planRes.json();
         if (planData.plan) {
           setPlan(planData.plan);
-          if (planData.plan.avatar && AVATARS.includes(planData.plan.avatar)) setAvatar(planData.plan.avatar);
           setActivePlans(planData.plan.hasPlan ? planData.activePlans || [planData.plan] : []);
           setPlanIdx(0);
           setPlanCarouselIdx(0);
@@ -423,7 +420,7 @@ export default function Home() {
     });
     const kg = (grams: number) => `${number(grams / 1000)} kg`;
     const lines = [
-      'PRIMATE FUEL — PERSONAL NUTRITION & PLAN REPORT',
+      'PLATITO — PERSONAL NUTRITION & PLAN REPORT',
       `Generated: ${new Date().toLocaleString()}`,
       '',
       'ACTIVE PLAN',
@@ -476,11 +473,11 @@ export default function Home() {
         ? ['Estimates based on logged food/activity and the active plan; these are modeled changes, not measured body composition.', ...dailyTrends.map((trend) => trend.bodyCompositionLine)]
         : ['Unavailable without an active plan and resting energy estimate.']),
       '',
-      'Report drafted from the data currently recorded in Primate Fuel.',
+      'Report drafted from the data currently recorded in Platito.',
       '',
-      'ABOUT PRIMATE FUEL',
+      'ABOUT PLATITO',
       'Homepage: https://project-primate.vercel.app/',
-      'Primate Fuel brings food logs, nutrition targets, workouts, calorie balance, and active-plan progress together in one personal dashboard. Track the habits that shape your day, follow your nutrition and activity trends, and see how your plan is progressing toward your goals.',
+      'Platito brings food logs, nutrition targets, workouts, calorie balance, and active-plan progress together in one personal dashboard. Track the habits that shape your day, follow your nutrition and activity trends, and see how your plan is progressing toward your goals.',
     );
     return lines.join('\n');
   };
@@ -516,7 +513,7 @@ export default function Home() {
       return;
     }
     try {
-      await navigator.share({ title: 'Primate Fuel report', text: exportReport });
+      await navigator.share({ title: 'Platito report', text: exportReport });
       setExportStatus('Report shared.');
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return;
@@ -692,21 +689,6 @@ export default function Home() {
     }
   };
 
-  const handleAvatarChange = async (next: string) => {
-    setAvatar(next);
-    try {
-      const response = await fetch('/api/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ avatar: next }),
-      });
-      if (!response.ok) throw new Error('Failed to save avatar');
-      announceProfileSave('Profile picture saved');
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   const handleUpdateRecipe = async (
     originalDish: string,
     dish: string,
@@ -731,12 +713,16 @@ export default function Home() {
     return <StartupSplash />;
   }
 
+  const closeProfile = () => {
+    if (onboardingStep === 0) void markOnboardingComplete();
+    setShowProfile(false);
+    setOpenNewPlan(false);
+  };
+
   if (showProfile) {
     return (
-      <>
+      <div className="min-h-0 flex flex-1 flex-col">
         <ProfileScreen
-          avatar={avatar}
-          onAvatarChange={handleAvatarChange}
           plan={plan}
           startWithNewPlan={openNewPlan}
           onboardingHighlight={onboardingStep === 0 ? (activeOnboardingTask?.id === 'profile' ? 'profile' : activeOnboardingTask?.id === 'plan' ? 'plan' : null) : null}
@@ -744,11 +730,14 @@ export default function Home() {
           successToast={profileSaveToast}
           onProfileSaveSuccess={announceProfileSave}
           keepOpenDuringOnboarding={onboardingStep === 0}
-          onClose={() => {
-            if (onboardingStep === 0) void markOnboardingComplete();
-            setShowProfile(false);
-            setOpenNewPlan(false);
+          onRefresh={loadData}
+          onExport={() => {
+            closeProfile();
+            openExportReport();
           }}
+          isLoading={isLoading}
+          onContentScroll={handleContentScroll}
+          onClose={closeProfile}
           onSave={handleSaveProfile}
           onAddPlan={(p: PlanInput) => handlePlanRequest('PUT', p)}
           onDeletePlan={(rowNumber, comment) => handlePlanRequest('DELETE', { rowNumber, comment })}
@@ -758,7 +747,17 @@ export default function Home() {
             window.location.assign('/');
           }}
         />
-      </>
+        <BottomNav
+          currentTab={activeTab}
+          onChangeTab={(tab) => {
+            setActiveTab(tab);
+            closeProfile();
+          }}
+          onOpenProfile={() => setShowProfile(true)}
+          isHidden={isBottomNavHidden}
+          isProfileActive
+        />
+      </div>
     );
   }
 
@@ -768,7 +767,6 @@ export default function Home() {
         onRefresh={loadData}
         onExport={openExportReport}
         isLoading={isLoading}
-        userName={plan?.userName}
       />
       {exportReport && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm" onMouseDown={(event) => {
@@ -1024,7 +1022,6 @@ export default function Home() {
       <BottomNav
         currentTab={activeTab}
         onChangeTab={setActiveTab}
-        avatar={avatar}
         isHidden={isBottomNavHidden}
         onOpenProfile={() => {
           setOpenNewPlan(false);

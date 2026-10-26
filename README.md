@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="public/logo-mark.svg" alt="Primate Fuel logo" width="80" />
+  <img src="public/icon-192.png" alt="Platito logo" width="80" />
 </p>
 
-<h1 align="center">Primate Fuel</h1>
+<h1 align="center">Platito</h1>
 
 A mobile-first food, workout and nutrition tracker that uses **Google Sheets as its database**. Log meals built from your own recipes, track workouts, follow calorie-deficit plans, and watch your progress in charts.
 
@@ -16,7 +16,7 @@ Built with Next.js 14 (App Router), React 18, Tailwind CSS, Recharts and the Goo
 - **Recipes** – build dishes from ingredients, expand a dish for its ingredient and micronutrient breakdown, and edit a recipe's ingredients (recipes cannot be deleted).
 - **Trends** – N-day average intake, macro and calorie charts, and deficit projections.
 - **Plans** – create, edit and soft-delete plans, each with a target weight, resting calories, start date and optional comment. A plan is `ACTIVE` once its start date arrives, otherwise `INACTIVE`; deleted plans stay visible as `DELETED`.
-- **Profile** – edit user details and pick one of 10 avatars (stored in the sheet).
+- **Profile** – edit user details and manage plans.
 - **Weekly export** – draft a shareable nutrition and activity report with seven-day trends, including calories consumed versus burned and estimated body-fat versus wet-muscle changes. Copy or share it, or open WhatsApp with the report prefilled for a recipient you choose.
 - **Mobile navigation** – the bottom menu hides while scrolling down and returns while scrolling up; meal and workout submit buttons move with it.
 
@@ -69,7 +69,7 @@ Create these tabs with a header row in row 1:
 app/            Next.js app router: page.tsx (main screen) and api/ routes
   api/          meals, workouts, recipes, plan, profile, status
 components/     UI: BottomNav, PlanCarousel, ProfileScreen, TrendsView, ...
-lib/            sheets.ts (all Google Sheets access), avatars.ts
+lib/            sheets.ts (all Google Sheets access)
 types/          Shared TypeScript types
 ```
 

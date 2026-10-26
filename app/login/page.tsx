@@ -41,7 +41,7 @@ export default function LoginPage() {
           <div className="mx-auto w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
             <LockKeyhole className="w-5 h-5" />
           </div>
-          <h1 className="text-xl font-bold text-white">Sign in to Primate Fuel</h1>
+          <h1 className="text-xl font-bold text-white">Sign in to Platito</h1>
           <p className="text-sm text-slate-400">Sign in with your email and password.</p>
         </div>
         <label className="block text-sm text-slate-300 space-y-1.5">

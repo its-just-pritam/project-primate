@@ -5,7 +5,7 @@ import { Activity, ArrowRight, Check, Cookie, Dumbbell, Leaf, Scale, Target, Tre
 import { ScrollReveal } from './scroll-reveal';
 
 export const metadata: Metadata = {
-  title: 'Primate Fuel | Nutrition, energy, and body composition',
+  title: 'Platito | Nutrition, energy, and body composition',
   description: 'Track meals and macros, see how resting energy, TEF, and workouts shape daily balance, and follow estimated fat and muscle changes.',
 };
 
@@ -88,9 +88,9 @@ export default function LandingPage() {
       </div>
 
       <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8 lg:px-12">
-        <Link href="/" className="flex items-center gap-3" aria-label="Primate Fuel home">
-          <Image src="/icon.svg" alt="" width={42} height={42} className="h-10 w-10 rounded-xl" priority />
-          <span className="text-base font-extrabold tracking-tight text-white">Primate Fuel</span>
+        <Link href="/" className="flex items-center gap-3" aria-label="Platito home">
+          <Image src="/icon-192.png" alt="" width={42} height={42} className="h-[clamp(2rem,10vw,2.5rem)] w-[clamp(2rem,10vw,2.5rem)] rounded-xl" priority />
+          <span className="brand-font text-[clamp(1.4rem,7vw,1.75rem)] leading-none tracking-tight text-white">Platito</span>
         </Link>
         <div className="flex items-center gap-1">
           <nav className="hidden items-center gap-1 md:flex" aria-label="Main navigation">
@@ -252,7 +252,7 @@ export default function LandingPage() {
                 <p className="mt-2 text-sm leading-6 text-slate-400">Snacks and favorite foods count too. Log them with your meals to see your full-day totals without labeling foods as good or bad.</p>
               </article>
             </div>
-            <p className="mt-5 rounded-2xl border border-emerald-300/10 bg-emerald-300/[0.04] px-5 py-4 text-sm leading-6 text-slate-300">No pass-or-fail food scores. Primate Fuel gives you a clearer view of your habits so you can decide what works for you.</p>
+            <p className="mt-5 rounded-2xl border border-emerald-300/10 bg-emerald-300/[0.04] px-5 py-4 text-sm leading-6 text-slate-300">No pass-or-fail food scores. <span style={{ fontFamily: 'var(--font-manrope), sans-serif', fontWeight: 400 }}>Platito</span> gives you a clearer view of your habits so you can decide what works for you.</p>
           </div>
         </section>
 
@@ -349,9 +349,9 @@ export default function LandingPage() {
           <div className="mx-auto grid max-w-7xl gap-4 px-5 py-20 sm:px-8 md:grid-cols-2 lg:px-12 lg:py-24">
             <article id="about" className={`${cardClass} scroll-mt-8 sm:p-8`} data-reveal>
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">About us</p>
-              <h2 className="mt-3 text-2xl font-black tracking-tight text-white">About Primate Fuel</h2>
-              <p className="mt-4 text-sm leading-7 text-slate-400">Created by Pritam Mallick, Primate Fuel brings meal logs, daily energy, and body-composition trends into one clear view. It’s for people who want to understand their habits without turning food into a test. If that sounds like you, come join us and help shape what comes next.</p>
-              <Link href="/signup" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-emerald-300 transition hover:text-emerald-200">Join Primate Fuel <ArrowRight className="h-4 w-4" /></Link>
+              <h2 className="mt-3 text-2xl font-black tracking-tight text-white">About Platito</h2>
+              <p className="mt-4 text-sm leading-7 text-slate-400">Created by Pritam Mallick, <span style={{ fontFamily: 'var(--font-manrope), sans-serif', fontWeight: 400 }}>Platito</span> brings meal logs, daily energy, and body-composition trends into one clear view. It’s for people who want to understand their habits without turning food into a test. If that sounds like you, come join us and help shape what comes next.</p>
+              <Link href="/signup" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-emerald-300 transition hover:text-emerald-200">Join Platito <ArrowRight className="h-4 w-4" /></Link>
             </article>
             <article id="contact" className={`${cardClass} scroll-mt-8 sm:p-8`} data-reveal data-reveal-delay="1">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Contact</p>
@@ -390,7 +390,7 @@ export default function LandingPage() {
       <footer className="relative z-10 border-t border-white/[0.06] px-5 py-7 sm:px-8 lg:px-12" data-reveal>
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
           <Link href="/" className="flex items-center gap-2.5 text-sm font-bold text-slate-300">
-            <Image src="/icon.svg" alt="" width={28} height={28} className="h-7 w-7 rounded-lg" /> Primate Fuel
+            <Image src="/icon-192.png" alt="" width={28} height={28} className="h-7 w-7 rounded-lg" /> <span className="brand-font text-[20.2px] leading-none">Platito</span>
           </Link>
           <p className="text-xs text-slate-600">A flexible approach to everyday nutrition.</p>
           <div className="flex items-center gap-4 text-xs font-medium text-slate-500"><Link href="/login" className="hover:text-white">Sign in</Link><Link href="/signup" className="hover:text-white">Create account</Link></div>

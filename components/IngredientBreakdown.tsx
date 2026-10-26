@@ -27,7 +27,7 @@ export const IngredientBreakdown: React.FC<IngredientBreakdownProps> = ({ ingred
             <div className="flex items-center justify-between gap-3">
               <span className="text-xs font-semibold text-white">
                 {ing.name}{' '}
-                <span className="text-slate-400 font-normal">
+                <span className="text-white font-normal">
                   · {ing.amount}
                   {ing.unit ? ` ${ing.unit}` : ''}
                 </span>
@@ -35,9 +35,9 @@ export const IngredientBreakdown: React.FC<IngredientBreakdownProps> = ({ ingred
               <span className="shrink-0 text-xs font-bold text-white">{ing.calories} kcal</span>
             </div>
             <div className="flex items-center gap-1.5 mt-1 text-[10px] font-medium">
-              <span className="text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded">P: {ing.protein}g</span>
-              <span className="text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">C: {ing.carbs}g</span>
-              <span className="text-sky-400 bg-sky-500/10 px-1.5 py-0.5 rounded">F: {ing.fats}g</span>
+              <span className="text-white bg-rose-500/10 px-1.5 py-0.5 rounded">P: {ing.protein}g</span>
+              <span className="text-white bg-amber-500/10 px-1.5 py-0.5 rounded">C: {ing.carbs}g</span>
+              <span className="text-white bg-sky-500/10 px-1.5 py-0.5 rounded">F: {ing.fats}g</span>
             </div>
           </div>
         ))}

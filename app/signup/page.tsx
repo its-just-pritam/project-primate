@@ -49,7 +49,7 @@ export default function SignupPage() {
           <div className="mx-auto w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
             <UserPlus className="w-5 h-5" />
           </div>
-          <h1 className="text-xl font-bold text-white">Create your account</h1>
+          <h1 className="text-xl font-bold text-white">Create your Platito account</h1>
           <p className="text-sm text-slate-400">Your email will be your username.</p>
         </div>
         <div className="grid grid-cols-2 gap-3">

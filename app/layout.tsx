@@ -6,12 +6,11 @@ import { InstallPrompt } from './install-prompt';
 const manrope = Manrope({ subsets: ['latin'], variable: '--font-manrope', display: 'swap' });
 
 export const metadata: Metadata = {
-  title: 'Primate Fuel - Food & Nutrition Tracker',
+  title: 'Platito - Food & Nutrition Tracker',
   description: 'Fast mobile food intake tracker and visual nutrition planner',
   manifest: '/manifest.json',
   icons: {
     icon: [
-      { url: '/icon.svg', type: 'image/svg+xml' },
       { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
     ],
     apple: [{ url: '/icon-180.png', sizes: '180x180', type: 'image/png' }],
@@ -19,7 +18,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Primate Fuel',
+    title: 'Platito',
   },
 };
 
