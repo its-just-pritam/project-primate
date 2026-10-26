@@ -273,12 +273,13 @@ export async function registerSheetUser(firstName: string, lastName: string, ema
   const userHeadersResult = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'User!A1:J1' });
   const userHeaders: string[] = userHeadersResult.data.values?.[0] || [];
   const userFields: Record<string, unknown> = {
-    name, 'weight (kg)': 0, 'height (cm)': 0, 'workouts per week': 0, avatar: '🐻',
+    name, 'weight (kg)': 0, 'height (cm)': 0, 'workouts per week': 0, 'legacy unused column': '',
     email: normalizedEmail, 'password hash': passwordHash, 'first name': first, 'last name': last, 'onboarding step': 0,
   };
   const userHeaderAliases: Record<string, string[]> = {
     heightcm: ['heightcm', 'heightcms'],
     workoutsperweek: ['workoutperweek', 'workoutsperweek'],
+    legacyunusedcolumn: ['avatar'],
   };
   const userRecord = new Array(userHeaders.length).fill('');
   for (const [field, value] of Object.entries(userFields)) {
@@ -1143,7 +1144,6 @@ export async function fetchPlanAnalytics(userEmail: string, displayName?: string
           workoutCaloriesByDate: {},
           heightCm: parseFloat(userRow[2]) || 0,
           workoutsPerWeek: parseFloat(userRow[3]) || 0,
-          avatar: String(userRow[4] || '').trim() || undefined,
           startDate: '',
           plans: planSummaries,
           hasPlan: false,
@@ -1334,7 +1334,6 @@ export async function fetchPlanAnalytics(userEmail: string, displayName?: string
       workoutCaloriesByDate,
       heightCm: parseFloat(userRow[2]) || 0,
       workoutsPerWeek: parseFloat(userRow[3]) || 0,
-      avatar: String(userRow[4] || '').trim() || undefined,
       startDate: createdAtStr,
       plans: planSummaries,
       hasPlan: true,
@@ -1512,23 +1511,6 @@ export async function updateProfile(
         ...planData,
       ],
     },
-  });
-  return { success: true, isLive: true };
-}
-
-export async function updateAvatar(avatar: string, userName = 'Pritam Mallick'): Promise<{ success: boolean; isLive: boolean }> {
-  const sheets = getGoogleSheetsClient();
-  if (!sheets) return { success: true, isLive: false };
-
-  const users = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: 'User!A2:G' });
-  const rows: any[][] = users.data.values || [];
-  const rowIndex = rows.findIndex((row) => String(row[0] || '').trim() === userName);
-  if (rowIndex < 0) throw new Error('User profile not found');
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `User!E${rowIndex + 2}`,
-    valueInputOption: 'USER_ENTERED',
-    requestBody: { values: [[avatar]] },
   });
   return { success: true, isLive: true };
 }

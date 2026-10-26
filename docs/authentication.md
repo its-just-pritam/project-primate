@@ -9,7 +9,7 @@ The app authenticates accounts from the existing `User` sheet. It keeps columns 
 | H | First Name | User's first name |
 | I | Last Name | User's last name |
 
-Each account uses one row. Columns A:E continue to hold that account's full name, weight, height, workouts per week, and avatar. Sign-up is open and asks for first name, last name, email, and password. Email and full name must be unique because existing food, workout, and plan rows identify their owner by full name. Those records are filtered by the account name in their existing User column. Recipes and ingredients remain shared catalog data.
+Each account uses one row. Columns A:D hold that account's full name, weight, height, and workouts per week; column E is retained as a legacy unused column. Sign-up is open and asks for first name, last name, email, and password. Email and full name must be unique because existing food, workout, and plan rows identify their owner by full name. Those records are filtered by the account name in their existing User column. Recipes and ingredients remain shared catalog data.
 
 The sign-up form creates a salted `scrypt` hash and saves it in column G. For manually provisioned accounts, generate a hash locally with `node scripts/generate-password-hash.mjs` and paste it into column G. Never put a password itself in the sheet.
 

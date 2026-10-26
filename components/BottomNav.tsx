@@ -1,19 +1,19 @@
 'use client';
 
 import React, { useState } from 'react';
-import { IconCalendar, IconBook2, IconChartBarPopular } from '@tabler/icons-react';
+import { IconCalendar, IconBook2, IconChartBarPopular, IconUser } from '@tabler/icons-react';
 
 export type TabType = 'today' | 'log' | 'recipes' | 'trends';
 
 interface BottomNavProps {
   currentTab: TabType;
   onChangeTab: (tab: TabType) => void;
-  avatar?: string;
   onOpenProfile: () => void;
   isHidden?: boolean;
+  isProfileActive?: boolean;
 }
 
-export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onChangeTab, avatar, onOpenProfile, isHidden = false }) => {
+export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onChangeTab, onOpenProfile, isHidden = false, isProfileActive = false }) => {
   const [ripple, setRipple] = useState<{ id: string; sequence: number } | null>(null);
   const triggerRipple = (id: string) => setRipple((previous) => ({ id, sequence: (previous?.sequence ?? 0) + 1 }));
 
@@ -29,7 +29,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onChangeTab, a
       <div className="flex items-center justify-around">
         {tabs.map((tab) => {
           const Icon = tab.icon;
-          const isActive = currentTab === tab.id;
+          const isActive = !isProfileActive && currentTab === tab.id;
 
           if (tab.isPrimary) {
             return (
@@ -38,7 +38,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onChangeTab, a
                 onClick={() => { triggerRipple(tab.id); onChangeTab(tab.id); }}
                 aria-label={tab.label}
                 title={tab.label}
-                className="menu-ripple-button group relative flex flex-col items-center justify-center py-1 px-3"
+                className="menu-ripple-button group relative flex min-w-0 flex-1 flex-col items-center justify-center py-1"
               >
                 {ripple?.id === tab.id && <span key={ripple.sequence} aria-hidden="true" className="menu-ripple-effect" />}
                 <div className={`log-orb relative flex h-[46px] w-[46px] items-center justify-center rounded-full transition-transform duration-200 group-active:scale-90 ${isActive ? 'log-orb-active' : ''}`}>
@@ -59,7 +59,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onChangeTab, a
               onClick={() => { triggerRipple(tab.id); onChangeTab(tab.id); }}
               aria-label={tab.label}
               title={tab.label}
-              className={`menu-ripple-button relative flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all duration-150 ${
+              className={`menu-ripple-button relative flex min-w-0 flex-1 flex-col items-center justify-center py-1 rounded-xl transition-all duration-150 ${
                 isActive ? 'text-emerald-400 font-semibold' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -74,14 +74,13 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentTab, onChangeTab, a
           type="button"
           onClick={() => { triggerRipple('profile'); onOpenProfile(); }}
           aria-label="Profile"
+          aria-current={isProfileActive ? 'page' : undefined}
           title="Edit user & plan"
-          className="menu-ripple-button relative flex flex-col items-center justify-center py-1 px-3 rounded-xl text-slate-400 hover:text-slate-200 transition-all duration-150"
+          className={`menu-ripple-button relative flex min-w-0 flex-1 flex-col items-center justify-center py-1 rounded-xl transition-all duration-150 ${isProfileActive ? 'text-emerald-400 font-semibold' : 'text-slate-400 hover:text-slate-200'}`}
         >
           {ripple?.id === 'profile' && <span key={ripple.sequence} aria-hidden="true" className="menu-ripple-effect" />}
           <span className="h-10 w-10 flex items-center justify-center">
-            <span className="h-8 w-8 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 text-sm leading-none">
-              {avatar || '🥑'}
-            </span>
+            <IconUser aria-hidden="true" className={`h-6 w-6 ${isProfileActive ? 'stroke-[2.5]' : 'stroke-[1.8]'}`} />
           </span>
         </button>
       </div>

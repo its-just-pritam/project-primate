@@ -44,12 +44,12 @@ export function InstallPrompt() {
   };
 
   return (
-    <aside className="fixed inset-x-4 bottom-4 z-[100] mx-auto flex max-w-md items-center gap-3 rounded-2xl border border-emerald-300/20 bg-[#101923]/95 p-3.5 shadow-[0_16px_60px_-18px_rgba(0,0,0,0.75)] backdrop-blur-xl" aria-label="Install Primate Fuel">
+    <aside className="fixed inset-x-4 bottom-4 z-[100] mx-auto flex max-w-md items-center gap-3 rounded-2xl border border-emerald-300/20 bg-[#101923]/95 p-3.5 shadow-[0_16px_60px_-18px_rgba(0,0,0,0.75)] backdrop-blur-xl" aria-label="Install Platito">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-300/10 text-emerald-300">
         <Download className="h-5 w-5" aria-hidden="true" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-bold text-white">Install Primate Fuel</p>
+        <p className="brand-font text-sm text-white">Install Platito</p>
         <p className="text-xs text-slate-400">Add the app to your device for quick access.</p>
       </div>
       <button type="button" onClick={install} className="rounded-lg bg-emerald-300 px-3 py-2 text-xs font-bold text-slate-950 transition hover:bg-emerald-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300">

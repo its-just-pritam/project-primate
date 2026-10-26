@@ -37,12 +37,27 @@ interface RecipeEditorFormProps {
   embedded?: boolean;
 }
 
+const PackagedFoodSwitch: React.FC<{ enabled: boolean; onChange: (enabled: boolean) => void }> = ({ enabled, onChange }) => (
+  <button
+    type="button"
+    role="switch"
+    aria-label="Packaged food"
+    aria-checked={enabled}
+    title="Switch to packaged food"
+    onClick={() => onChange(!enabled)}
+    className={`relative flex h-4 w-8 shrink-0 items-center rounded-full border border-white/10 p-px transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-300 ${enabled ? 'bg-amber-400/30' : 'bg-slate-800'}`}
+  >
+    <span aria-hidden="true" className={`absolute top-1/2 -translate-y-1/2 text-[6px] font-medium leading-none tracking-normal ${enabled ? 'left-[5px] text-amber-200' : 'right-[4px] text-slate-200'}`}>PKG</span>
+    <span aria-hidden="true" className={`z-10 h-3 w-3 rounded-full shadow transition-transform duration-200 ${enabled ? 'translate-x-[18px] bg-amber-300' : 'translate-x-0 bg-slate-400'}`} />
+  </button>
+);
+
 const RecipeEditorForm: React.FC<RecipeEditorFormProps> = ({
   formId, editingName, name, setName, items, ingredientUnits, knownIngredients,
   isSubmitting, onboardingHighlight, onSubmit, onCancel, onUpdateItem,
   onRemoveItem, onAddItem, embedded = false,
 }) => (
-  <form id={formId} onSubmit={onSubmit} className={`space-y-4 ${embedded ? 'border-t border-white/10 pt-3' : 'border-y border-slate-700/70 py-3'} animate-in fade-in slide-in-from-top-2 duration-200 ${onboardingHighlight ? 'onboarding-glow-fields' : ''}`}>
+  <form id={formId} onSubmit={onSubmit} className={`space-y-4 ${embedded ? 'pt-3' : 'border-y border-slate-700/70 py-3'} animate-in fade-in slide-in-from-top-2 duration-200 ${onboardingHighlight ? 'onboarding-glow-fields' : ''}`}>
     {!embedded && (
       <h3 className="flex items-center gap-1.5 text-sm font-bold text-white">
         <BookOpen className="h-4 w-4 text-emerald-400" /> New Recipe
@@ -76,10 +91,10 @@ const RecipeEditorForm: React.FC<RecipeEditorFormProps> = ({
       </div>
     </div>
     <div className="flex items-center justify-between gap-2 pt-1">
-      <button type="button" onClick={onAddItem} className="inline-flex h-9 items-center gap-1 whitespace-nowrap rounded-xl px-2 text-xs font-semibold text-emerald-400 hover:bg-emerald-400/10 hover:text-emerald-300"><Plus className="h-3.5 w-3.5" /> Add Ingredient</button>
+      <button type="button" onClick={onAddItem} className="inline-flex h-9 items-center gap-1 whitespace-nowrap rounded-xl px-2 text-xs font-semibold text-emerald-400 hover:bg-emerald-400/10 hover:text-emerald-300"><Plus className="h-3.5 w-3.5" /> Add</button>
       <div className="flex shrink-0 items-center gap-2">
         <button type="button" onClick={onCancel} className="h-9 w-[4.4rem] rounded-xl bg-white/[0.05] text-xs font-semibold text-slate-300 hover:bg-white/[0.09]">Cancel</button>
-        <button type="submit" disabled={isSubmitting} className="h-9 w-[4.4rem] rounded-xl bg-gradient-to-br from-emerald-200 to-emerald-400 text-xs font-bold text-slate-950 shadow-[0_6px_16px_rgba(16,185,129,0.14)] transition-all disabled:bg-none disabled:bg-slate-800 disabled:text-slate-500 disabled:shadow-none">{isSubmitting ? 'Saving...' : editingName ? (embedded ? 'Update' : 'Update Recipe') : 'Save Recipe'}</button>
+        <button type="submit" disabled={isSubmitting} className="h-9 w-[4.4rem] rounded-xl bg-gradient-to-br from-emerald-200 to-emerald-400 text-xs font-bold text-slate-950 shadow-[0_6px_16px_rgba(16,185,129,0.14)] transition-all disabled:bg-none disabled:bg-slate-800 disabled:text-slate-500 disabled:shadow-none">{isSubmitting ? 'Saving...' : editingName ? (embedded ? 'Update' : 'Update Recipe') : 'Save'}</button>
       </div>
     </div>
   </form>
@@ -107,7 +122,6 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
 
   const knownIngredients = ingredientNames;
   const catalog = [...recipes, ...packaged];
-  const showSearch = catalog.length >= 10;
   const normalizedSearch = searchQuery.trim().toLocaleLowerCase();
   const draftRecipe: Recipe | null = newItemKind ? {
     id: newItemKind === 'recipe' ? NEW_RECIPE_DRAFT_ID : NEW_PACKAGED_DRAFT_ID,
@@ -168,6 +182,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
   const startNewRecipe = () => animateRecipeLayout(NEW_RECIPE_DRAFT_ID, () => {
     setNewItemKind('recipe');
     setShowAddForm(true);
+    setShowPackagedForm(false);
     setEditingName(null);
     setEditingRecipeId(null);
     setEditingPackaged(null);
@@ -278,27 +293,30 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
   };
 
   const recipeEditorForm = showAddForm ? (
-    <RecipeEditorForm
-      formId={editingRecipeId ? `recipe-editor-${editingRecipeId.replace(/[^a-zA-Z0-9_-]/g, '-')}` : newItemKind === 'recipe' ? `recipe-editor-${NEW_RECIPE_DRAFT_ID}` : 'new-recipe-editor'}
-      editingName={editingName}
-      name={name}
-      setName={setName}
-      items={items}
-      ingredientUnits={ingredientUnits}
-      knownIngredients={knownIngredients}
-      isSubmitting={isSubmitting}
-      onboardingHighlight={onboardingHighlight}
-      onSubmit={handleSubmit}
-      onCancel={closeForm}
-      onUpdateItem={updateItem}
-      onRemoveItem={(index) => setItems((previous) => previous.filter((_, itemIndex) => itemIndex !== index))}
-      onAddItem={() => setItems((previous) => [...previous, { ingredient: '', quantity: '' }])}
-      embedded={!!editingName || newItemKind === 'recipe'}
-    />
+    <div className="space-y-2">
+      <RecipeEditorForm
+        formId={editingRecipeId ? `recipe-editor-${editingRecipeId.replace(/[^a-zA-Z0-9_-]/g, '-')}` : newItemKind === 'recipe' ? `recipe-editor-${NEW_RECIPE_DRAFT_ID}` : 'new-recipe-editor'}
+        editingName={editingName}
+        name={name}
+        setName={setName}
+        items={items}
+        ingredientUnits={ingredientUnits}
+        knownIngredients={knownIngredients}
+        isSubmitting={isSubmitting}
+        onboardingHighlight={onboardingHighlight}
+        onSubmit={handleSubmit}
+        onCancel={closeForm}
+        onUpdateItem={updateItem}
+        onRemoveItem={(index) => setItems((previous) => previous.filter((_, itemIndex) => itemIndex !== index))}
+        onAddItem={() => setItems((previous) => [...previous, { ingredient: '', quantity: '' }])}
+        embedded={!!editingName || newItemKind === 'recipe'}
+      />
+    </div>
   ) : null;
 
   const packagedEditorForm = showPackagedForm ? (
-    <PackagedForm
+    <div className="space-y-2">
+      <PackagedForm
       formId={editingPackaged ? `packaged-editor-${editingPackaged.id.replace(/[^a-zA-Z0-9_-]/g, '-')}` : newItemKind === 'packaged' ? `packaged-editor-${NEW_PACKAGED_DRAFT_ID}` : 'new-packaged-editor'}
       editingName={editingPackaged?.name}
       initialValues={editingPackaged ? {
@@ -313,6 +331,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
       dishName={editingPackaged ? packagedName : undefined}
       onDishNameChange={editingPackaged ? setPackagedName : undefined}
       hideNameField={!!editingPackaged}
+      photoActionsAccessory={newItemKind === 'packaged' ? <PackagedFoodSwitch enabled onChange={(enabled) => { if (!enabled) startNewRecipe(); }} /> : null}
       onCancel={cancelPackagedEdit}
       onSubmit={async (value, originalDish) => {
         const edited = editingPackaged;
@@ -335,7 +354,8 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
       }}
       embedded={!!editingPackaged || newItemKind === 'packaged'}
       embeddedDivider={!!editingPackaged}
-    />
+      />
+    </div>
   ) : null;
 
   return (
@@ -350,35 +370,11 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
         </div>
       )}
 
-      {/* Header with Add Button */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-base font-bold text-white">Recipe Catalog</h2>
           <p className="text-xs text-slate-400">Pre-saved meals with standard macro values</p>
         </div>
-
-        {!showAddForm && !showPackagedForm && (
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              aria-label="Add packaged food"
-              title="Add packaged food with its nutrition information"
-              onClick={startNewPackaged}
-              className={`recipe-action-glass recipe-action-glass-amber flex h-10 w-10 shrink-0 items-center justify-center rounded-full p-0 text-amber-200 active:scale-95 ${onboardingHighlight ? 'onboarding-glow onboarding-recipe-glow-a' : ''}`}
-            >
-              <Package className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              aria-label="Add new recipe"
-              title="Create a new recipe from ingredients"
-              onClick={startNewRecipe}
-              className={`recipe-action-glass recipe-action-glass-emerald flex h-10 w-10 shrink-0 items-center justify-center rounded-full p-0 text-emerald-50 active:scale-95 ${onboardingHighlight ? 'onboarding-glow onboarding-recipe-glow-b' : ''}`}
-            >
-              <Plus className="w-4 h-4" />
-            </button>
-          </div>
-        )}
       </div>
 
       {showPackagedForm && !editingPackaged && newItemKind !== 'packaged' && packagedEditorForm}
@@ -386,27 +382,37 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
       {showAddForm && !editingName && newItemKind !== 'recipe' && recipeEditorForm}
 
       {/* Recipe List Cards */}
-      {showSearch && (
-          <div className="relative rounded-full bg-gradient-to-r from-slate-900/90 via-slate-800/75 to-slate-900/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_24px_rgba(0,0,0,0.16)] backdrop-blur-xl">
-          <Search aria-hidden="true" className="absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-emerald-400" />
-          <input
-            type="search"
-            aria-label="Search recipes"
-            placeholder="Search recipes and packaged foods..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="relative w-full rounded-full border-0 bg-transparent py-3 pl-10 pr-10 text-sm text-white outline-none transition placeholder:text-slate-400/80 focus:bg-white/[0.025] focus:ring-2 focus:ring-inset focus:ring-emerald-400/20"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              aria-label="Clear recipe search"
-              onClick={() => setSearchQuery('')}
-              className="absolute right-2.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 transition hover:bg-white/10 hover:text-white"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
+      {!showAddForm && !showPackagedForm && (
+        <div className="relative rounded-full bg-gradient-to-r from-slate-900/90 via-slate-800/75 to-slate-900/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_24px_rgba(0,0,0,0.16)] backdrop-blur-xl">
+            <Search aria-hidden="true" className="absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-emerald-400" />
+            <input
+              type="text"
+              role="searchbox"
+              aria-label="Search recipes"
+              placeholder="Search recipes and packaged foods..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="relative w-full rounded-full border-0 bg-transparent py-3 pl-10 pr-20 text-sm text-white outline-none transition placeholder:text-slate-400/80 focus:bg-white/[0.025] focus:ring-2 focus:ring-inset focus:ring-emerald-400/20"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                aria-label="Clear recipe search"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-10 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 transition hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          <button
+            type="button"
+            aria-label="Add recipe"
+            title="Add recipe"
+            onClick={startNewRecipe}
+            className={`absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-emerald-300 transition-colors hover:text-emerald-200 active:scale-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 ${onboardingHighlight ? 'onboarding-glow onboarding-recipe-glow-b' : ''}`}
+          >
+            <Plus aria-hidden="true" className="h-5 w-5" />
+          </button>
         </div>
       )}
       <div>
@@ -478,7 +484,8 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
                   )}
                 </h4>
               </div>
-              <div className="ml-1 flex shrink-0 items-center gap-1 text-right">
+              <div className="ml-5 flex shrink-0 items-center gap-1 text-right">
+                {isRecipeDraftCard && <PackagedFoodSwitch enabled={false} onChange={(enabled) => { if (enabled) startNewPackaged(); }} />}
                 {!isEditingCard && !r.isPackaged && (
                 <button
                   type="button"
@@ -514,18 +521,22 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
             {!isEditingCard && <div className="space-y-1 pt-1 border-t border-slate-800/60 text-[9px] font-medium">
               <div className="flex justify-start gap-1.5">
                 <span className="inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-md bg-white/[0.06] px-2 py-1 text-white">
-                  <span>Energy</span><span className="font-bold">{r.calories} kcal</span>
+                  {isOpen ? <span>Energy</span> : <><span className="hidden sm:inline">Energy</span><span className="sm:hidden">E:</span></>}
+                  <span className="font-bold">{r.calories} kcal</span>
                 </span>
-                <span className="inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-md bg-sky-500/10 px-2 py-1 text-sky-400">
-                  <span>Fats</span><span className="font-bold">{r.fats}g</span>
+                <span className="inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-md bg-sky-500/10 px-2 py-1 text-white">
+                  {isOpen ? <span>Fats</span> : <><span className="hidden sm:inline">Fats</span><span className="sm:hidden">F:</span></>}
+                  <span className="font-bold">{r.fats}g</span>
                 </span>
               </div>
               <div className="flex justify-start gap-1.5">
-                <span className="inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-md bg-rose-500/10 px-2 py-1 text-rose-400">
-                  <span>Protein</span><span className="font-bold">{r.protein}g</span>
+                <span className="inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-md bg-rose-500/10 px-2 py-1 text-white">
+                  {isOpen ? <span>Protein</span> : <><span className="hidden sm:inline">Protein</span><span className="sm:hidden">P:</span></>}
+                  <span className="font-bold">{r.protein}g</span>
                 </span>
-                <span className="inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-md bg-amber-500/10 px-2 py-1 text-amber-400">
-                  <span>Carbs</span><span className="font-bold">{r.carbs}g</span>
+                <span className="inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-md bg-amber-500/10 px-2 py-1 text-white">
+                  {isOpen ? <span>Carbs</span> : <><span className="hidden sm:inline">Carbs</span><span className="sm:hidden">C:</span></>}
+                  <span className="font-bold">{r.carbs}g</span>
                 </span>
               </div>
             </div>}

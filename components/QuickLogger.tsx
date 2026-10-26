@@ -144,7 +144,7 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
                 </div>
               )}
 
-              <div className={`grid grid-cols-1 md:grid-cols-2 gap-2 max-h-56 md:max-h-72 overflow-y-auto pr-1 ${onboardingHighlight ? 'onboarding-glow-fields' : ''}`}>
+              <div className={`flex max-h-56 flex-col divide-y divide-white/10 overflow-y-auto rounded-xl bg-slate-950/70 pr-1 md:max-h-72 ${onboardingHighlight ? 'onboarding-glow-fields' : ''}`}>
                 {filteredRecipes.map((r) => {
                   const isSelected = selectedRecipeId === r.id;
                   return (
@@ -152,10 +152,9 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
                       key={r.id}
                       type="button"
                       onClick={() => setSelectedRecipeId(r.id)}
-                      className={`log-choice text-left p-3 rounded-2xl transition-all flex items-center justify-between ${
-                        isSelected
-                          ? 'log-choice-selected text-white'
-                          : 'text-slate-300 hover:bg-white/[0.045]'
+                      aria-pressed={isSelected}
+                      className={`flex w-full items-center justify-between gap-3 px-2 py-[7.5px] text-left transition-colors ${
+                        isSelected ? 'text-white' : 'text-slate-300 hover:bg-white/[0.025]'
                       }`}
                     >
                       <div>
@@ -188,7 +187,7 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
                   );
                 })}
                 {normalizedSearch && filteredRecipes.length === 0 && (
-                  <div className="app-card-surface md:col-span-2 rounded-xl px-4 py-6 text-center">
+                  <div className="px-4 py-6 text-center">
                     <p className="text-sm font-semibold text-slate-100">No matching foods</p>
                     <p className="mt-1 text-xs text-slate-400">Try another name or clear your search.</p>
                   </div>
@@ -312,16 +311,16 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
           <button
             type="submit"
             disabled={isSubmitting}
-            className="relative -translate-y-3 mx-auto w-full max-w-2xl py-4 rounded-2xl bg-gradient-to-br from-emerald-200 via-emerald-300 to-teal-400 hover:brightness-105 active:scale-[0.98] text-slate-950 font-bold text-sm shadow-[0_12px_30px_rgba(16,185,129,0.15),inset_0_1px_0_rgba(255,255,255,0.58)] transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
+            className="relative -translate-y-3 mx-auto flex w-full max-w-2xl items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-emerald-200/90 via-emerald-300/85 to-teal-400/80 py-3.5 text-sm font-bold text-slate-950 shadow-[0_6px_18px_rgba(16,185,129,0.24),inset_0_1px_0_rgba(255,255,255,0.68),inset_0_-1px_0_rgba(6,78,59,0.22)] transition-all hover:brightness-105 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSubmitting ? (
               <span className="flex items-center gap-2">
-                <span className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
                 Recording to Sheet...
               </span>
             ) : (
               <span className="flex items-center gap-2">
-                <Utensils className="w-4 h-4 stroke-[2.5]" />
+                <Utensils className="h-4 w-4 stroke-[2.5] text-slate-950" />
                 Log This Meal
               </span>
             )}

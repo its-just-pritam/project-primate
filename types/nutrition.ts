@@ -118,7 +118,6 @@ export interface PlanAnalytics {
   workoutCaloriesByDate: Record<string, number>;
   heightCm: number;
   workoutsPerWeek: number;
-  avatar?: string;
   startDate: string;
   plans: PlanSummary[];
   hasPlan: boolean;

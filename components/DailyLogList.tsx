@@ -131,12 +131,24 @@ export const DailyLogList: React.FC<DailyLogListProps> = ({ logs, onDelete }) =>
 
             <div className="mt-2 space-y-1 border-t border-slate-800/60 pt-2 text-[9px] font-medium">
               <div className="flex justify-start gap-1.5">
-                <span className="inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-md bg-white/[0.06] px-2 py-1 text-white"><span>Energy</span><span className="font-bold">{Math.round(item.calories)} kcal</span></span>
-                <span className="inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-md bg-sky-500/10 px-2 py-1 text-sky-400"><span>Fats</span><span className="font-bold">{item.fats}g</span></span>
+                <span className="inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-md bg-white/[0.06] px-2 py-1 text-white">
+                  {isOpen ? <span>Energy</span> : <><span className="hidden sm:inline">Energy</span><span className="sm:hidden">E:</span></>}
+                  <span className="font-bold">{Math.round(item.calories)} kcal</span>
+                </span>
+                <span className="inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-md bg-sky-500/10 px-2 py-1 text-white">
+                  {isOpen ? <span>Fats</span> : <><span className="hidden sm:inline">Fats</span><span className="sm:hidden">F:</span></>}
+                  <span className="font-bold">{item.fats}g</span>
+                </span>
               </div>
               <div className="flex justify-start gap-1.5">
-                <span className="inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-md bg-rose-500/10 px-2 py-1 text-rose-400"><span>Protein</span><span className="font-bold">{item.protein}g</span></span>
-                <span className="inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-md bg-amber-500/10 px-2 py-1 text-amber-400"><span>Carbs</span><span className="font-bold">{item.carbs}g</span></span>
+                <span className="inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-md bg-rose-500/10 px-2 py-1 text-white">
+                  {isOpen ? <span>Protein</span> : <><span className="hidden sm:inline">Protein</span><span className="sm:hidden">P:</span></>}
+                  <span className="font-bold">{item.protein}g</span>
+                </span>
+                <span className="inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-md bg-amber-500/10 px-2 py-1 text-white">
+                  {isOpen ? <span>Carbs</span> : <><span className="hidden sm:inline">Carbs</span><span className="sm:hidden">C:</span></>}
+                  <span className="font-bold">{item.carbs}g</span>
+                </span>
               </div>
             </div>
 

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { updateProfile, addPlan, deletePlan, updateAvatar } from '@/lib/sheets';
-import { AVATARS } from '@/lib/avatars';
+import { updateProfile, addPlan, deletePlan } from '@/lib/sheets';
 import { ProfileUpdate, PlanInput } from '@/types/nutrition';
 import { getCurrentSession } from '@/lib/authSession';
 
@@ -44,26 +43,6 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     return NextResponse.json(
       { error: error?.message || 'Failed to update profile' },
-      { status: 500 }
-    );
-  }
-}
-
-// Change the avatar only
-export async function PATCH(req: NextRequest) {
-  try {
-    const b = await req.json();
-    const session = await getCurrentSession();
-    if (!session) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-    const avatar = String(b.avatar || '');
-    if (!AVATARS.includes(avatar)) {
-      return NextResponse.json({ error: 'Unknown avatar' }, { status: 400 });
-    }
-    const result = await updateAvatar(avatar, session.name);
-    return NextResponse.json({ success: true, isLive: result.isLive });
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error?.message || 'Failed to update avatar' },
       { status: 500 }
     );
   }
