@@ -3,7 +3,7 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { PlanAnalytics } from '@/types/nutrition';
-import { ArrowRight, Info, Share2, X } from 'lucide-react';
+import { ArrowRight, Share2, X } from 'lucide-react';
 import { BowlFoodIcon } from '@phosphor-icons/react/dist/csr/BowlFood';
 import { LightningIcon } from '@phosphor-icons/react/dist/csr/Lightning';
 import { FireIcon } from '@phosphor-icons/react/dist/csr/Fire';
@@ -27,7 +27,6 @@ interface PlanCardProps {
 }
 
 export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
-  const [showInfo, setShowInfo] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
   const [sharing, setSharing] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -445,7 +444,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
           </div>
           <span aria-hidden="true" className="pointer-events-none absolute left-1/2 top-0 -bottom-2 w-px bg-gradient-to-b from-transparent via-slate-400/35 to-slate-400/35" />
           <div className="px-2.5 py-2 text-center">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">Muscle Mass</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">Dry Muscle Change</p>
             <p className={`mt-0.5 text-sm font-extrabold ${muscleMassDeltaKg >= 0 ? 'text-sky-400' : 'text-orange-400'}`}>
               {muscleMassDeltaKg > 0 ? '+' : ''}
               {muscleMassDeltaKg.toFixed(2)} kg
@@ -455,30 +454,8 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
         <div aria-hidden="true" className="mt-2 h-px w-full bg-slate-400/35" />
         <div className="pt-3 grid grid-cols-2 gap-3">
           <div className="min-w-0">
-            <div className="relative flex items-center gap-1">
+            <div>
               <p className="text-[10px] uppercase tracking-[0.08em] text-slate-400 font-semibold">Projected finish</p>
-              <button
-                type="button"
-                aria-label="About the projected date"
-                aria-expanded={showInfo}
-                onClick={() => setShowInfo((v) => !v)}
-                onMouseEnter={() => setShowInfo(true)}
-                onMouseLeave={() => setShowInfo(false)}
-                onBlur={() => setShowInfo(false)}
-                className="block text-slate-500 hover:text-emerald-400 focus:text-emerald-400 outline-none"
-              >
-                <Info className="w-3 h-3" />
-              </button>
-              {showInfo && (
-                <span
-                  role="tooltip"
-                  className="absolute left-0 bottom-full mb-2.5 w-60 rounded-lg border border-emerald-500/30 bg-slate-950 px-3 py-2.5 text-left text-[11px] font-normal normal-case tracking-normal leading-relaxed text-slate-300 shadow-xl z-20"
-                >
-                  Progress is the signed cumulative body-weight delta relative to your target. It
-                  combines predicted fat change with wet muscle-mass change from protein balance.
-                  <span className="absolute left-[118px] -bottom-[5px] w-2.5 h-2.5 rotate-45 border-r border-b border-emerald-500/30 bg-slate-950" />
-                </span>
-              )}
             </div>
             <p
               className={`mt-0.5 text-sm font-extrabold truncate ${

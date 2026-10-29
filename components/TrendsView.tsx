@@ -19,7 +19,7 @@ import { TrendingUp, Award, CalendarDays } from 'lucide-react';
 import { toLocalDateKey } from '@/lib/localDate';
 import {
   calculateDailyFatMassChangeGrams,
-  calculateDailyWetMuscleMassChangeGrams,
+  calculateDailyDryMuscleMassChangeGrams,
   calculateThermicEffectOfFood,
 } from '@/lib/bodyComposition';
 
@@ -226,7 +226,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
           restingCalories: restingBurn,
         };
         day.fatChange = calculateDailyFatMassChangeGrams(compositionInputs);
-        day.muscleChange = calculateDailyWetMuscleMassChangeGrams(compositionInputs);
+        day.muscleChange = calculateDailyDryMuscleMassChangeGrams(compositionInputs);
       } else {
         day.fatChange = null;
         day.muscleChange = null;
@@ -412,7 +412,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
       <div className="app-card-surface rounded-2xl p-4 space-y-3 flex flex-col md:h-full">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-            <TrendingUp className="w-3.5 h-3.5 text-violet-400" /> Daily Fat &amp; Muscle Change
+            <TrendingUp className="w-3.5 h-3.5 text-violet-400" /> Daily Fat &amp; Dry Muscle Change
           </h3>
           <span className="text-[10px] text-slate-400">Modelled mass change</span>
         </div>
@@ -429,7 +429,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
                 <span className="w-2 h-2 rounded-full bg-rose-400" /> Fat
               </span>
               <span className="flex items-center gap-1.5 text-sky-400">
-                <span className="w-2 h-2 rounded-full bg-sky-400" /> Muscle
+                <span className="w-2 h-2 rounded-full bg-sky-400" /> Dry muscle
               </span>
             </div>
             <div ref={bodyCompositionChartScroll.ref} className="h-48 w-full mt-auto overflow-x-auto overscroll-x-contain" role="region" aria-label="Scrollable daily fat and muscle change chart">

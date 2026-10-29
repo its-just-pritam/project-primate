@@ -23,7 +23,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { WhatsappLogo } from '@phosphor-icons/react/dist/csr/WhatsappLogo';
 import { Plus, ChevronLeft, ChevronRight, CheckCircle2, ChevronDown, Copy, Dumbbell, FileText, Share2, Sparkles, Utensils, X } from 'lucide-react';
 import { toLocalDateKey, parseLocalDateKey } from '@/lib/localDate';
-import { calculateDailyFatMassChangeGrams, calculateDailyWetMuscleMassChangeGrams, calculateThermicEffectOfFood } from '@/lib/bodyComposition';
+import { calculateDailyFatMassChangeGrams, calculateDailyDryMuscleMassChangeGrams, calculateThermicEffectOfFood } from '@/lib/bodyComposition';
 import { ProfileScreen } from '@/components/ProfileScreen';
 import { StartupSplash } from '@/components/StartupSplash';
 import { OnboardingGuide } from '@/components/OnboardingGuide';
@@ -411,7 +411,7 @@ export default function Home() {
             calorieIntake: totals.calories,
             workoutCalories,
             restingCalories: dayRestingCalories,
-          }))} g · wet muscle mass ${number(calculateDailyWetMuscleMassChangeGrams({
+          }))} g · estimated dry muscle ${number(calculateDailyDryMuscleMassChangeGrams({
             weightKg: currentPlan.currentWeight,
             proteinG: totals.protein,
             carbohydrateG: totals.carbs,
@@ -473,7 +473,7 @@ export default function Home() {
       'CALORIES CONSUMED VS BURNED — DAILY TREND',
       ...dailyTrends.map((trend) => trend.energyLine),
       '',
-      'MODELED BODY FAT VS WET MUSCLE MASS — DAILY TREND',
+      'MODELED BODY FAT VS ESTIMATED DRY MUSCLE CHANGE — DAILY TREND',
       ...(currentPlan?.hasPlan
         ? ['Estimates based on logged food/activity and the active plan; these are modeled changes, not measured body composition.', ...dailyTrends.map((trend) => trend.bodyCompositionLine)]
         : ['Unavailable without an active plan and resting energy estimate.']),

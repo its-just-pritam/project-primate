@@ -17,7 +17,7 @@ import {
 } from '@/types/nutrition';
 import {
   calculateDailyFatMassChangeGrams,
-  calculateDailyWetMuscleMassChangeGrams,
+  calculateDailyDryMuscleMassChangeGrams,
   calculateThermicEffectOfFood,
 } from '@/lib/bodyComposition';
 
@@ -1276,7 +1276,7 @@ export async function fetchPlanAnalytics(userEmail: string, displayName?: string
         })
       );
       dailyMuscleMassChanges.push(
-        calculateDailyWetMuscleMassChangeGrams({
+        calculateDailyDryMuscleMassChangeGrams({
           weightKg: currentWeight,
           proteinG: totals.protein,
           carbohydrateG: totals.carbs,
