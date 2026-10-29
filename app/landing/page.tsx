@@ -67,7 +67,7 @@ const trendPreviews = [
   {
     kind: 'composition' as const,
     title: 'Fat & muscle change',
-    description: 'Follow estimated daily changes for fat and muscle mass.',
+    description: 'Follow estimated daily changes for fat and dry muscle tissue.',
     method: 'Fat: energy balance ÷ 7.7 kcal/g · Muscle: net protein after baseline, exercise, and deficit costs',
     fat: '0,25 116,34 233,29 350,42 466,36 583,49 700,44',
     muscle: '0,55 116,48 233,52 350,45 466,50 583,40 700,44',
@@ -192,7 +192,7 @@ export default function LandingPage() {
                   <p className="mt-1 text-[10px] text-slate-500">Calculated from your plan</p>
                 </div>
                 <div className="rounded-2xl border border-sky-300/15 bg-sky-400/[0.06] p-4">
-                  <p className="text-[10px] font-semibold text-slate-400">MUSCLE MASS CHANGE</p>
+                  <p className="text-[10px] font-semibold text-slate-400">DRY MUSCLE CHANGE</p>
                   <p className="mt-2 text-xl font-black tracking-tight text-sky-200">+0.2 <span className="text-xs font-semibold text-sky-200/60">kg</span></p>
                   <p className="mt-1 text-[10px] text-slate-500">Calculated from your plan</p>
                 </div>
