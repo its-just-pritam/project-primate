@@ -53,7 +53,7 @@ const trendPreviews = [
     description: 'Positive values show a deficit; negative values show a surplus.',
     method: 'Deficit = resting energy + workouts + TEF − intake',
     bars: [62, -34, 78, 28, -48, 54, 84],
-    legend: [{ label: 'Deficit', color: '#ef4444' }, { label: 'Surplus', color: '#10b981' }],
+    legend: [{ label: 'Deficit', color: '#ef4444' }, { label: 'Surplus', color: '#74aa45' }],
   },
   {
     kind: 'protein' as const,
@@ -62,7 +62,7 @@ const trendPreviews = [
     method: 'Daily intake shown against your protein target',
     bars: [38, 68, 56, 82, 62, 74, 90],
     target: 65,
-    legend: [{ label: 'Protein', color: '#10b981' }, { label: 'Target', color: '#10b981', line: true }],
+    legend: [{ label: 'Protein', color: '#74aa45' }, { label: 'Target', color: '#74aa45', line: true }],
   },
   {
     kind: 'composition' as const,
@@ -75,16 +75,17 @@ const trendPreviews = [
   },
 ];
 
-const cardClass = 'group rounded-2xl border border-slate-800/90 bg-[#0d141e]/80 p-6 transition duration-300 hover:-translate-y-1 hover:border-slate-700 hover:bg-[#111b26]';
+const cardClass = 'group rounded-2xl border border-slate-800/90 bg-[#1b2536]/80 p-6 transition duration-300 hover:-translate-y-1 hover:border-slate-700 hover:bg-[#212c40]';
 
 export default function LandingPage() {
   return (
-    <div className="relative min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain bg-[#080e16] text-slate-100" style={{ fontFamily: 'var(--font-manrope), sans-serif' }}>
+    <div className="relative min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain bg-[#141c2b] text-slate-100" style={{ fontFamily: 'var(--font-manrope), sans-serif' }}>
       <ScrollReveal>
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+      {/* Not inset-0: ScrollReveal is display: contents, so inset-0 would only span one screen. Only x is clipped so the glows fade out instead of ending in a line */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-[80rem] overflow-x-clip">
         <div className="absolute -top-56 left-1/2 h-[620px] w-[920px] -translate-x-1/2 rounded-full bg-emerald-500/[0.09] blur-[120px]" />
-        <div className="absolute right-[-15rem] top-[38rem] h-[30rem] w-[30rem] rounded-full bg-teal-500/[0.06] blur-[110px]" />
-        <div className="absolute inset-x-0 top-0 h-[42rem] bg-[linear-gradient(180deg,rgba(15,36,35,0.44),transparent)]" />
+        <div className="absolute right-[-15rem] top-[38rem] h-[30rem] w-[30rem] rounded-full bg-lime-500/[0.06] blur-[110px]" />
+        <div className="absolute inset-x-0 top-0 h-[42rem] bg-[linear-gradient(180deg,rgba(116,170,69,0.07),transparent)]" />
       </div>
 
       <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8 lg:px-12">
@@ -112,13 +113,13 @@ export default function LandingPage() {
             </div>
             <h1 className="mt-7 text-[2.85rem] font-black leading-[1.02] tracking-[-0.055em] text-white sm:text-6xl lg:text-[3.85rem] lg:leading-[1.02]">
               Eat well.
-              <span className="block bg-gradient-to-r from-emerald-300 via-teal-200 to-cyan-300 bg-clip-text pb-[0.12em] text-transparent">Feel your progress.</span>
+              <span className="block bg-gradient-to-r from-emerald-300 via-lime-200 to-yellow-200 bg-clip-text pb-[0.12em] text-transparent">Feel your progress.</span>
             </h1>
             <p className="mt-6 max-w-xl text-base leading-7 text-slate-400 sm:text-lg sm:leading-8 lg:mt-8">
               Log meals, calories, and macros. See how your intake compares with resting needs, workouts, and the energy used to digest food (TEF). Then follow estimated fat and muscle changes—not just the scale.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href="/signup" className="landing-button inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-400 px-6 text-sm font-extrabold text-slate-950 shadow-xl shadow-emerald-500/15 hover:bg-emerald-300">
+              <Link href="/signup" className="landing-button glossy-3d-button inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-6 text-sm font-extrabold">
                 Start tracking your nutrition <ArrowRight className="h-4 w-4" />
               </Link>
               <a href="#trends-heading" className="landing-button inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-700/80 bg-slate-900/50 px-6 text-sm font-semibold text-slate-200 hover:border-slate-600 hover:bg-slate-900">
@@ -133,8 +134,8 @@ export default function LandingPage() {
           </div>
 
           <div className="relative mx-auto w-full max-w-[560px] lg:ml-auto" data-reveal data-reveal-delay="1">
-            <div aria-hidden="true" className="absolute -inset-5 rounded-[2.5rem] bg-gradient-to-br from-emerald-400/15 via-teal-400/[0.04] to-sky-400/10 blur-2xl" />
-            <div className="relative rounded-[1.8rem] border border-white/10 bg-[#101923]/95 p-4 shadow-[0_28px_100px_-35px_rgba(16,185,129,0.3)] backdrop-blur-xl sm:p-6">
+            <div aria-hidden="true" className="absolute -inset-5 rounded-[2.5rem] bg-gradient-to-br from-emerald-400/15 via-lime-400/[0.04] to-sky-400/10 blur-2xl" />
+            <div className="liquid-glass-panel relative rounded-[1.8rem] p-4 sm:p-6">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-emerald-300/15 bg-emerald-300/10 text-emerald-300">
@@ -149,19 +150,19 @@ export default function LandingPage() {
               </div>
 
               <div className="mt-6 grid grid-cols-2 gap-3">
-                <div className="rounded-2xl border border-slate-700/60 bg-slate-950/50 p-4">
+                <div className="glass-card-open rounded-2xl p-4">
                   <div className="flex items-center gap-2 text-slate-400"><Utensils className="h-3.5 w-3.5 text-sky-300" /><span className="text-[11px] font-semibold">Consumed</span></div>
                   <p className="mt-3 text-2xl font-black tracking-tight text-white">1,840 <span className="text-xs font-semibold text-slate-500">kcal</span></p>
                   <div className="mt-3 h-1.5 rounded-full bg-slate-800"><div className="h-full w-[68%] rounded-full bg-sky-400" /></div>
                 </div>
-                <div className="rounded-2xl border border-slate-700/60 bg-slate-950/50 p-4">
+                <div className="glass-card-open rounded-2xl p-4">
                   <div className="flex items-center gap-2 text-slate-400"><Leaf className="h-3.5 w-3.5 text-emerald-300" /><span className="text-[11px] font-semibold">Protein</span></div>
                   <p className="mt-3 text-2xl font-black tracking-tight text-white">112 <span className="text-xs font-semibold text-slate-500">g today</span></p>
                   <div className="mt-3 h-1.5 rounded-full bg-slate-800"><div className="h-full w-[72%] rounded-full bg-gradient-to-r from-emerald-500 to-lime-300" /></div>
                 </div>
               </div>
 
-              <div className="mt-3 rounded-2xl border border-emerald-300/15 bg-gradient-to-br from-emerald-400/[0.09] to-teal-400/[0.025] p-4 sm:p-5">
+              <div className="mt-3 rounded-2xl border border-emerald-300/15 bg-gradient-to-br from-emerald-400/[0.09] to-lime-400/[0.025] p-4 sm:p-5">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Today</p>
@@ -170,15 +171,15 @@ export default function LandingPage() {
                   <div className="flex h-11 w-11 items-center justify-center rounded-full border border-emerald-300/20 bg-emerald-300/10 text-emerald-300"><TrendingUp className="h-5 w-5" /></div>
                 </div>
                 <div className="mt-5 space-y-2.5">
-                  <div className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.05] bg-slate-950/30 px-3.5 py-3">
+                  <div className="flex items-center justify-between gap-3 glass-card-open rounded-xl px-3.5 py-3">
                     <div className="flex min-w-0 items-center gap-3"><span className="h-2 w-2 shrink-0 rounded-full bg-amber-300" /><div className="min-w-0"><p className="text-[10px] font-semibold text-slate-500">BREAKFAST</p><p className="truncate text-xs font-semibold text-slate-200">Oats, berries &amp; yogurt</p></div></div>
                     <span className="shrink-0 text-[10px] font-medium text-slate-500">Fiber + protein</span>
                   </div>
-                  <div className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.05] bg-slate-950/30 px-3.5 py-3">
+                  <div className="flex items-center justify-between gap-3 glass-card-open rounded-xl px-3.5 py-3">
                     <div className="flex min-w-0 items-center gap-3"><span className="h-2 w-2 shrink-0 rounded-full bg-emerald-300" /><div className="min-w-0"><p className="text-[10px] font-semibold text-slate-500">LUNCH</p><p className="truncate text-xs font-semibold text-slate-200">Greens, grains &amp; tofu</p></div></div>
                     <span className="shrink-0 text-[10px] font-medium text-slate-500">Colorful + filling</span>
                   </div>
-                  <div className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.05] bg-slate-950/30 px-3.5 py-3">
+                  <div className="flex items-center justify-between gap-3 glass-card-open rounded-xl px-3.5 py-3">
                     <div className="flex min-w-0 items-center gap-3"><span className="h-2 w-2 shrink-0 rounded-full bg-rose-300" /><div className="min-w-0"><p className="text-[10px] font-semibold text-slate-500">DINNER</p><p className="truncate text-xs font-semibold text-slate-200">A balanced plate, your way</p></div></div>
                     <span className="shrink-0 text-[10px] font-medium text-slate-500">Flexible + satisfying</span>
                   </div>
@@ -201,7 +202,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="features" className="scroll-mt-8 border-y border-white/[0.06] bg-slate-950/35">
+        <section id="features" className="scroll-mt-8">
           <div className="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:px-12 lg:py-24">
             <div className="max-w-2xl">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Features</p>
@@ -228,7 +229,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section aria-labelledby="food-body-heading" className="border-b border-white/[0.06] bg-slate-950/20">
+        <section aria-labelledby="food-body-heading">
           <div className="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:px-12 lg:py-24">
             <div className="max-w-2xl">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Why it matters</p>
@@ -256,7 +257,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section aria-labelledby="trends-heading" className="border-b border-white/[0.06] bg-gradient-to-b from-emerald-950/15 to-transparent">
+        <section aria-labelledby="trends-heading" className="bg-[linear-gradient(180deg,transparent,rgba(116,170,69,0.04)_35%,rgba(116,170,69,0.04)_65%,transparent)]">
           <div className="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:px-12 lg:py-24">
             <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
               <div className="max-w-2xl">
@@ -345,7 +346,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="border-t border-white/[0.06] bg-slate-950/25">
+        <section>
           <div className="mx-auto grid max-w-7xl gap-4 px-5 py-20 sm:px-8 md:grid-cols-2 lg:px-12 lg:py-24">
             <article id="about" className={`${cardClass} scroll-mt-8 sm:p-8`} data-reveal>
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">About us</p>
@@ -374,14 +375,14 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="mx-5 mb-16 overflow-hidden rounded-[2rem] border border-emerald-300/15 bg-gradient-to-br from-emerald-400/[0.13] via-[#10211f] to-slate-900 sm:mx-8 lg:mx-auto lg:mb-24 lg:max-w-7xl" data-reveal>
+        <section className="mx-5 mb-16 overflow-hidden rounded-[2rem] border border-emerald-300/15 bg-gradient-to-br from-emerald-400/[0.13] via-[#183034] to-[#1b2536] sm:mx-8 lg:mx-auto lg:mb-24 lg:max-w-7xl" data-reveal>
           <div className="relative px-6 py-12 text-center sm:px-12 sm:py-16">
             <div aria-hidden="true" className="absolute left-1/2 top-0 h-56 w-96 -translate-x-1/2 rounded-full bg-emerald-400/10 blur-3xl" />
             <div className="relative mx-auto max-w-2xl">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-200">Get started</p>
               <h2 className="mt-4 text-3xl font-black tracking-tight text-white sm:text-4xl">Start with your next meal.</h2>
               <p className="mt-4 text-sm leading-6 text-slate-300 sm:text-base">Track what you eat. Understand what changes.</p>
-              <Link href="/signup" className="landing-button mt-7 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-emerald-300 px-6 text-sm font-extrabold text-slate-950 hover:bg-emerald-200">Start tracking <ArrowRight className="h-4 w-4" /></Link>
+              <Link href="/signup" className="landing-button glossy-3d-button mt-7 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-6 text-sm font-extrabold">Start tracking <ArrowRight className="h-4 w-4" /></Link>
             </div>
           </div>
         </section>

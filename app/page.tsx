@@ -64,8 +64,8 @@ export default function Home() {
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [openNewPlan, setOpenNewPlan] = useState(false);
+  // Number of completed onboarding steps, as stored on the user record; ONBOARDING_TASKS.length means finished.
   const [onboardingStep, setOnboardingStep] = useState<number | null>(null);
-  const [onboardingIndex, setOnboardingIndex] = useState(0);
   const [onboardingStarted, setOnboardingStarted] = useState(false);
   const [profileSaveNotice, setProfileSaveNotice] = useState<string | null>(null);
   const profileSaveNoticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -147,7 +147,9 @@ export default function Home() {
 
       if (onboardingRes.ok) {
         const onboardingData = await onboardingRes.json();
-        setOnboardingStep(Number(onboardingData.step) === 0 ? 0 : 1);
+        const savedStep = Math.min(Math.max(Math.trunc(Number(onboardingData.step)) || 0, 0), ONBOARDING_TASKS.length);
+        // Progress only moves forward, so a reload that races a save can't move the guide back.
+        setOnboardingStep((current) => Math.max(current ?? 0, savedStep));
       }
 
       if (mealsRes.ok) {
@@ -205,17 +207,23 @@ export default function Home() {
     }
   };
 
-  const markOnboardingComplete = async (): Promise<boolean> => {
+  const saveOnboardingStep = async (step: number): Promise<boolean> => {
+    setOnboardingStep((current) => Math.max(current ?? 0, step));
     try {
-      const response = await fetch('/api/onboarding', { method: 'POST' });
+      const response = await fetch('/api/onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ step }),
+      });
       if (!response.ok) throw new Error('Unable to save onboarding status');
-      setOnboardingStep(1);
       return true;
     } catch (error) {
       console.error(error);
       return false;
     }
   };
+
+  const markOnboardingComplete = () => saveOnboardingStep(ONBOARDING_TASKS.length);
 
   const completeOnboardingTask = async (task: OnboardingTaskId) => {
     const updated = new Set(completedOnboardingTasks);
@@ -254,28 +262,25 @@ export default function Home() {
     }
   };
 
-  const activeOnboardingTask = ONBOARDING_TASKS[onboardingIndex];
+  const isOnboarding = onboardingStep !== null && onboardingStep < ONBOARDING_TASKS.length;
+  const activeOnboardingTask = isOnboarding ? ONBOARDING_TASKS[onboardingStep] : undefined;
   const continueOnboarding = () => {
-    if (!activeOnboardingTask) return;
+    if (!activeOnboardingTask || onboardingStep === null) return;
     if (!onboardingStarted) {
       setOnboardingStarted(true);
       goToOnboardingTask(activeOnboardingTask.id);
       return;
     }
-    if (onboardingIndex >= ONBOARDING_TASKS.length - 1) {
-      void markOnboardingComplete();
-      return;
-    }
-    const nextIndex = onboardingIndex + 1;
-    setOnboardingIndex(nextIndex);
-    goToOnboardingTask(ONBOARDING_TASKS[nextIndex].id);
+    const completedSteps = onboardingStep + 1;
+    void saveOnboardingStep(completedSteps);
+    if (completedSteps < ONBOARDING_TASKS.length) goToOnboardingTask(ONBOARDING_TASKS[completedSteps].id);
   };
-  const onboardingGuide = onboardingStep === 0 && activeOnboardingTask ? (
+  const onboardingGuide = activeOnboardingTask && onboardingStep !== null ? (
     <OnboardingGuide
-      step={onboardingIndex + 1}
+      step={onboardingStep + 1}
       title={activeOnboardingTask.title}
       description={activeOnboardingTask.description}
-      actionLabel={onboardingIndex === ONBOARDING_TASKS.length - 1 ? 'Done' : onboardingStarted ? 'Next' : 'Get started'}
+      actionLabel={onboardingStep === ONBOARDING_TASKS.length - 1 ? 'Done' : onboardingStarted ? 'Next' : onboardingStep === 0 ? 'Get started' : 'Continue'}
       onContinue={continueOnboarding}
     />
   ) : null;
@@ -540,7 +545,7 @@ export default function Home() {
       if (!res.ok) throw new Error('Failed to log meal');
 
       await completeOnboardingTask('meal');
-      // Reload so the new entry carries its sheet row id (needed for deletion)
+      // Reload so the new entry carries its database id (needed for deletion)
       await loadData();
       return true;
     } catch (err) {
@@ -714,7 +719,7 @@ export default function Home() {
   }
 
   const closeProfile = () => {
-    if (onboardingStep === 0) void markOnboardingComplete();
+    if (isOnboarding) void markOnboardingComplete();
     setShowProfile(false);
     setOpenNewPlan(false);
   };
@@ -725,11 +730,11 @@ export default function Home() {
         <ProfileScreen
           plan={plan}
           startWithNewPlan={openNewPlan}
-          onboardingHighlight={onboardingStep === 0 ? (activeOnboardingTask?.id === 'profile' ? 'profile' : activeOnboardingTask?.id === 'plan' ? 'plan' : null) : null}
+          onboardingHighlight={isOnboarding ? (activeOnboardingTask?.id === 'profile' ? 'profile' : activeOnboardingTask?.id === 'plan' ? 'plan' : null) : null}
           onboardingGuide={onboardingGuide}
           successToast={profileSaveToast}
           onProfileSaveSuccess={announceProfileSave}
-          keepOpenDuringOnboarding={onboardingStep === 0}
+          keepOpenDuringOnboarding={isOnboarding}
           onRefresh={loadData}
           onExport={() => {
             closeProfile();
@@ -742,7 +747,6 @@ export default function Home() {
           onAddPlan={(p: PlanInput) => handlePlanRequest('PUT', p)}
           onDeletePlan={(rowNumber, comment) => handlePlanRequest('DELETE', { rowNumber, comment })}
           onSignOut={async () => {
-            if (onboardingStep === 0) await fetch('/api/onboarding', { method: 'POST' });
             await fetch('/api/auth/logout', { method: 'POST' });
             window.location.assign('/');
           }}
@@ -778,7 +782,7 @@ export default function Home() {
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-amber-300/10 text-amber-300"><Sparkles aria-hidden="true" className="h-4 w-4" /></span>
                 <div className="flex flex-col justify-center">
                   <div className="text-[8px] font-bold leading-none tracking-[.18em] text-amber-200">PERSONALIZED SUMMARY</div>
-                  <h2 id="export-report-title" className="mt-0.5 text-[17px] font-bold leading-tight text-white">A note for your coach</h2>
+                  <h2 id="export-report-title" className="mt-0.5 text-[17px] font-bold leading-tight text-white">For your coach</h2>
                 </div>
               </div>
               <button type="button" aria-label="Close report" onClick={() => setExportReport('')} className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-white/[0.06] hover:text-white"><X aria-hidden="true" className="h-4 w-4" /></button>
@@ -835,7 +839,7 @@ export default function Home() {
                     setOpenNewPlan(true);
                     setShowProfile(true);
                   }}
-                  className="group inline-flex items-center gap-2.5 rounded-2xl border border-emerald-200/50 bg-gradient-to-br from-emerald-300 via-emerald-400 to-teal-400 px-5 py-3.5 text-sm font-bold text-slate-950 shadow-lg shadow-emerald-500/25 transition-all hover:-translate-y-0.5 hover:brightness-105 hover:shadow-xl hover:shadow-emerald-500/30 active:translate-y-0 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300"
+                  className="glossy-3d-button group inline-flex items-center gap-2.5 rounded-2xl px-5 py-3.5 text-sm font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300"
                 >
                   <Plus className="h-7 w-7 rounded-full bg-white/25 p-1.5 transition-transform group-hover:rotate-90" /> Add Plan
                 </button>
@@ -943,7 +947,7 @@ export default function Home() {
                 aria-hidden="true"
                 className={`log-mode-switch-indicator pointer-events-none absolute inset-y-1.5 left-1.5 z-[1] w-[calc(50%-0.375rem)] rounded-xl transition-[transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
                   logMode === 'meal'
-                    ? 'translate-x-0 bg-gradient-to-br from-emerald-200/90 via-emerald-300/85 to-teal-400/80 shadow-[0_6px_18px_rgba(16,185,129,0.24),inset_0_1px_0_rgba(255,255,255,0.68),inset_0_-1px_0_rgba(6,78,59,0.22)]'
+                    ? 'translate-x-0 bg-gradient-to-br from-emerald-200/90 via-emerald-300/85 to-lime-300/80 shadow-[0_6px_18px_rgba(116,170,69,0.24),inset_0_1px_0_rgba(255,255,255,0.68),inset_0_-1px_0_rgba(6,78,59,0.22)]'
                     : 'translate-x-full bg-gradient-to-br from-orange-200/90 via-orange-300/85 to-rose-400/80 shadow-[0_6px_18px_rgba(251,146,60,0.22),inset_0_1px_0_rgba(255,255,255,0.62),inset_0_-1px_0_rgba(124,45,18,0.2)]'
                 }`}
               />
@@ -972,7 +976,7 @@ export default function Home() {
                 recipes={[...recipes, ...packaged]}
                 userName={plan?.userName}
                 isBottomNavHidden={isBottomNavHidden}
-                onboardingHighlight={onboardingStep === 0 && activeOnboardingTask?.id === 'meal'}
+                onboardingHighlight={isOnboarding && activeOnboardingTask?.id === 'meal'}
                 onLogMeal={handleLogMeal}
                 onNavigateToRecipes={() => setActiveTab('recipes')}
               />
@@ -981,7 +985,7 @@ export default function Home() {
                 workoutNames={workoutNames}
                 userName={plan?.userName}
                 isBottomNavHidden={isBottomNavHidden}
-                onboardingHighlight={onboardingStep === 0 && activeOnboardingTask?.id === 'workout'}
+                onboardingHighlight={isOnboarding && activeOnboardingTask?.id === 'workout'}
                 onLogWorkout={handleLogWorkout}
               />
             )}
@@ -994,7 +998,7 @@ export default function Home() {
             {initialLoading ? (
               <ListSkeleton label="Loading recipes" rows={3} />
             ) : (
-              <RecipeManager recipes={recipes} packaged={packaged} ingredientNames={ingredientNames} ingredientUnits={ingredientUnits} onboardingHighlight={onboardingStep === 0 && activeOnboardingTask?.id === 'recipe'} onAddRecipe={handleAddRecipe} onAddPackaged={handleAddPackaged} onUpdateRecipe={handleUpdateRecipe} onUpdatePackaged={handleUpdatePackaged} />
+              <RecipeManager recipes={recipes} packaged={packaged} ingredientNames={ingredientNames} ingredientUnits={ingredientUnits} onboardingHighlight={isOnboarding && activeOnboardingTask?.id === 'recipe'} onAddRecipe={handleAddRecipe} onAddPackaged={handleAddPackaged} onUpdateRecipe={handleUpdateRecipe} onUpdatePackaged={handleUpdatePackaged} />
             )}
           </div>
         )}
@@ -1032,7 +1036,7 @@ export default function Home() {
       {pendingDelete && (
         <ConfirmDialog
           title={`Delete ${pendingDelete.kind === 'meal' ? 'meal' : 'workout'} "${pendingDelete.name}"?`}
-          message={deleteError ?? 'The entry is removed from the sheet.'}
+          message={deleteError ?? 'The entry is permanently removed.'}
           busy={deleteBusy}
           onConfirm={confirmDeleteLog}
           onCancel={() => {

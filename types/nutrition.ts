@@ -118,6 +118,7 @@ export interface PlanAnalytics {
   workoutCaloriesByDate: Record<string, number>;
   heightCm: number;
   workoutsPerWeek: number;
+  phoneNumber?: string | null;
   startDate: string;
   plans: PlanSummary[];
   hasPlan: boolean;
@@ -128,6 +129,8 @@ export interface ProfileUpdate {
   weightKg: number;
   heightCm: number;
   workoutsPerWeek: number;
+  /** Omitted leaves the stored number unchanged; empty clears it. */
+  phoneNumber?: string;
   planName: string;
   targetWeightKg: number;
   restingCalories: number;

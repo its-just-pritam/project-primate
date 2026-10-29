@@ -94,7 +94,7 @@ const RecipeEditorForm: React.FC<RecipeEditorFormProps> = ({
       <button type="button" onClick={onAddItem} className="inline-flex h-9 items-center gap-1 whitespace-nowrap rounded-xl px-2 text-xs font-semibold text-emerald-400 hover:bg-emerald-400/10 hover:text-emerald-300"><Plus className="h-3.5 w-3.5" /> Add</button>
       <div className="flex shrink-0 items-center gap-2">
         <button type="button" onClick={onCancel} className="h-9 w-[4.4rem] rounded-xl bg-white/[0.05] text-xs font-semibold text-slate-300 hover:bg-white/[0.09]">Cancel</button>
-        <button type="submit" disabled={isSubmitting} className="h-9 w-[4.4rem] rounded-xl bg-gradient-to-br from-emerald-200 to-emerald-400 text-xs font-bold text-slate-950 shadow-[0_6px_16px_rgba(16,185,129,0.14)] transition-all disabled:bg-none disabled:bg-slate-800 disabled:text-slate-500 disabled:shadow-none">{isSubmitting ? 'Saving...' : editingName ? (embedded ? 'Update' : 'Update Recipe') : 'Save'}</button>
+        <button type="submit" disabled={isSubmitting} className="h-9 w-[4.4rem] rounded-xl bg-gradient-to-br from-emerald-200 to-emerald-400 text-xs font-bold text-slate-950 shadow-[0_6px_16px_rgba(116,170,69,0.14)] transition-all disabled:bg-none disabled:bg-slate-800 disabled:text-slate-500 disabled:shadow-none">{isSubmitting ? 'Saving...' : editingName ? (embedded ? 'Update' : 'Update Recipe') : 'Save'}</button>
       </div>
     </div>
   </form>
@@ -102,6 +102,8 @@ const RecipeEditorForm: React.FC<RecipeEditorFormProps> = ({
 
 const NEW_RECIPE_DRAFT_ID = '__new_recipe_draft__';
 const NEW_PACKAGED_DRAFT_ID = '__new_packaged_draft__';
+// Shared by the recipe and packaged drafts' name rows, so the PKG toggle leaves the row in place
+const DRAFT_NAME_ROW_TRANSITION = 'recipe-draft-name-row';
 
 export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged = [], ingredientNames, ingredientUnits = {}, onAddPackaged, onUpdatePackaged, onAddRecipe, onUpdateRecipe, onboardingHighlight = false }) => {
   const [showPackagedForm, setShowPackagedForm] = useState(false);
@@ -331,7 +333,8 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
       dishName={editingPackaged ? packagedName : undefined}
       onDishNameChange={editingPackaged ? setPackagedName : undefined}
       hideNameField={!!editingPackaged}
-      photoActionsAccessory={newItemKind === 'packaged' ? <PackagedFoodSwitch enabled onChange={(enabled) => { if (!enabled) startNewRecipe(); }} /> : null}
+      nameRowTransitionName={newItemKind === 'packaged' ? DRAFT_NAME_ROW_TRANSITION : undefined}
+      nameAccessory={newItemKind === 'packaged' ? <PackagedFoodSwitch enabled onChange={(enabled) => { if (!enabled) startNewRecipe(); }} /> : null}
       onCancel={cancelPackagedEdit}
       onSubmit={async (value, originalDish) => {
         const edited = editingPackaged;
@@ -449,10 +452,11 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({ recipes, packaged 
               if ((event.target as HTMLElement).closest('button, input, textarea, select, form, label, summary')) return;
               toggleRecipe(r.id);
             }}
-            style={{ viewTransitionName: `recipe-card-${r.id.replace(/[^a-zA-Z0-9_-]/g, '-')}` }}
+            // The recipe and packaged drafts share one name, so the PKG toggle morphs the card instead of cross-fading two cards
+            style={{ viewTransitionName: isRecipeDraftCard || isPackagedDraftCard ? 'recipe-card-new-draft' : `recipe-card-${r.id.replace(/[^a-zA-Z0-9_-]/g, '-')}` }}
             className={`recipe-glass-card cursor-pointer p-3.5 ${isOpen ? 'recipe-glass-card-open w-full rounded-2xl' : 'recipe-glass-card-closed w-[calc(50%-0.1875rem)]'}`}
           >
-            {!isPackagedDraftCard && <div className="flex items-center justify-between">
+            {!isPackagedDraftCard && <div className="flex items-center justify-between" style={isRecipeDraftCard ? { viewTransitionName: DRAFT_NAME_ROW_TRANSITION } : undefined}>
               <div className="min-w-0 flex-1">
                 <h4 className="flex min-w-0 items-center gap-1.5 text-sm font-bold tracking-tight text-white">
                   {isPackagedEditCard ? (

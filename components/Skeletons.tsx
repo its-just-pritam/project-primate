@@ -18,7 +18,7 @@ const Card: React.FC<{ children: React.ReactNode; label: string }> = ({ children
 
 export const ProfileSkeleton: React.FC<{ onClose: () => void }> = ({ onClose }) => (
   <div className="flex-1 flex flex-col">
-    <header className="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-md border-b border-slate-800/80 px-4 py-3 flex items-center gap-3">
+    <header className="sticky top-0 z-40 bg-[#0b1220]/95 backdrop-blur-md border-b border-slate-800/80 px-4 py-3 flex items-center gap-3">
       <button
         type="button"
         onClick={onClose}

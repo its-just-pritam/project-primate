@@ -298,6 +298,10 @@ export async function registerSheetUser(firstName: string, lastName: string, ema
   return { name, username: normalizedEmail, rowNumber: rows.length + 2 };
 }
 
+/** Number of steps in the app's onboarding guide; a stored step of this value means onboarding is finished. */
+export const ONBOARDING_STEPS = 5;
+
+/** Returns how many onboarding steps the user has completed, from 0 to ONBOARDING_STEPS. */
 export async function getUserOnboardingStep(email: string): Promise<number> {
   const sheets = getGoogleSheetsClient();
   if (!sheets) throw new Error('Google Sheets is not configured');
@@ -323,11 +327,16 @@ export async function getUserOnboardingStep(email: string): Promise<number> {
   const normalizedEmail = email.trim().toLowerCase();
   const index = rows.slice(1).findIndex((row) => String(row[emailColumn] || '').trim().toLowerCase() === normalizedEmail);
   if (index < 0) throw new Error('User record not found');
-  const rawStep = rows[index + 1]?.[stepColumn];
-  return String(rawStep).trim() === '0' ? 0 : 1;
+  return parseOnboardingStep(rows[index + 1]?.[stepColumn]);
 }
 
-export async function completeUserOnboarding(email: string): Promise<void> {
+function parseOnboardingStep(rawStep: unknown): number {
+  const step = Math.trunc(Number(String(rawStep ?? '').trim() || 0));
+  return Number.isFinite(step) ? Math.min(Math.max(step, 0), ONBOARDING_STEPS) : 0;
+}
+
+/** Raises the user's completed onboarding step to `step`, never lowering it, and returns the stored value. */
+export async function advanceUserOnboardingStep(email: string, step: number): Promise<number> {
   const sheets = getGoogleSheetsClient();
   if (!sheets) throw new Error('Google Sheets is not configured');
   const result = await sheets.spreadsheets.values.get({
@@ -352,13 +361,15 @@ export async function completeUserOnboarding(email: string): Promise<void> {
   const normalizedEmail = email.trim().toLowerCase();
   const index = rows.slice(1).findIndex((row) => String(row[emailColumn] || '').trim().toLowerCase() === normalizedEmail);
   if (index < 0) throw new Error('User record not found');
+  const stored = Math.max(parseOnboardingStep(rows[index + 1]?.[stepColumn]), step);
   const col = columnLetters(stepColumn + 1);
   await sheets.spreadsheets.values.update({
     spreadsheetId: SPREADSHEET_ID,
     range: `User!${col}${index + 2}`,
     valueInputOption: 'RAW',
-    requestBody: { values: [[1]] },
+    requestBody: { values: [[stored]] },
   });
+  return stored;
 }
 
 function columnLetters(columnNumber: number): string {

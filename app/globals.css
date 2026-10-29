@@ -10,13 +10,13 @@
 }
 
 .onboarding-glow {
-  border: 1px solid rgb(52 211 153 / 85%);
+  border: 1px solid rgb(147 195 90 / 85%);
   animation: onboarding-green-glow 1.8s ease-in-out infinite;
 }
 
 @keyframes onboarding-green-glow {
-  0%, 100% { box-shadow: 0 0 3px rgb(16 185 129 / 28%); }
-  50% { box-shadow: 0 0 9px rgb(16 185 129 / 72%); }
+  0%, 100% { box-shadow: 0 0 3px rgb(116 170 69 / 28%); }
+  50% { box-shadow: 0 0 9px rgb(116 170 69 / 72%); }
 }
 
 @keyframes onboarding-yellow-glow {
@@ -30,8 +30,8 @@
 }
 
 @keyframes onboarding-text-glow {
-  0%, 100% { text-shadow: 0 0 3px rgb(52 211 153 / 38%); }
-  50% { text-shadow: 0 0 7px rgb(52 211 153 / 95%), 0 0 14px rgb(16 185 129 / 62%); }
+  0%, 100% { text-shadow: 0 0 3px rgb(147 195 90 / 38%); }
+  50% { text-shadow: 0 0 7px rgb(147 195 90 / 95%), 0 0 14px rgb(116 170 69 / 62%); }
 }
 
 @keyframes metric-selection-enter {
@@ -102,7 +102,7 @@
   left: 0;
   width: 2px;
   border-radius: 4px;
-  background: linear-gradient(180deg, transparent, rgb(52 211 153 / 86%) 25%, rgb(52 211 153 / 86%) 75%, transparent);
+  background: linear-gradient(180deg, transparent, rgb(147 195 90 / 86%) 25%, rgb(147 195 90 / 86%) 75%, transparent);
   content: '';
   pointer-events: none;
 }
@@ -122,7 +122,7 @@
 }
 
 .log-input:focus {
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%), 0 0 0 1px rgb(110 231 183 / 36%), 0 7px 18px rgb(0 0 0 / 18%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%), 0 0 0 1px rgb(176 214 122 / 36%), 0 7px 18px rgb(0 0 0 / 18%);
 }
 
 .workout-log-form .log-input:focus {
@@ -183,14 +183,14 @@ input[type="search"]::-webkit-search-results-decoration {
   overflow: hidden;
   background:
     radial-gradient(ellipse at 28% 12%, rgb(255 255 255 / 30%), transparent 32%),
-    radial-gradient(circle at 72% 82%, rgb(6 95 82 / 42%), transparent 55%),
-    linear-gradient(145deg, rgb(38 105 93 / 82%), rgb(9 49 53 / 90%) 55%, rgb(8 28 42 / 94%));
-  border: 1px solid rgb(220 255 247 / 42%);
+    radial-gradient(circle at 72% 82%, rgb(58 87 39 / 42%), transparent 55%),
+    linear-gradient(145deg, rgb(70 109 44 / 82%), rgb(36 58 24 / 90%) 55%, rgb(20 32 16 / 94%));
+  border: 1px solid rgb(236 248 214 / 42%);
   box-shadow:
     inset 1px 1px 3px rgb(255 255 255 / 52%),
     inset -5px -7px 14px rgb(0 0 0 / 34%),
     0 5px 14px rgb(0 0 0 / 38%),
-    0 0 16px rgb(52 211 153 / 28%);
+    0 0 16px rgb(147 195 90 / 28%);
   -webkit-backdrop-filter: blur(4px) saturate(165%);
   backdrop-filter: blur(4px) saturate(165%);
 }
@@ -200,7 +200,7 @@ input[type="search"]::-webkit-search-results-decoration {
     inset 1px 1px 2px rgb(255 255 255 / 44%),
     inset -5px -7px 12px rgb(0 0 0 / 38%),
     0 5px 15px rgb(0 0 0 / 42%),
-    0 0 17px rgb(16 185 129 / 38%);
+    0 0 17px rgb(116 170 69 / 38%);
 }
 
 .log-orb-fluid {
@@ -208,8 +208,9 @@ input[type="search"]::-webkit-search-results-decoration {
   z-index: 1;
   inset: -14%;
   border-radius: 48% 52% 50% 50%;
-  background: linear-gradient(135deg, #34d399 0%, #10b981 38%, #0d9488 70%, #0891b2 100%);
-  box-shadow: inset 0 2px 3px rgb(255 255 255 / 42%), 0 0 10px rgb(52 211 153 / 32%);
+  /* Avocado, as in the logo: pale flesh, lime ring, leaf skin */
+  background: linear-gradient(135deg, #d8d866 0%, #aec943 32%, #74aa45 66%, #466d2c 100%);
+  box-shadow: inset 0 2px 3px rgb(255 255 255 / 42%), 0 0 10px rgb(147 195 90 / 32%);
   animation: log-orb-slosh 9s ease-in-out infinite alternate;
 }
 
@@ -226,7 +227,7 @@ input[type="search"]::-webkit-search-results-decoration {
   left: -32%;
   width: 112%;
   height: 114%;
-  background: radial-gradient(ellipse at 50% 45%, rgb(167 243 208 / 72%), rgb(52 211 153 / 20%) 58%, transparent 76%);
+  background: radial-gradient(ellipse at 50% 45%, rgb(205 230 163 / 72%), rgb(147 195 90 / 20%) 58%, transparent 76%);
   animation: log-orb-wave 8.5s ease-in-out infinite alternate;
 }
 
@@ -236,7 +237,7 @@ input[type="search"]::-webkit-search-results-decoration {
   width: 102%;
   height: 130%;
   border-radius: 58% 42% 44% 56%;
-  background: radial-gradient(ellipse at 50% 52%, rgb(34 211 238 / 58%), rgb(13 148 136 / 24%) 56%, transparent 78%);
+  background: radial-gradient(ellipse at 50% 52%, rgb(216 216 102 / 50%), rgb(174 201 67 / 22%) 56%, transparent 78%);
   filter: blur(1.5px);
   animation: log-orb-wave 11s ease-in-out -2s infinite alternate-reverse;
 }
@@ -255,7 +256,7 @@ input[type="search"]::-webkit-search-results-decoration {
 
 .log-orb-plus {
   overflow: visible;
-  filter: drop-shadow(0 1px 2px rgb(0 30 27 / 58%));
+  filter: drop-shadow(0 1px 2px rgb(24 39 15 / 58%));
 }
 
 @keyframes log-orb-slosh {
@@ -286,14 +287,14 @@ input[type="search"]::-webkit-search-results-decoration {
 }
 
 .onboarding-glow-fields > button {
-  border: 1px solid rgb(52 211 153 / 85%);
+  border: 1px solid rgb(147 195 90 / 85%);
   animation: onboarding-green-glow 1.8s ease-in-out infinite;
 }
 
 .onboarding-glow-fields input,
 .onboarding-glow-fields select,
 .onboarding-glow-fields textarea {
-  border: 1px solid rgb(52 211 153 / 85%) !important;
+  border: 1px solid rgb(147 195 90 / 85%) !important;
   animation: onboarding-green-glow 1.8s ease-in-out infinite;
 }
 
@@ -328,7 +329,7 @@ input[type="search"]::-webkit-search-results-decoration {
 }
 
 :root {
-  --background: #090d16;
+  --background: #141c2b;
   --foreground: #f1f5f9;
 }
 
@@ -375,6 +376,29 @@ body {
   height: 100%;
 }
 
+/* PKG toggle: the name row stays put, and only the fields below it fade while the card eases to its new height */
+::view-transition-group(recipe-draft-name-row),
+::view-transition-new(recipe-draft-name-row) {
+  animation: none;
+}
+
+::view-transition-old(recipe-draft-name-row) {
+  display: none;
+}
+
+::view-transition-group(recipe-card-new-draft) {
+  overflow: clip;
+  border-radius: 1rem;
+}
+
+::view-transition-old(recipe-card-new-draft),
+::view-transition-new(recipe-card-new-draft) {
+  height: auto;
+  object-fit: none;
+  object-position: top;
+  animation-duration: 180ms;
+}
+
 .recipe-glass-card:active { transform: scale(0.99); }
 
 .recipe-glass-card-closed {
@@ -404,13 +428,15 @@ body {
   background: linear-gradient(180deg, transparent 0%, rgb(148 163 184 / 35%) 50%, transparent 100%);
 }
 
-.recipe-glass-card-open {
+/* Liquid glass surface for any card while it is expanded */
+.recipe-glass-card-open,
+.glass-card-open {
   border: 1px solid rgb(226 255 247 / 18%);
-  border-color: rgb(110 231 183 / 26%);
+  border-color: rgb(176 214 122 / 26%);
   background:
     radial-gradient(ellipse at 12% 0%, rgb(255 255 255 / 7%), transparent 48%),
     linear-gradient(145deg, rgb(31 47 60 / 74%), rgb(15 25 39 / 82%) 58%, rgb(11 20 33 / 88%));
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%), 0 12px 28px rgb(0 0 0 / 24%), 0 0 18px rgb(16 185 129 / 8%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%), 0 12px 28px rgb(0 0 0 / 24%), 0 0 18px rgb(116 170 69 / 8%);
   -webkit-backdrop-filter: blur(16px) saturate(135%);
   backdrop-filter: blur(16px) saturate(135%);
 }
@@ -433,11 +459,75 @@ body {
 }
 
 .recipe-action-glass-emerald {
-  background: linear-gradient(145deg, rgb(52 211 153 / 48%), rgb(4 120 87 / 58%));
+  background: linear-gradient(145deg, rgb(147 195 90 / 48%), rgb(70 109 44 / 58%));
+}
+
+.glossy-3d-button {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border: 0;
+  background: radial-gradient(120% 140% at 50% 20%, rgb(192 226 140) 0%, rgb(147 195 90) 45%, rgb(116 170 69) 85%, rgb(90 140 54) 100%);
+  color: rgb(2 6 23);
+  box-shadow:
+    inset 0 2px 4px rgb(255 255 255 / 45%),
+    inset 0 -4px 8px rgb(70 109 44 / 35%),
+    0 4px 10px rgb(116 170 69 / 30%),
+    0 8px 20px rgb(0 0 0 / 22%);
+  transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+}
+
+/* Soft gloss that fades out on every side, so the surface reads as rounded rather than edged */
+.glossy-3d-button::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(70% 55% at 50% 12%, rgb(255 255 255 / 55%), rgb(255 255 255 / 0%) 100%);
+  content: '';
+  pointer-events: none;
+}
+
+.glossy-3d-button:hover { filter: brightness(1.05); }
+
+.glossy-3d-button:active {
+  transform: scale(0.96);
+  box-shadow:
+    inset 0 2px 5px rgb(255 255 255 / 35%),
+    inset 0 -3px 6px rgb(70 109 44 / 40%),
+    0 2px 6px rgb(116 170 69 / 25%),
+    0 4px 10px rgb(0 0 0 / 18%);
+}
+
+.glossy-3d-button:disabled {
+  background: rgb(30 41 59);
+  color: rgb(100 116 139);
+  box-shadow: none;
+  filter: none;
+  transform: none;
+  cursor: not-allowed;
+}
+
+.glossy-3d-button:disabled::before { display: none; }
+
+/* Onboarding pulse that keeps the button's soft shading */
+.glossy-3d-button.onboarding-glow {
+  border: 0;
+  animation: glossy-onboarding-glow 1.8s ease-in-out infinite;
+}
+
+@keyframes glossy-onboarding-glow {
+  0%, 100% {
+    box-shadow: inset 0 2px 4px rgb(255 255 255 / 45%), inset 0 -4px 8px rgb(70 109 44 / 35%), 0 4px 10px rgb(116 170 69 / 30%), 0 8px 20px rgb(0 0 0 / 22%);
+  }
+  50% {
+    box-shadow: inset 0 2px 4px rgb(255 255 255 / 45%), inset 0 -4px 8px rgb(70 109 44 / 35%), 0 0 16px rgb(116 170 69 / 80%), 0 8px 20px rgb(0 0 0 / 22%);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .recipe-glass-card { transition: none; }
+  .glossy-3d-button { transition: none; }
 }
 
 .liquid-glass-panel::after {
@@ -445,13 +535,32 @@ body {
   z-index: -1;
   inset: 0;
   border-radius: inherit;
-  background: linear-gradient(115deg, transparent 18%, rgb(110 231 183 / 5%) 48%, transparent 78%);
+  background: linear-gradient(115deg, transparent 18%, rgb(176 214 122 / 5%) 48%, transparent 78%);
   content: '';
   pointer-events: none;
 }
 
 .menu-ripple-button {
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Liquid droplet behind the selected bottom-nav icon; BottomNav positions and animates it */
+.nav-droplet {
+  position: absolute;
+  z-index: 0;
+  top: 50%;
+  left: 0;
+  width: 2.9rem;
+  height: 2.6rem;
+  border-radius: 9999px;
+  /* No border: the drop fades out at its edges so it reads as soft liquid, not a pill */
+  background:
+    radial-gradient(ellipse 45% 35% at 38% 30%, rgb(236 248 214 / 26%), transparent),
+    radial-gradient(ellipse 50% 50% at 50% 52%, rgb(147 195 90 / 20%) 0%, rgb(116 170 69 / 12%) 55%, transparent 100%);
+  box-shadow: 0 0 16px rgb(147 195 90 / 12%);
+  pointer-events: none;
+  transition: opacity 200ms ease;
+  will-change: transform;
 }
 
 .menu-ripple-effect {
@@ -461,10 +570,10 @@ body {
   left: 50%;
   width: 2.5rem;
   height: 2.5rem;
-  border: 1px solid rgb(167 243 208 / 62%);
+  border: 1px solid rgb(205 230 163 / 62%);
   border-radius: 9999px;
-  background: radial-gradient(circle, rgb(110 231 183 / 18%) 0%, rgb(110 231 183 / 8%) 42%, transparent 72%);
-  box-shadow: 0 0 18px rgb(52 211 153 / 24%), inset 0 0 10px rgb(167 243 208 / 12%);
+  background: radial-gradient(circle, rgb(176 214 122 / 18%) 0%, rgb(176 214 122 / 8%) 42%, transparent 72%);
+  box-shadow: 0 0 18px rgb(147 195 90 / 24%), inset 0 0 10px rgb(205 230 163 / 12%);
   pointer-events: none;
   animation: menu-ripple 620ms cubic-bezier(0.16, 0.72, 0.28, 1) both;
 }
@@ -523,7 +632,7 @@ body {
 }
 
 .landing-button:focus-visible {
-  outline: 2px solid #6ee7b7;
+  outline: 2px solid #b0d67a;
   outline-offset: 3px;
 }
 

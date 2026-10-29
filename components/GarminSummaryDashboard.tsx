@@ -66,7 +66,7 @@ function SummaryCard({ icon: Icon, label, value, unit, tint = 'sky', active = fa
     rose: { color: '#fda4af', glow: 'rgba(251,113,133,.58)' },
     violet: { color: '#c4b5fd', glow: 'rgba(167,139,250,.58)' },
     cyan: { color: '#67e8f9', glow: 'rgba(34,211,238,.58)' },
-    emerald: { color: '#6ee7b7', glow: 'rgba(52,211,153,.58)' },
+    emerald: { color: '#b0d67a', glow: 'rgba(147,195,90,.58)' },
   };
   const iconColor = colors[tint];
   return (
@@ -84,12 +84,12 @@ function SummaryCard({ icon: Icon, label, value, unit, tint = 'sky', active = fa
 }
 
 const chartMetricLabels: Record<Exclude<GarminChartMetric, 'sleep'>, { label: string; unit: string; color: string }> = {
-  steps: { label: 'Steps', unit: 'steps', color: '#34d399' },
+  steps: { label: 'Steps', unit: 'steps', color: '#93c35a' },
   calories: { label: 'Calories burned', unit: 'kcal', color: '#f97316' },
   heartRate: { label: 'Heart rate', unit: 'bpm', color: '#ef4444' },
   bodyBattery: { label: 'Body Battery', unit: '/ 100', color: '#a78bfa' },
   distance: { label: 'Distance', unit: 'km', color: '#22d3ee' },
-  intensity: { label: 'Intensity minutes', unit: 'min', color: '#34d399' },
+  intensity: { label: 'Intensity minutes', unit: 'min', color: '#93c35a' },
   stress: { label: 'Stress', unit: '/ 100', color: '#facc15' },
   oxygen: { label: 'Blood oxygen', unit: '%', color: '#fb7185' },
 };
@@ -181,8 +181,8 @@ function MetricWeekChart({ metric: kind, date, data, loading, error }: { metric:
                     contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', fontSize: '11px', color: '#fff' }}
                   />
                   {kind === 'intensity' ? <>
-                    <Bar dataKey="value" name="Moderate" stackId="intensity" fill="#34d399" />
-                    <Bar dataKey="secondary" name="Vigorous" stackId="intensity" fill="#059669" radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="value" name="Moderate" stackId="intensity" fill="#93c35a" />
+                    <Bar dataKey="secondary" name="Vigorous" stackId="intensity" fill="#5a8c36" radius={[6, 6, 0, 0]} />
                   </> : <Bar dataKey="value" name={meta.label} fill={`url(#garmin-${kind}-gradient)`} radius={[6, 6, 0, 0]} />}
                 </BarChart>
               </ResponsiveContainer>
@@ -495,15 +495,15 @@ export function SummaryDashboard({ date, data, deviceName }: { date: string; dat
         <button type="button" aria-expanded={activeChart === 'steps'} onClick={() => chooseChart('steps')} className="mt-3 w-full rounded-lg p-1 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400">
             <div className="flex items-end justify-between gap-3">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400" style={activeChart === 'steps' ? { color: '#34d399' } : undefined}>Steps</p>
-                <p key={`steps-${activeChart === 'steps'}`} className={`mt-1 text-3xl font-extrabold leading-none text-white ${activeChart === 'steps' ? 'metric-selection-enter' : ''}`} style={activeChart === 'steps' ? { color: '#34d399' } : undefined}>{formatNumber(stepCount)}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400" style={activeChart === 'steps' ? { color: '#93c35a' } : undefined}>Steps</p>
+                <p key={`steps-${activeChart === 'steps'}`} className={`mt-1 text-3xl font-extrabold leading-none text-white ${activeChart === 'steps' ? 'metric-selection-enter' : ''}`} style={activeChart === 'steps' ? { color: '#93c35a' } : undefined}>{formatNumber(stepCount)}</p>
               </div>
               <p className="text-right text-[11px] leading-tight text-slate-400">
                 {stepProgress !== undefined ? <><span className="text-lg font-extrabold text-emerald-400">{stepProgress}%</span><br /></> : null}
                 {stepGoal !== undefined ? `${formatNumber(stepGoal)} step goal` : stepCount !== undefined ? 'Daily total' : 'Tap for 7-day chart'}
               </p>
             </div>
-            {stepProgress !== undefined && <div className="progress-track-inset relative mt-3 h-3.5 w-full overflow-hidden rounded-full p-[2px]"><div className="progress-fill-raised h-full max-w-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-700" style={{ width: `${stepProgress}%` }} /></div>}
+            {stepProgress !== undefined && <div className="progress-track-inset relative mt-3 h-3.5 w-full overflow-hidden rounded-full p-[2px]"><div className="progress-fill-raised h-full max-w-full rounded-full bg-gradient-to-r from-emerald-500 to-lime-400 transition-all duration-700" style={{ width: `${stepProgress}%` }} /></div>}
         </button>
       </div>
 
