@@ -2,7 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { PlanAnalytics, PlanInput, PlanSummary, ProfileUpdate } from '@/types/nutrition';
+import { COUNTRY_DIAL_CODES, flagEmoji } from '@/lib/countryCodes';
 import { ChevronDown, Eye, EyeOff, Info, LogOut, Mail, Plus, ShieldCheck, Trash2 } from 'lucide-react';
+import { isBackendEnabled } from '@/lib/config';
 import { cacheGarminAccessToken, clearGarminAccessToken, clearGarminDailySummaryCache, responseBody, setGarminTokenCacheScope } from '@/lib/garminClient';
 import { Header } from './Header';
 
@@ -27,6 +29,24 @@ interface ProfileScreenProps {
 
 const inputCls =
   'log-input w-full h-11 rounded-xl px-3 text-sm text-white focus:outline-none';
+
+/** Stored as one value, "+<country code> <number>"; split for the two inputs. */
+const splitPhoneNumber = (stored: string | null | undefined) => {
+  const match = (stored ?? '').trim().match(/^\+(\d{1,4})\s*(.*)$/);
+  return match ? { countryCode: match[1], number: match[2] } : { countryCode: '', number: (stored ?? '').trim() };
+};
+
+/** Dropdown value for a dial code: the first country using it, or "+<code>" for codes not in the list. */
+const countryForDial = (dial: string) => (dial ? COUNTRY_DIAL_CODES.find((country) => country.dial === dial)?.iso ?? `+${dial}` : '');
+const dialForCountry = (value: string) =>
+  value.startsWith('+') ? value.slice(1) : COUNTRY_DIAL_CODES.find((country) => country.iso === value)?.dial ?? '';
+
+const joinPhoneNumber = (countryCode: string, number: string) => {
+  const code = countryCode.trim().replace(/^\+/, '');
+  const rest = number.trim();
+  if (!rest) return '';
+  return code ? `+${code} ${rest}` : rest;
+};
 
 const localDateTimeInputValue = (timestamp?: string) => {
   const parsed = timestamp ? new Date(timestamp) : new Date();
@@ -151,7 +171,7 @@ const PlanCard: React.FC<{
   };
 
   return (
-    <div className={`border-b border-slate-700/70 pb-2 ${isDeleted ? 'opacity-60' : ''}`}>
+    <div className={`transition-[background,border-color,box-shadow] duration-200 ${open && !isDeleted ? 'glass-card-open rounded-2xl px-3.5 pb-3.5' : 'border-b border-slate-700/70 pb-2'} ${isDeleted ? 'opacity-60' : ''}`}>
       <button
         type="button"
         onClick={() => !isDeleted && setOpen((o) => !o)}
@@ -224,7 +244,7 @@ const PlanCard: React.FC<{
             <button
               type="submit"
               disabled={busy}
-              className="flex-1 py-2.5 rounded-xl bg-gradient-to-br from-emerald-200 to-emerald-400 text-slate-950 font-bold text-xs shadow-[0_6px_16px_rgba(16,185,129,0.14)] disabled:opacity-50"
+              className="flex-1 py-2.5 rounded-xl bg-gradient-to-br from-emerald-200 to-emerald-400 text-slate-950 font-bold text-xs shadow-[0_6px_16px_rgba(116,170,69,0.14)] disabled:opacity-50"
             >
               Save plan
             </button>
@@ -254,9 +274,23 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   onSignOut,
 }) => {
   const [userName, setUserName] = useState(plan?.userName || '');
+  // The account email is the sign-in username; it is shown read-only
+  const [email, setEmail] = useState('');
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/auth/session')
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => { if (!cancelled && typeof data?.user?.username === 'string') setEmail(data.user.username); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
   const [weight, setWeight] = useState(String(plan?.currentWeight ?? ''));
   const [height, setHeight] = useState(String(plan?.heightCm ?? ''));
   const [perWeek, setPerWeek] = useState(String(plan?.workoutsPerWeek ?? ''));
+  const [phoneCountry, setPhoneCountry] = useState(() => countryForDial(splitPhoneNumber(plan?.phoneNumber).countryCode));
+  const [phoneLocal, setPhoneLocal] = useState(() => splitPhoneNumber(plan?.phoneNumber).number);
+  const phoneDial = dialForCountry(phoneCountry);
+  const phone = joinPhoneNumber(phoneDial, phoneLocal);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
@@ -377,13 +411,15 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     weightKg: plan?.currentWeight ?? 0,
     heightCm: plan?.heightCm ?? 0,
     workoutsPerWeek: plan?.workoutsPerWeek ?? 0,
+    phoneNumber: joinPhoneNumber(splitPhoneNumber(plan?.phoneNumber).countryCode, splitPhoneNumber(plan?.phoneNumber).number),
   };
 
   const userDirty =
     userName.trim() !== savedUser.userName ||
     (parseFloat(weight) || 0) !== savedUser.weightKg ||
     (parseFloat(height) || 0) !== savedUser.heightCm ||
-    (parseFloat(perWeek) || 0) !== savedUser.workoutsPerWeek;
+    (parseFloat(perWeek) || 0) !== savedUser.workoutsPerWeek ||
+    phone !== savedUser.phoneNumber;
 
   const handleSaveUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -391,7 +427,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       userName.trim() !== savedUser.userName ||
       (parseFloat(weight) || 0) !== savedUser.weightKg ||
       (parseFloat(height) || 0) !== savedUser.heightCm ||
-      (parseFloat(perWeek) || 0) !== savedUser.workoutsPerWeek;
+      (parseFloat(perWeek) || 0) !== savedUser.workoutsPerWeek ||
+      phone !== savedUser.phoneNumber;
     if (!detailsDirty) {
       if (!keepOpenDuringOnboarding) onClose();
       return;
@@ -403,6 +440,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       weightKg: parseFloat(weight),
       heightCm: parseFloat(height) || 0,
       workoutsPerWeek: parseFloat(perWeek) || 0,
+      phoneNumber: phone,
       planName: '',
       targetWeightKg: 0,
       restingCalories: 0,
@@ -505,7 +543,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   };
 
   return (
-    <div className="min-h-0 flex-1 flex flex-col bg-[#0b101b]">
+    <div className="min-h-0 flex-1 flex flex-col bg-[#141c2b]">
       <Header
         onRefresh={onRefresh}
         onExport={onExport}
@@ -524,10 +562,52 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       {successToast}
       {onboardingGuide}
 
-      <div onScroll={onContentScroll} className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#0b101b] px-4 pt-5 pb-32 space-y-6">
+      <div onScroll={onContentScroll} className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#141c2b] px-4 pt-5 pb-32 space-y-6">
         <form id="user-form" onSubmit={handleSaveUser} className={`space-y-2.5 ${onboardingHighlight === 'profile' ? 'onboarding-glow-fields' : ''}`}>
-          <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">User</h3>
+          <h2 className="text-base font-bold text-white">Profile</h2>
           <FormField label="Name" value={userName} onChange={setUserName} props={{ type: 'text' }} />
+          <FormField
+            label="Email"
+            value={email}
+            onChange={() => {}}
+            props={{ type: 'email', readOnly: true, required: false, className: `${inputCls.replace('text-white', 'text-slate-400')} cursor-default` }}
+          />
+          <div>
+            <label htmlFor="phone-number" className="text-xs font-medium text-slate-300 block mb-1">Phone number</label>
+            <div className="grid grid-cols-[6.75rem_1fr] gap-2.5">
+              {/* Native select for the picker, drawn invisibly over a compact "flag +code" label */}
+              <div className={`${inputCls} relative flex items-center gap-1.5 focus-within:ring-2 focus-within:ring-emerald-400/40`}>
+                <span aria-hidden="true" className="text-base leading-none">{/^[A-Z]{2}$/.test(phoneCountry) ? flagEmoji(phoneCountry) : ''}</span>
+                <span aria-hidden="true" className={phoneDial ? 'text-white' : 'text-slate-500'}>{phoneDial ? `+${phoneDial}` : '—'}</span>
+                <ChevronDown aria-hidden="true" className="ml-auto h-3.5 w-3.5 shrink-0 text-slate-400" />
+                <select
+                  aria-label="Country code"
+                  value={phoneCountry}
+                  onChange={(event) => setPhoneCountry(event.target.value)}
+                  autoComplete="tel-country-code"
+                  required={phoneLocal.trim() !== ''}
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                >
+                  <option value="">—</option>
+                  {phoneCountry.startsWith('+') && <option value={phoneCountry}>{phoneCountry}</option>}
+                  {COUNTRY_DIAL_CODES.map((country) => (
+                    <option key={country.iso} value={country.iso}>{`${flagEmoji(country.iso)} ${country.name} (+${country.dial})`}</option>
+                  ))}
+                </select>
+              </div>
+              <input
+                id="phone-number"
+                value={phoneLocal}
+                onChange={(event) => setPhoneLocal(event.target.value)}
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel-national"
+                pattern="[0-9 \(\)\-]{4,20}"
+                title="Digits, with spaces, dashes or brackets"
+                className={inputCls}
+              />
+            </div>
+          </div>
           <div className="grid grid-cols-3 gap-2.5">
             <FormField
               label="Weight (kg)"
@@ -551,7 +631,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           {error && <p className="text-xs text-red-400">{error}</p>}
         </form>
 
-        <section className="overflow-hidden rounded-2xl border border-slate-700/70 bg-white/[0.025]">
+        <section className={`overflow-hidden rounded-2xl transition-[background,border-color,box-shadow] duration-200 ${garminSectionOpen ? 'glass-card-open' : 'border border-slate-700/70 bg-white/[0.025]'}`}>
           <button type="button" aria-expanded={garminSectionOpen} aria-controls="garmin-profile-settings" onClick={() => setGarminSectionOpen((open) => !open)} className="flex w-full items-center justify-between gap-3 p-4 text-left transition hover:bg-white/[0.025]">
             <div>
               <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-300">Garmin Connect</h3>
@@ -575,7 +655,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 </div>
               </div>
             )}
-            {!garminLive && <p className="text-xs leading-5 text-amber-200/80">Google Sheets is not connected, so the API key cannot be saved.</p>}
+            {!garminLive && <p className="text-xs leading-5 text-amber-200/80">{isBackendEnabled ? 'The server is unavailable, so the API key cannot be saved.' : 'Google Sheets is not connected, so the API key cannot be saved.'}</p>}
             <form onSubmit={saveGarminKey} className="space-y-2.5">
               <label className="block space-y-1.5">
                 <span className="text-xs font-medium text-slate-300">{garminConnected ? 'Replace API key' : 'Garmin Personal API key'}</span>
@@ -584,7 +664,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                   <button type="button" aria-label={garminKeyVisible ? 'Hide new API key' : 'Show new API key'} onClick={() => setGarminKeyVisible((visible) => !visible)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 transition hover:text-white">{garminKeyVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
                 </span>
               </label>
-              <div className="flex items-start gap-1.5 text-[10px] leading-4 text-slate-500"><ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-300" /><span>Your key is saved in your User sheet row and stays masked here.</span></div>
+              <div className="flex items-start gap-1.5 text-[10px] leading-4 text-slate-500"><ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-300" /><span>{isBackendEnabled ? 'Your key is stored encrypted on your account and stays masked here.' : 'Your key is saved in your User sheet row and stays masked here.'}</span></div>
               {garminKeyError && <p role="alert" className="text-xs text-rose-300">{garminKeyError}</p>}
               {garminKeyNotice && <p role="status" className="text-xs text-emerald-300">{garminKeyNotice}</p>}
               <div className="flex items-center gap-2">
@@ -598,7 +678,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           </div>}
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-slate-700/70 bg-white/[0.025]">
+        <section className={`overflow-hidden rounded-2xl transition-[background,border-color,box-shadow] duration-200 ${passwordSectionOpen ? 'glass-card-open' : 'border border-slate-700/70 bg-white/[0.025]'}`}>
           <button
             type="button"
             aria-expanded={passwordSectionOpen}
@@ -651,9 +731,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               <button
                 type="button"
                 onClick={() => setShowNew(true)}
-                className={`flex items-center gap-1.5 text-sm font-medium text-emerald-300 hover:text-emerald-200 active:scale-95 transition-all ${onboardingHighlight === 'plan' ? 'onboarding-text-glow' : ''}`}
+                aria-label="Add plan"
+                title="Add plan"
+                className={`recipe-action-glass group flex h-8 w-8 items-center justify-center rounded-xl bg-white/[0.06] text-emerald-300 hover:text-emerald-200 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 ${onboardingHighlight === 'plan' ? 'onboarding-glow' : ''}`}
               >
-                <Plus className="w-4 h-4" /> Add Plan
+                <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
               </button>
             )}
           </div>
@@ -661,7 +743,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           {showNew && (
             <form
               onSubmit={handleAddPlan}
-              className={`py-3 space-y-3 border-y border-slate-700/70 ${onboardingHighlight === 'plan' ? 'onboarding-glow-fields' : ''}`}
+              className={`glass-card-open rounded-2xl p-3.5 space-y-3 ${onboardingHighlight === 'plan' ? 'onboarding-glow-fields' : ''}`}
             >
               <h4 className="text-sm font-semibold text-white">New Plan</h4>
               <FormField
@@ -725,7 +807,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 <button
                   type="submit"
                   disabled={planBusy}
-                  className="flex-1 h-10 rounded-xl bg-gradient-to-br from-emerald-200 to-emerald-400 text-slate-950 font-medium text-sm disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed transition-colors"
+                  className="glossy-3d-button flex-1 h-10 rounded-xl font-medium text-sm"
                 >
                   {planBusy ? 'Adding...' : 'Add Plan'}
                 </button>
@@ -783,7 +865,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           >
             <h4 className="text-sm font-bold text-white">Delete plan &quot;{deleting.name}&quot;?</h4>
             <p className="text-[11px] text-slate-400">
-              The plan is marked as DELETED in the sheet and no longer used for tracking.
+              The plan is marked as DELETED and no longer used for tracking.
             </p>
             <div>
               <label className="text-xs font-medium text-slate-300 block mb-1">Comment (optional)</label>

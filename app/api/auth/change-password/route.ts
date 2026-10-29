@@ -1,26 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentSession } from '@/lib/authSession';
-import { changeSheetUserPassword } from '@/lib/sheets';
+import { proxyRoute, selectHandler } from '@/lib/backend';
 
-export async function POST(request: NextRequest) {
-  try {
-    const session = await getCurrentSession();
-    if (!session) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+export const dynamic = 'force-dynamic';
 
-    const body = await request.json();
-    const newPassword = typeof body.newPassword === 'string' ? body.newPassword : '';
-    if (newPassword.length < 12 || newPassword.length > 256) {
-      return NextResponse.json(
-        { error: 'Enter a new password between 12 and 256 characters.' },
-        { status: 400 }
-      );
-    }
+const sheets = () => import('@/lib/sheetsRoutes/auth/change-password');
 
-    const changed = await changeSheetUserPassword(session.username, newPassword);
-    if (!changed) return NextResponse.json({ error: 'Could not find a unique account for this session.' }, { status: 400 });
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Password change failed:', error);
-    return NextResponse.json({ error: 'Could not change password. Please try again.' }, { status: 500 });
-  }
-}
+export const POST = selectHandler('POST', proxyRoute('/api/auth/change-password'), sheets);

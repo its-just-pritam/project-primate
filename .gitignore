@@ -9,3 +9,6 @@ credentials.json
 project-primate-*.json
 .DS_Store
 *.tsbuildinfo
+
+# Sheets migration output (contains password hashes)
+sheets-export.sql

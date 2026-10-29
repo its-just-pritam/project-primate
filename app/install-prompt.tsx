@@ -49,7 +49,7 @@ export function InstallPrompt() {
         <Download className="h-5 w-5" aria-hidden="true" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="brand-font text-sm text-white">Install Platito</p>
+        <p className="text-sm font-bold text-white">Install Platito</p>
         <p className="text-xs text-slate-400">Add the app to your device for quick access.</p>
       </div>
       <button type="button" onClick={install} className="rounded-lg bg-emerald-300 px-3 py-2 text-xs font-bold text-slate-950 transition hover:bg-emerald-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300">

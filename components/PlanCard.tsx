@@ -1,102 +1,26 @@
 'use client';
 
-import React, { useId, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { PlanAnalytics } from '@/types/nutrition';
-import { ArrowRight, Info, Share2 } from 'lucide-react';
+import { ArrowRight, Info, Share2, X } from 'lucide-react';
 import { BowlFoodIcon } from '@phosphor-icons/react/dist/csr/BowlFood';
 import { LightningIcon } from '@phosphor-icons/react/dist/csr/Lightning';
 import { FireIcon } from '@phosphor-icons/react/dist/csr/Fire';
 import { TargetIcon } from '@phosphor-icons/react/dist/csr/Target';
 import { CalendarDotsIcon } from '@phosphor-icons/react/dist/csr/CalendarDots';
+import { INVITATION_URL, SHARE_DESIGNS, buildShareSvg, loadShareAssets, renderShareImage, svgToDataUrl } from '@/lib/planShareImages';
 
-const INVITATION_URL = 'https://project-primate.vercel.app/';
+type PreparedShareImage = (typeof SHARE_DESIGNS)[number] & { preview: string; file: File };
 
-const escapeSvgText = (value: string) =>
-  value.replace(/[&<>"']/g, (character) => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&apos;',
-  })[character] || character);
-
-async function createPlanShareImage(plan: PlanAnalytics): Promise<File> {
-  const userName = escapeSvgText(plan.userName || 'A Platito user');
-  const planName = escapeSvgText(plan.planName || 'Active plan');
-  const projectedDate = escapeSvgText(plan.projectedDate || 'Keep going');
-  const weightDeltaKg = plan.totalWeightChangeGrams / 1000;
-  const fatDeltaKg = plan.totalFatMassChangeGrams / 1000;
-  const muscleDeltaKg = plan.totalMuscleMassChangeGrams / 1000;
-  const targetWeightDelta = plan.targetWeight - plan.currentWeight;
-  const formatKg = (value: number) => `${value > 0 ? '+' : ''}${value.toFixed(2)} kg`;
-  const metric = (x: number, y: number, label: string, value: string, color: string, width = 420) => `
-    <rect x="${x}" y="${y}" width="${width}" height="142" rx="24" fill="#101a28" stroke="#263548" stroke-width="2"/>
-    <text x="${x + 28}" y="${y + 46}" fill="#94a3b8" font-family="Arial, sans-serif" font-size="22" font-weight="600" letter-spacing="2">${escapeSvgText(label.toUpperCase())}</text>
-    <text x="${x + 28}" y="${y + 103}" fill="${color}" font-family="Arial, sans-serif" font-size="32" font-weight="700">${escapeSvgText(value)}</text>`;
-  const progressBarWidth = Math.max(0, Math.min(856, 856 * Math.abs(plan.progressPercent) / 100));
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1740" viewBox="0 0 1080 1740">
-      <defs>
-        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07111d"/><stop offset="1" stop-color="#0d2a25"/></linearGradient>
-        <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#34d399"/><stop offset="1" stop-color="#2dd4bf"/></linearGradient>
-      </defs>
-      <rect width="1080" height="1740" fill="url(#bg)"/>
-      <circle cx="980" cy="105" r="220" fill="#10b981" opacity=".08"/>
-      <text x="72" y="96" fill="#6ee7b7" font-family="Boldonse, Arial, sans-serif" font-size="24" font-weight="400" letter-spacing="1">PLATITO</text>
-      <rect x="72" y="142" width="220" height="42" rx="21" fill="#064e3b"/>
-      <text x="182" y="170" text-anchor="middle" fill="#a7f3d0" font-family="Arial, sans-serif" font-size="18" font-weight="700" letter-spacing="2">ACTIVE PLAN</text>
-      <text x="72" y="246" fill="#ffffff" font-family="Arial, sans-serif" font-size="48" font-weight="700">${planName}</text>
-      <text x="72" y="294" fill="#94a3b8" font-family="Arial, sans-serif" font-size="27">A progress snapshot from ${userName}</text>
-      <rect x="72" y="344" width="936" height="182" rx="30" fill="#0b1723" stroke="#1e3a35" stroke-width="2"/>
-      <text x="112" y="401" fill="#94a3b8" font-family="Arial, sans-serif" font-size="21" font-weight="600" letter-spacing="2">WEIGHT GOAL</text>
-      <text x="112" y="478" fill="#ffffff" font-family="Arial, sans-serif" font-size="48" font-weight="700">${escapeSvgText(String(plan.currentWeight))} kg</text>
-      <path d="M410 461h54m-14-14 14 14-14 14" fill="none" stroke="#34d399" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-      <text x="520" y="478" fill="#6ee7b7" font-family="Arial, sans-serif" font-size="48" font-weight="700">${escapeSvgText(String(plan.targetWeight))} kg</text>
-      <text x="112" y="509" fill="#94a3b8" font-family="Arial, sans-serif" font-size="20">${targetWeightDelta > 0 ? '+' : ''}${escapeSvgText(String(targetWeightDelta))} kg to target</text>
-      <rect x="72" y="550" width="936" height="158" rx="28" fill="#0b1723" stroke="#1e3a35" stroke-width="2"/>
-      <text x="108" y="600" fill="#94a3b8" font-family="Arial, sans-serif" font-size="21" font-weight="600" letter-spacing="2">GOAL PROGRESS</text>
-      <text x="108" y="664" fill="#6ee7b7" font-family="Arial, sans-serif" font-size="48" font-weight="700">${escapeSvgText(String(plan.progressPercent))}%</text>
-      <rect x="390" y="635" width="540" height="16" rx="8" fill="#020617"/>
-      <rect x="390" y="635" width="${progressBarWidth * 540 / 856}" height="16" rx="8" fill="url(#accent)"/>
-      ${metric(72, 742, 'Total consumed', `${plan.totalCalorieConsumed.toLocaleString()} kcal`, '#c4b5fd')}
-      ${metric(588, 742, 'Total burnt incl. TEF', `${plan.totalCalorieBurnt.toLocaleString()} kcal`, '#fdba74')}
-      ${metric(72, 908, 'Total deficit', `${plan.totalCalorieDeficit.toLocaleString()} kcal`, '#6ee7b7')}
-      ${metric(588, 908, 'Avg daily deficit', `${plan.averageCalorieDeficit.toLocaleString()} kcal/d`, '#fcd34d')}
-      ${metric(72, 1074, 'Resting burn', `${plan.restingCalories.toLocaleString()} kcal/d`, '#7dd3fc')}
-      ${metric(588, 1074, 'Days on plan', `${plan.daysElapsed} days`, '#5eead4')}
-      ${metric(72, 1240, 'Weight change', formatKg(weightDeltaKg), '#ffffff', 288)}
-      ${metric(396, 1240, 'Body fat', formatKg(fatDeltaKg), '#6ee7b7', 288)}
-      ${metric(720, 1240, 'Muscle mass', formatKg(muscleDeltaKg), '#7dd3fc', 288)}
-      <rect x="72" y="1410" width="936" height="118" rx="24" fill="#101a28" stroke="#263548" stroke-width="2"/>
-      <text x="108" y="1458" fill="#94a3b8" font-family="Arial, sans-serif" font-size="20" font-weight="600" letter-spacing="2">PROJECTED FINISH</text>
-      <text x="108" y="1502" fill="#ffffff" font-family="Arial, sans-serif" font-size="30" font-weight="700">${projectedDate}</text>
-      <text x="974" y="1458" text-anchor="end" fill="#94a3b8" font-family="Arial, sans-serif" font-size="20" font-weight="600" letter-spacing="2">TIME LEFT</text>
-      <text x="974" y="1502" text-anchor="end" fill="#ffffff" font-family="Arial, sans-serif" font-size="30" font-weight="700">${plan.daysRemaining > 0 ? `~${plan.daysRemaining} days` : '—'}</text>
-      <text x="72" y="1600" fill="#e2e8f0" font-family="Boldonse, Arial, sans-serif" font-size="27" font-weight="400">Join me on Platito</text>
-      <text x="72" y="1650" fill="#6ee7b7" font-family="Arial, sans-serif" font-size="25">${INVITATION_URL}</text>
-      <rect x="72" y="1684" width="936" height="4" rx="2" fill="url(#accent)"/>
-      <text x="72" y="1722" fill="#64748b" font-family="Arial, sans-serif" font-size="18">Track nutrition. Build habits. Reach your goal.</text>
-    </svg>`;
-
-  const svgUrl = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
-  try {
-    const image = new Image();
-    image.src = svgUrl;
-    await image.decode();
-    const canvas = document.createElement('canvas');
-    canvas.width = 1080;
-    canvas.height = 1740;
-    const context = canvas.getContext('2d');
-    if (!context) throw new Error('Image export is not supported in this browser.');
-    context.drawImage(image, 0, 0);
-    const blob = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob((result) => result ? resolve(result) : reject(new Error('Could not create the plan image.')), 'image/png');
-    });
-    return new File([blob], 'platito-active-plan.png', { type: 'image/png' });
-  } finally {
-    URL.revokeObjectURL(svgUrl);
-  }
-}
+// Lava-lamp ring: blobs drift along the gauge arc (pre-rotation coordinates, 270° from the bottom-left end)
+// and a "goo" filter melts them into the ring.
+const GAUGE_ARC_PATH = 'M233 130 A103 103 0 1 1 130 27';
+const LAVA_BLOBS = [
+  { r: 10, dur: 9, begin: 0, points: '0;.55;0', accent: 'start' },
+  { r: 8, dur: 11, begin: -3, points: '.35;1;.35', accent: 'end' },
+  { r: 11.5, dur: 13, begin: -6, points: '.9;.15;.9', accent: 'start' },
+] as const;
 
 interface PlanCardProps {
   plan: PlanAnalytics | null;
@@ -106,9 +30,27 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
   const [showInfo, setShowInfo] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
   const [sharing, setSharing] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  // Rendered when the picker opens, so tapping a design can share straight away while the tap still counts as a user gesture
+  const [shareImages, setShareImages] = useState<PreparedShareImage[] | null>(null);
+  useEffect(() => {
+    if (!pickerOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setPickerOpen(false); };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [pickerOpen]);
   const [selectedCoreMetric, setSelectedCoreMetric] = useState(3);
   const metricSwipeStart = useRef<{ x: number; y: number } | null>(null);
   const gaugeGradientId = useId().replace(/:/g, '');
+  // SVG animations ignore prefers-reduced-motion in CSS, so the lava blobs check it here
+  const [reduceMotion, setReduceMotion] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setReduceMotion(query.matches);
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
   if (!plan) return null;
 
   const targetWeightDelta = plan.targetWeight - plan.currentWeight;
@@ -118,18 +60,35 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
   const isWeightGain = weightDeltaKg > 0;
   const progressBarWidth = Math.min(100, Math.abs(plan.progressPercent));
   const coreMetrics = [
-    { label: 'Total Consumed', value: plan.totalCalorieConsumed.toLocaleString(), unit: 'kcal', Icon: BowlFoodIcon, iconColor: '#34d399', highlight: false, accentStart: '#34d399', accentEnd: '#059669', glow: 'rgba(52,211,153,0.58)' },
+    { label: 'Total Consumed', value: plan.totalCalorieConsumed.toLocaleString(), unit: 'kcal', Icon: BowlFoodIcon, iconColor: '#93c35a', highlight: false, accentStart: '#93c35a', accentEnd: '#5a8c36', glow: 'rgba(147,195,90,0.58)' },
     { label: 'Total Burnt incl. TEF', value: plan.totalCalorieBurnt.toLocaleString(), unit: 'kcal', Icon: LightningIcon, iconColor: '#fcd34d', highlight: false, accentStart: '#fde047', accentEnd: '#f59e0b', glow: 'rgba(250,204,21,0.5)' },
     { label: 'Resting Burn', value: plan.restingCalories.toLocaleString(), unit: 'kcal/d', Icon: FireIcon, iconColor: '#38bdf8', highlight: false, accentStart: '#38bdf8', accentEnd: '#2563eb', glow: 'rgba(56,189,248,0.5)' },
     { label: 'Avg Daily Deficit', value: plan.averageCalorieDeficit.toLocaleString(), unit: 'kcal/d', Icon: TargetIcon, iconColor: '#ef4444', highlight: false, accentStart: '#fb923c', accentEnd: '#ef4444', glow: 'rgba(239,68,68,0.58)' },
     { label: 'Total Deficit', value: plan.totalCalorieDeficit.toLocaleString(), unit: 'kcal', Icon: FireIcon, iconColor: '#fb923c', highlight: false, accentStart: '#fb923c', accentEnd: '#ea580c', glow: 'rgba(251,146,60,0.58)' },
     { label: 'Days on Plan', value: String(plan.daysElapsed), unit: 'days', Icon: CalendarDotsIcon, iconColor: '#818cf8', highlight: false, accentStart: '#60a5fa', accentEnd: '#4f46e5', glow: 'rgba(129,140,248,0.55)' },
   ];
-  const handleShare = async () => {
+  const openSharePicker = async () => {
+    setShareMessage('');
+    setShareImages(null);
+    setPickerOpen(true);
+    try {
+      const assets = await loadShareAssets();
+      const prepared = await Promise.all(SHARE_DESIGNS.map(async (design) => ({
+        ...design,
+        preview: svgToDataUrl(buildShareSvg(design.id, plan, assets)),
+        file: await renderShareImage(design.id, plan, assets),
+      })));
+      setShareImages(prepared);
+    } catch (error) {
+      setPickerOpen(false);
+      setShareMessage(error instanceof Error ? error.message : 'Could not export the plan image.');
+    }
+  };
+
+  const shareImage = async (image: File) => {
     setSharing(true);
     setShareMessage('');
     try {
-      const image = await createPlanShareImage(plan);
       const shareData = {
         files: [image],
         title: `${plan.userName}'s active plan on Platito`,
@@ -138,6 +97,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
       if (navigator.canShare?.({ files: [image] }) && navigator.share) {
         try {
           await navigator.share(shareData);
+          setPickerOpen(false);
           setShareMessage('Plan image shared.');
         } catch (error) {
           if (error instanceof DOMException && error.name === 'AbortError') return;
@@ -150,6 +110,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
         download.download = image.name;
         download.click();
         URL.revokeObjectURL(objectUrl);
+        setPickerOpen(false);
         try {
           await navigator.clipboard.writeText(shareData.text);
           setShareMessage('Image downloaded and invitation link copied.');
@@ -164,10 +125,57 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
     }
   };
 
+  const sharePicker = pickerOpen && createPortal(
+    <div
+      className="fixed inset-0 z-[80] flex items-end justify-center bg-slate-950/70 p-3 backdrop-blur-sm sm:items-center"
+      onMouseDown={(event) => { if (event.target === event.currentTarget) setPickerOpen(false); }}
+    >
+      <section role="dialog" aria-modal="true" aria-labelledby="share-picker-title" className="app-card-surface w-full max-w-lg rounded-[22px] border border-slate-700/60 p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 id="share-picker-title" className="text-sm font-bold text-white">Share your progress</h2>
+            <p className="mt-0.5 text-[11px] text-slate-400">Choose an image style</p>
+          </div>
+          <button type="button" onClick={() => setPickerOpen(false)} aria-label="Close" className="rounded-lg p-1.5 text-slate-400 hover:bg-white/5 hover:text-white">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="mt-4 grid grid-cols-3 items-end gap-3">
+          {(shareImages ?? SHARE_DESIGNS).map((design) => {
+            const prepared = shareImages ? (design as PreparedShareImage) : null;
+            return (
+              <button
+                key={design.id}
+                type="button"
+                disabled={!prepared || sharing}
+                onClick={() => prepared && void shareImage(prepared.file)}
+                aria-label={`Share the ${design.title} image`}
+                className="group flex flex-col items-center gap-2 rounded-xl p-1 text-center transition disabled:cursor-wait"
+              >
+                <span
+                  className="block w-full overflow-hidden rounded-lg bg-white/[0.04] ring-1 ring-white/10 transition group-hover:ring-2 group-hover:ring-emerald-400/70 group-active:scale-[0.97]"
+                  style={{ aspectRatio: `${design.width} / ${design.height}` }}
+                >
+                  {prepared ? <img src={prepared.preview} alt="" className="h-full w-full object-cover" /> : <span className="block h-full w-full animate-pulse bg-white/[0.05]" />}
+                </span>
+                <span>
+                  <span className="block text-[11px] font-bold text-white">{design.title}</span>
+                  <span className="block text-[10px] text-slate-500">{design.format}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        {!shareImages && <p role="status" className="mt-3 text-center text-[11px] text-slate-400">Preparing images…</p>}
+      </section>
+    </div>,
+    document.body,
+  );
+
   return (
-    <div className="app-card-surface rounded-2xl px-4 pb-4 pt-2 space-y-3.5 relative overflow-hidden">
-      {/* Subtle background glow */}
-      <div className="absolute -top-12 -right-12 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+    <>
+    {sharePicker}
+    <div className="app-card-surface rounded-2xl p-4 space-y-3.5 relative overflow-hidden">
 
       {/* Header with Goal */}
       <div className="flex items-start justify-between gap-2 relative z-10">
@@ -192,10 +200,10 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
         <div className="flex shrink-0 items-center gap-0.5">
           <button
             type="button"
-            onClick={handleShare}
+            onClick={() => void openSharePicker()}
             disabled={sharing}
-            aria-label={sharing ? 'Preparing plan image to share' : 'Share active plan'}
-            title={sharing ? 'Preparing plan image' : 'Share active plan'}
+            aria-label={sharing ? 'Sharing plan image' : 'Share active plan'}
+            title={sharing ? 'Sharing plan image' : 'Share active plan'}
             className="shrink-0 inline-flex items-center justify-center p-1.5 text-slate-400 hover:text-emerald-300 disabled:opacity-60"
           >
             {sharing ? <span aria-hidden="true">…</span> : <Share2 className="h-4 w-4" />}
@@ -237,9 +245,21 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
                       <stop offset="0%" stopColor={selectedMetric.accentStart} />
                       <stop offset="100%" stopColor={selectedMetric.accentEnd} />
                     </linearGradient>
+                    <filter id={`${gaugeGradientId}-goo`} x="-20%" y="-20%" width="140%" height="140%">
+                      <feGaussianBlur in="SourceGraphic" stdDeviation="4.5" result="blur" />
+                      <feColorMatrix in="blur" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9" />
+                    </filter>
                   </defs>
                   <circle cx="130" cy="130" r="103" fill="none" stroke="rgba(148,163,184,0.12)" strokeWidth="13" strokeDasharray="485 647" strokeLinecap="round" />
-                  <circle cx="130" cy="130" r="103" fill="none" stroke={`url(#${gaugeGradientId})`} strokeWidth="13" strokeDasharray="485 647" strokeLinecap="round" style={{ filter: `drop-shadow(0 0 8px ${selectedMetric.glow})` }} />
+                  <g style={{ filter: `${reduceMotion ? '' : `url(#${gaugeGradientId}-goo) `}drop-shadow(0 0 8px ${selectedMetric.glow})` }}>
+                    <circle cx="130" cy="130" r="103" fill="none" stroke={`url(#${gaugeGradientId})`} strokeWidth="13" strokeDasharray="485 647" strokeLinecap="round" />
+                    {!reduceMotion && LAVA_BLOBS.map((blob, index) => (
+                      <circle key={index} r={blob.r} fill={blob.accent === 'start' ? selectedMetric.accentStart : selectedMetric.accentEnd}>
+                        <animateMotion path={GAUGE_ARC_PATH} dur={`${blob.dur}s`} begin={`${blob.begin}s`} repeatCount="indefinite" calcMode="spline" keyPoints={blob.points} keyTimes="0;.5;1" keySplines=".45 0 .55 1;.45 0 .55 1" />
+                        <animate attributeName="r" values={`${blob.r * 0.75};${blob.r * 1.1};${blob.r * 0.75}`} dur={`${blob.dur / 2}s`} begin={`${blob.begin}s`} repeatCount="indefinite" />
+                      </circle>
+                    ))}
+                  </g>
                 </svg>
                 <div key={selectedMetric.label} className="metric-selection-enter absolute inset-[30px] flex flex-col items-center justify-center rounded-full bg-[radial-gradient(circle_at_50%_38%,rgba(45,61,86,0.34),rgba(15,23,42,0.08)_68%)] text-center">
                   <selectedMetric.Icon aria-hidden="true" className="mb-2" size={34} weight="fill" color={selectedMetric.iconColor} style={{ filter: `drop-shadow(0 0 7px ${selectedMetric.glow})` }} />
@@ -288,7 +308,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
       <div className="grid grid-cols-2 gap-2 relative z-10 max-sm:hidden">
         {/* Metric 1: Total Calorie Consumed */}
         <div className="app-card-raised rounded-xl p-2.5 flex items-center gap-2.5">
-          <span aria-hidden="true" className="w-8 h-8 flex items-center justify-center flex-shrink-0 text-emerald-300"><BowlFoodIcon size={23} weight="fill" color="#34d399" style={{ filter: 'drop-shadow(0 0 6px rgba(52,211,153,0.58))' }} /></span>
+          <span aria-hidden="true" className="w-8 h-8 flex items-center justify-center flex-shrink-0 text-emerald-300"><BowlFoodIcon size={23} weight="fill" color="#93c35a" style={{ filter: 'drop-shadow(0 0 6px rgba(147,195,90,0.58))' }} /></span>
           <div className="min-w-0">
             <span className="text-[10px] text-slate-400 font-medium block truncate">
               Total Consumed
@@ -409,7 +429,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
           <div
             className={`progress-fill-raised h-full max-w-full rounded-full transition-all duration-700 ${
               plan.progressPercent >= 0
-                ? 'bg-gradient-to-r from-emerald-500 to-teal-400 text-emerald-200'
+                ? 'bg-gradient-to-r from-emerald-500 to-lime-400 text-emerald-200'
                 : 'bg-gradient-to-r from-rose-500 to-orange-400 text-rose-200'
             }`}
             style={{ width: `${progressBarWidth}%` }}
@@ -479,6 +499,7 @@ export const PlanCard: React.FC<PlanCardProps> = ({ plan }) => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

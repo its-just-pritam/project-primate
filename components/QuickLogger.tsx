@@ -100,7 +100,7 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
           <span className="flex items-center gap-2">
             <Check className="w-4 h-4" /> {successToast}
           </span>
-          <span className="text-[10px] text-emerald-500">Saved to Sheet</span>
+          <span className="text-[10px] text-emerald-500">Saved</span>
         </div>
       )}
 
@@ -177,7 +177,7 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
                       <div
                         className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors ${
                           isSelected
-                            ? 'bg-emerald-300 text-slate-950 shadow-[0_0_12px_rgba(110,231,183,0.4)]'
+                            ? 'bg-emerald-300 text-slate-950 shadow-[0_0_12px_rgba(176,214,122,0.4)]'
                             : 'bg-white/[0.06] text-transparent'
                         }`}
                       >
@@ -240,7 +240,7 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
                     onClick={() => setPortion(val)}
                     className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
                       portion === val
-                        ? 'bg-emerald-300/15 text-emerald-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_4px_12px_rgba(16,185,129,0.08)]'
+                        ? 'bg-emerald-300/15 text-emerald-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_4px_12px_rgba(116,170,69,0.08)]'
                         : 'bg-white/[0.035] text-slate-400 hover:bg-white/[0.07]'
                     }`}
                   >
@@ -300,23 +300,23 @@ export const QuickLogger: React.FC<QuickLoggerProps> = ({
           </div>
 
           <div className="flex items-center justify-between text-[11px] font-medium pt-1 border-t border-slate-800/60">
-            <span className="text-emerald-400">Protein: {totalProtein}g</span>
+            <span className="text-rose-400">Protein: {totalProtein}g</span>
             <span className="text-amber-400">Carbs: {totalCarbs}g</span>
             <span className="text-sky-400">Fats: {totalFats}g</span>
           </div>
         </div>
 
         {/* Big Submit Button */}
-        <div className={`fixed inset-x-0 bottom-0 z-30 bg-[#090d16] px-4 pt-3 transition-[padding] duration-300 ${isBottomNavHidden ? 'pb-[max(1rem,env(safe-area-inset-bottom))]' : 'pb-[calc(5rem+env(safe-area-inset-bottom))]'}`}>
+        <div className={`fixed inset-x-0 bottom-0 z-30 bg-[#141c2b] px-4 pt-3 transition-[padding] duration-300 ${isBottomNavHidden ? 'pb-[max(1rem,env(safe-area-inset-bottom))]' : 'pb-[calc(5rem+env(safe-area-inset-bottom))]'}`}>
           <button
             type="submit"
             disabled={isSubmitting}
-            className="relative -translate-y-3 mx-auto flex w-full max-w-2xl items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-emerald-200/90 via-emerald-300/85 to-teal-400/80 py-3.5 text-sm font-bold text-slate-950 shadow-[0_6px_18px_rgba(16,185,129,0.24),inset_0_1px_0_rgba(255,255,255,0.68),inset_0_-1px_0_rgba(6,78,59,0.22)] transition-all hover:brightness-105 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
+            className="relative -translate-y-3 mx-auto flex w-full max-w-2xl items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-emerald-200/90 via-emerald-300/85 to-lime-300/80 py-3.5 text-sm font-bold text-slate-950 shadow-[0_6px_18px_rgba(116,170,69,0.24),inset_0_1px_0_rgba(255,255,255,0.68),inset_0_-1px_0_rgba(6,78,59,0.22)] transition-all hover:brightness-105 active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSubmitting ? (
               <span className="flex items-center gap-2">
                 <span className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                Recording to Sheet...
+                Saving...
               </span>
             ) : (
               <span className="flex items-center gap-2">

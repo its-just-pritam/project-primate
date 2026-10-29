@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
-import { Camera, ImageUp } from 'lucide-react';
+import React, { useState } from 'react';
 import { MICRO_FIELDS, Micronutrients } from '@/types/nutrition';
 
 export interface PackagedInput {
@@ -28,7 +27,10 @@ interface PackagedFormProps {
   dishName?: string;
   onDishNameChange?: (value: string) => void;
   hideNameField?: boolean;
-  photoActionsAccessory?: React.ReactNode;
+  /** Shown beside the name input, matching the recipe card header, e.g. the packaged-food toggle. */
+  nameAccessory?: React.ReactNode;
+  /** View-transition name for the name row, so it can stay in place while the rest of the card changes. */
+  nameRowTransitionName?: string;
 }
 
 const inputCls =
@@ -41,7 +43,7 @@ const MACROS = [
   { key: 'fats', label: 'Fat (g)' },
 ] as const;
 
-export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel, editingName, initialValues, embedded = false, embeddedDivider = false, formId, dishName, onDishNameChange, hideNameField = false, photoActionsAccessory }) => {
+export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel, editingName, initialValues, embedded = false, embeddedDivider = false, formId, dishName, onDishNameChange, hideNameField = false, nameAccessory, nameRowTransitionName }) => {
   const [name, setName] = useState(initialValues?.dish ?? '');
   const currentName = dishName ?? name;
   const changeName = onDishNameChange ?? setName;
@@ -64,58 +66,6 @@ export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel, 
     );
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [scanState, setScanState] = useState<{ busy: boolean; msg: string | null }>({
-    busy: false,
-    msg: null,
-  });
-  const cameraRef = useRef<HTMLInputElement>(null);
-  const uploadRef = useRef<HTMLInputElement>(null);
-
-  const handleScan = async (file?: File) => {
-    if (!file) return;
-    setScanState({ busy: true, msg: 'Reading label…' });
-    try {
-      const [{ createWorker }, { parseNutritionLabel, guessProductName }] = await Promise.all([
-        import('tesseract.js'),
-        import('@/lib/nutritionLabel'),
-      ]);
-      const worker = await createWorker('eng');
-      const { data } = await worker.recognize(file, {}, { text: true, blocks: true });
-      await worker.terminate();
-
-      const ocrLines = (data.blocks || []).flatMap((b) =>
-        b.paragraphs.flatMap((p) =>
-          p.lines.map((l) => ({ text: l.text, height: l.bbox.y1 - l.bbox.y0 }))
-        )
-      );
-      const productName = guessProductName(ocrLines);
-      if (productName) changeName(productName);
-
-      const parsed = parseNutritionLabel(data.text);
-      const toStr = (o: Record<string, number | undefined>) =>
-        Object.fromEntries(
-          Object.entries(o)
-            .filter(([, v]) => v !== undefined)
-            .map(([k, v]) => [k, String(v)])
-        );
-      const m = toStr(parsed.macros);
-      const mi = toStr(parsed.micros);
-      setMacros((p) => ({ ...p, ...m }));
-      setMicros((p) => ({ ...p, ...mi }));
-      const count = Object.keys(m).length + Object.keys(mi).length;
-      setScanState({
-        busy: false,
-        msg:
-          count || productName
-            ? `Filled ${productName ? 'name and ' : ''}${count} value${count === 1 ? '' : 's'}. Please check them before saving.`
-            : 'Could not read the label. Try a clearer, flatter photo.',
-      });
-    } catch (err) {
-      console.error(err);
-      setScanState({ busy: false, msg: 'Scan failed. Check your connection and try again.' });
-    }
-  };
-
   const n = (v?: string) => parseFloat(v || '') || 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -143,60 +93,19 @@ export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel, 
       onSubmit={handleSubmit}
       className={`space-y-4 ${embedded ? embeddedDivider ? 'border-t border-white/10 pt-3' : '' : 'border-y border-slate-700/70 py-3'} animate-in fade-in slide-in-from-top-2 duration-200`}
     >
-      <div className="space-y-1.5">
-        <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-5">
-          <button
-            type="button"
-            disabled={scanState.busy}
-            onClick={() => cameraRef.current?.click()}
-            className="log-control-button flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-slate-200 text-xs font-semibold disabled:opacity-50"
-          >
-            <Camera className="w-4 h-4" /> Capture
-          </button>
-          <button
-            type="button"
-            disabled={scanState.busy}
-            onClick={() => uploadRef.current?.click()}
-            className="log-control-button flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-slate-200 text-xs font-semibold disabled:opacity-50"
-          >
-            <ImageUp className="w-4 h-4" /> Upload
-          </button>
-          {photoActionsAccessory}
+      {(!hideNameField || nameAccessory) && <div className="flex items-center justify-between" style={nameRowTransitionName ? { viewTransitionName: nameRowTransitionName } : undefined}>
+        <div className="min-w-0 flex-1">
+          {!hideNameField && <input
+            type="text"
+            aria-label="Packaged food name"
+            placeholder="New packaged food name"
+            value={currentName}
+            onChange={(e) => changeName(e.target.value)}
+            required
+            className="min-w-0 w-full border-b border-amber-400/50 bg-transparent text-sm font-bold tracking-tight text-white outline-none placeholder:text-slate-500 focus:border-amber-300"
+          />}
         </div>
-        {[cameraRef, uploadRef].map((ref, i) => (
-          <input
-            key={i}
-            ref={ref}
-            type="file"
-            accept="image/*"
-            capture={i === 0 ? 'environment' : undefined}
-            className="hidden"
-            onChange={(e) => {
-              handleScan(e.target.files?.[0]);
-              e.target.value = '';
-            }}
-          />
-        ))}
-        {scanState.msg && (
-          <p className="text-[11px] text-slate-400 flex items-center gap-1.5">
-            {scanState.busy && (
-              <span className="w-3 h-3 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
-            )}
-            {scanState.msg}
-          </p>
-        )}
-      </div>
-
-      {!hideNameField && <div>
-        <input
-          type="text"
-          aria-label="Packaged food name"
-          placeholder="New packaged food name"
-          value={currentName}
-          onChange={(e) => changeName(e.target.value)}
-          required
-          className="min-w-0 w-full border-b border-amber-400/50 bg-transparent text-sm font-bold tracking-tight text-white outline-none placeholder:text-slate-500 focus:border-amber-300"
-        />
+        {nameAccessory && <div className="ml-5 flex shrink-0 items-center gap-1">{nameAccessory}</div>}
       </div>}
 
       <div className="grid grid-cols-2 gap-2">

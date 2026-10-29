@@ -5,6 +5,7 @@ import type { FormEvent } from 'react';
 import { Activity, LoaderCircle, ShieldCheck } from 'lucide-react';
 import { SummaryDashboard } from '@/components/GarminSummaryDashboard';
 import { GarminLogo } from '@/components/GarminLogo';
+import { isBackendEnabled } from '@/lib/config';
 import { cacheGarminAccessToken, cacheGarminDailySummary, clearGarminAccessToken, clearGarminDailySummaryCache, fetchGarminData, getCachedGarminDailySummary, getGarminTokenCacheScope, responseBody, setGarminTokenCacheScope } from '@/lib/garminClient';
 
 function currentLocalDate() {
@@ -135,7 +136,7 @@ export function GarminCarouselCard({ isActive }: { isActive: boolean }) {
           </div>
           <form onSubmit={connect} className="mt-3 space-y-2.5">
             <input type="password" autoComplete="off" spellCheck={false} required value={apiKey} onChange={(event) => setApiKey(event.target.value)} placeholder="Garmin Personal API key" className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-xs text-white outline-none transition placeholder:text-slate-600 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20" />
-            <div className="flex items-start gap-1.5 text-[10px] leading-4 text-slate-500"><ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-300" /><span>The key is saved to your account’s User sheet row and isn’t shown again.</span></div>
+            <div className="flex items-start gap-1.5 text-[10px] leading-4 text-slate-500"><ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-300" /><span>{isBackendEnabled ? 'The key is stored encrypted on your account and isn’t shown again.' : 'The key is saved to your account’s User sheet row and isn’t shown again.'}</span></div>
             {error && <p role="alert" className="text-xs text-rose-300">{error}</p>}
             <button type="submit" disabled={connecting || !apiKey.trim()} className="inline-flex items-center gap-2 rounded-lg bg-sky-400/10 px-3 py-2 text-xs font-semibold text-sky-200 transition hover:bg-sky-400/15 disabled:cursor-not-allowed disabled:opacity-50">
               {connecting && <LoaderCircle aria-hidden="true" className="h-3.5 w-3.5 animate-spin" />}{connecting ? 'Verifying and connecting…' : 'Verify and connect'}

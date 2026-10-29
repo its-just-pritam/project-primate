@@ -1,5 +1,7 @@
 'use client';
 
+import { isBackendEnabled } from '@/lib/config';
+
 const pendingTokenRequests = new Map<string, Promise<string>>();
 let currentCacheScope: string | null = null;
 type DailySummaryCacheEntry = { date: string; data: unknown; deviceName: string | null };
@@ -101,6 +103,8 @@ export async function responseBody(response: Response) {
 }
 
 export async function fetchGarminData(url: string, init: RequestInit) {
+  // The backend syncs and stores Garmin data itself, so the browser needs no Garmin token.
+  if (isBackendEnabled) return fetch(url, { ...init, cache: 'no-store' });
   const accessToken = await getCachedGarminAccessToken();
   const headers = new Headers(init.headers);
   headers.set('Authorization', `Bearer ${accessToken}`);

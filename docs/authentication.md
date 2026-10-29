@@ -1,18 +1,13 @@
 # Username and password sign-in
 
-The app authenticates accounts from the existing `User` sheet. It keeps columns A:E and adds these headers in F:I when the first person signs up:
+Accounts live in the backend's `app_user` table. Sign-up is open and asks for first name, last name, email, and password. Email and full name are unique, case-insensitively. Recipes, packaged foods, meals, workouts, plans, and the Garmin connection all belong to an account. Ingredients are a shared catalog.
 
-| Column | Header | Value |
-| --- | --- | --- |
-| F | Email | A unique sign-in email; this is the login name |
-| G | Password Hash | Salted `scrypt` hash |
-| H | First Name | User's first name |
-| I | Last Name | User's last name |
+Passwords are stored as salted `scrypt` hashes in the format `<salt hex>:<digest hex>`, using Node's `crypto.scrypt` defaults (N=16384, r=8, p=1, 64-byte key). Hashes created by the Google Sheets version of the app therefore keep working after migration. For a manually provisioned account, generate a hash locally with `node scripts/generate-password-hash.mjs` and store it in `app_user.password_hash`. Never store a password itself.
 
-Each account uses one row. Columns A:D hold that account's full name, weight, height, and workouts per week; column E is retained as a legacy unused column. Sign-up is open and asks for first name, last name, email, and password. Email and full name must be unique because existing food, workout, and plan rows identify their owner by full name. Those records are filtered by the account name in their existing User column. Recipes and ingredients remain shared catalog data.
+## Sessions
 
-The sign-up form creates a salted `scrypt` hash and saves it in column G. For manually provisioned accounts, generate a hash locally with `node scripts/generate-password-hash.mjs` and paste it into column G. Never put a password itself in the sheet.
+1. The Next.js app forwards sign-up and login to the backend. If the backend accepts them, the app issues an HMAC-signed `primate_session` cookie (see `lib/authSession.ts`). The cookie expires after seven days.
+2. API routes forward the cookie's value to the backend as `Authorization: Bearer <token>`.
+3. The backend verifies the signature and expiry with the same secret and resolves the account by email.
 
-Set `AUTH_SECRET` in `.env.local` and in the deployment's server environment. Generate a value with `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`. Keep the same secret across deployments so existing sessions remain valid until they expire. The sign-in cookie expires after seven days.
-
-The server also needs the existing Google Sheets service-account credentials and permission to read and append rows in the `User` tab. New accounts start with blank body metrics and can fill those in from the Profile screen.
+Set `AUTH_SECRET` to the same value in the Next.js app (`.env.local`) and in the backend's environment. Generate one with `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`. Keep it stable across deployments so existing sessions remain valid until they expire.

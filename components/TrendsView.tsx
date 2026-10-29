@@ -88,13 +88,22 @@ const TOOLTIP_PROPS = {
   cursor: { fill: 'rgba(148, 163, 184, 0.08)' },
   labelFormatter: (iso: any) =>
     parseDay(String(iso)).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }),
+  // Liquid glass, matching .liquid-glass-panel (the chart shows through, frosted)
   contentStyle: {
-    backgroundColor: '#0f172a',
-    borderColor: '#334155',
-    borderRadius: '12px',
+    backgroundColor: 'rgb(11 18 32 / 55%)',
+    backgroundImage:
+      'radial-gradient(ellipse at 18% 0%, rgb(255 255 255 / 10%), transparent 42%), linear-gradient(135deg, rgb(40 54 70 / 55%), rgb(20 30 44 / 62%) 52%, rgb(12 20 32 / 70%))',
+    border: '1px solid rgb(255 255 255 / 16%)',
+    borderRadius: '14px',
+    boxShadow: 'inset 0 1px 0 rgb(255 255 255 / 16%), 0 12px 32px rgb(0 0 0 / 34%), 0 2px 8px rgb(0 0 0 / 20%)',
+    backdropFilter: 'blur(24px) saturate(155%)',
+    WebkitBackdropFilter: 'blur(24px) saturate(155%)',
+    padding: '8px 12px',
     fontSize: '11px',
     color: '#fff',
   },
+  // Series colors are tuned for bars on the dark card; lift them so they stay readable on the glass
+  itemStyle: { filter: 'brightness(1.35) saturate(1.1)' },
 };
 export const TrendsView: React.FC<TrendsViewProps> = ({
   logs,
@@ -356,7 +365,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
                   <BarChart data={chartData} margin={CHART_MARGIN} {...BAR_CHART_PROPS}>
                     <defs>
                       <linearGradient id="trend-deficit-gradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#b91c1c" /><stop offset="100%" stopColor="#f87171" /></linearGradient>
-                      <linearGradient id="trend-surplus-gradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#059669" /><stop offset="100%" stopColor="#6ee7b7" /></linearGradient>
+                      <linearGradient id="trend-surplus-gradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#5a8c36" /><stop offset="100%" stopColor="#b0d67a" /></linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                     <XAxis dataKey="date" tick={<DayTick />} interval={0} height={40} tickLine={false} axisLine={{ stroke: '#334155' }} />
@@ -366,10 +375,10 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
                         if (!active || !payload?.length || payload[0].value == null) return null;
                         const value = Number(payload[0].value);
                         const isDeficit = value > 0;
-                        const color = isDeficit ? '#ef4444' : '#10b981';
+                        const color = isDeficit ? '#ef4444' : '#74aa45';
                         return (
                           <div
-                            style={{ ...TOOLTIP_PROPS.contentStyle, border: '1px solid #334155', padding: '8px 12px' }}
+                            style={TOOLTIP_PROPS.contentStyle}
                           >
                             <p style={{ margin: 0, marginBottom: 4, color: '#fff' }}>
                               {TOOLTIP_PROPS.labelFormatter(label)}
@@ -492,7 +501,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={CHART_MARGIN} {...BAR_CHART_PROPS}>
                 <defs>
-                  <linearGradient id="trend-protein-gradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#059669" /><stop offset="100%" stopColor="#6ee7b7" /></linearGradient>
+                  <linearGradient id="trend-protein-gradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#5a8c36" /><stop offset="100%" stopColor="#b0d67a" /></linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                 <XAxis dataKey="date" tick={<DayTick />} interval={0} height={40} tickLine={false} axisLine={{ stroke: '#334155' }} />
@@ -504,7 +513,7 @@ export const TrendsView: React.FC<TrendsViewProps> = ({
                   ]}
                   {...TOOLTIP_PROPS}
                 />
-                <ReferenceLine y={targets.protein} stroke="#10b981" strokeDasharray="3 3" />
+                <ReferenceLine y={targets.protein} stroke="#74aa45" strokeDasharray="3 3" />
                 <Bar dataKey="protein" fill="url(#trend-protein-gradient)" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
