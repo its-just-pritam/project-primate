@@ -52,6 +52,50 @@ Set these in `.env.local`:
 | `AUTH_SECRET` | Signs session cookies; must match the backend's `AUTH_SECRET` |
 | `BACKEND_URL` | Base URL of the Kotlin backend, default `http://localhost:8080` |
 
+### Garmin Connect API queries
+
+The app calls Garmin Connect's Personal API from the server. These `curl` examples show the same endpoints used by [`lib/garmin.ts`](lib/garmin.ts). Set `GARMIN_API_KEY` to the Personal API key configured for your Garmin integration; the token response should be kept private.
+
+```bash
+export GARMIN_API_KEY='your-garmin-personal-api-key'
+export GARMIN_TOKEN="$(curl --silent --show-error --fail \
+  --request POST 'https://personal.connectapi.garmin.com/personalapitoken-service/personal-api/personal-api-key/token' \
+  --header "Authorization: ApiKey ${GARMIN_API_KEY}" \
+  --header 'Accept: */*')"
+export GARMIN_DATE='2026-11-02'
+```
+
+Use the returned bearer token to query the endpoints the app uses:
+
+```bash
+# Daily health summary for one date (used by the Garmin dashboard)
+curl --silent --show-error --fail \
+  "https://personal.connectapi.garmin.com/usersummary-service/v2/dailysummaries?startDate=${GARMIN_DATE}&endDate=${GARMIN_DATE}" \
+  --header "Authorization: Bearer ${GARMIN_TOKEN}" \
+  --header 'Accept: application/json'
+
+# Activity list; start and limit are pagination parameters (the app uses pages of 100)
+curl --silent --show-error --fail \
+  'https://personal.connectapi.garmin.com/activitylist-service/activities/search/activities?start=0&limit=100' \
+  --header "Authorization: Bearer ${GARMIN_TOKEN}" \
+  --header 'Accept: application/json'
+
+# Activity detail (replace with an activityId from the activity list)
+export GARMIN_ACTIVITY_ID='your-activity-id'
+curl --silent --show-error --fail \
+  "https://personal.connectapi.garmin.com/activity-service/activity/${GARMIN_ACTIVITY_ID}" \
+  --header "Authorization: Bearer ${GARMIN_TOKEN}" \
+  --header 'Accept: application/json'
+
+# Sleep summaries over a date range
+curl --silent --show-error --fail \
+  "https://personal.connectapi.garmin.com/sleep-service/sleep/dailySleepSummariesByDate?startDate=${GARMIN_DATE}&endDate=${GARMIN_DATE}" \
+  --header "Authorization: Bearer ${GARMIN_TOKEN}" \
+  --header 'Accept: application/json'
+```
+
+The API key is sent only to Garmin's token endpoint; subsequent queries use the access token. Avoid sharing either credential or committing them to the repository.
+
 Moving from the Google Sheets version? Run `scripts/export-sheets-to-sql.mjs` once. Steps are in [primate-backend/README.md](primate-backend/README.md#migrating-from-google-sheets).
 
 ## Project structure

@@ -54,6 +54,7 @@ export default function Home() {
   const garminSyncStarted = useRef(false);
   const [logs, setLogs] = useState<MealLogEntry[]>([]);
   const [workouts, setWorkouts] = useState<WorkoutEntry[]>([]);
+  const [garminSyncing, setGarminSyncing] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<{
     kind: 'meal' | 'workout';
@@ -204,6 +205,31 @@ export default function Home() {
     } finally {
       setIsLoading(false);
       setHasLoaded(true);
+    }
+  };
+
+  const syncGarminForSelectedDate = async () => {
+    if (garminSyncing) return;
+    setGarminSyncing(true);
+    try {
+      const syncResponse = await fetch('/api/garmin/activities', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store',
+        body: JSON.stringify({ date: selectedDate, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone }),
+      });
+      const syncBody = await syncResponse.json().catch(() => ({}));
+      if (!syncResponse.ok) throw new Error(syncBody.error || 'Could not sync Garmin activities.');
+
+      const workoutsResponse = await fetch('/api/workouts', { cache: 'no-store' });
+      if (!workoutsResponse.ok) throw new Error('Garmin synced, but workouts could not be refreshed.');
+      const workoutsBody = await workoutsResponse.json();
+      setWorkouts(workoutsBody.workouts || []);
+    } catch (error) {
+      console.error('Garmin workout sync failed:', error);
+      window.alert(error instanceof Error ? error.message : 'Could not sync Garmin activities.');
+    } finally {
+      setGarminSyncing(false);
     }
   };
 
@@ -928,6 +954,8 @@ export default function Home() {
             />
             <WorkoutList
               workouts={filteredWorkouts}
+              onSync={syncGarminForSelectedDate}
+              syncing={garminSyncing}
               onDelete={(w) =>
                 setPendingDelete({ kind: 'workout', id: w.id!, name: w.name, timestamp: w.timestamp })
               }

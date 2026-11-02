@@ -3,12 +3,14 @@
 import React, { useState } from 'react';
 import { flushSync } from 'react-dom';
 import { WorkoutEntry } from '@/types/nutrition';
-import { Clock, Dumbbell, Trash2 } from 'lucide-react';
+import { Clock, Dumbbell, RefreshCw, Trash2 } from 'lucide-react';
 
 export const WorkoutList: React.FC<{
   workouts: WorkoutEntry[];
   onDelete?: (w: WorkoutEntry) => void;
-}> = ({ workouts, onDelete }) => {
+  onSync?: () => void;
+  syncing?: boolean;
+}> = ({ workouts, onDelete, onSync, syncing = false }) => {
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const formatTime = (iso: string) =>
     new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -46,25 +48,29 @@ export const WorkoutList: React.FC<{
     }
   };
 
-  if (workouts.length === 0) {
-    return (
-      <div className="app-card-surface rounded-2xl p-6 text-center">
-        <Dumbbell className="w-7 h-7 text-slate-600 mx-auto mb-2" />
-        <p className="text-sm font-semibold text-slate-300">No workouts logged</p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-2.5">
       <div className="flex items-center justify-between px-1">
-        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-          Workouts ({workouts.length})
-        </h3>
-        <span className="text-[11px] text-red-400 font-semibold">
+        <div className="flex items-center gap-2">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            Workouts ({workouts.length})
+          </h3>
+          {onSync && (
+            <button type="button" onClick={onSync} disabled={syncing} aria-label="Sync Garmin activities" title="Sync Garmin activities" className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-800 hover:text-sky-300 disabled:cursor-wait disabled:opacity-50">
+              <RefreshCw className={`h-3.5 w-3.5 ${syncing ? 'animate-spin' : ''}`} />
+            </button>
+          )}
+        </div>
+        {workouts.length > 0 && <span className="text-[11px] text-red-400 font-semibold">
           {Math.round(workouts.reduce((s, w) => s + w.caloriesBurnt, 0))} kcal burnt
-        </span>
+        </span>}
       </div>
+      {workouts.length === 0 ? (
+        <div className="app-card-surface rounded-2xl p-6 text-center">
+          <Dumbbell className="w-7 h-7 text-slate-600 mx-auto mb-2" />
+          <p className="text-sm font-semibold text-slate-300">No workouts logged</p>
+        </div>
+      ) : (
       <div>
         {rows.map((row, rowIndex) => (
           <div key={row.map(({ key }) => key).join(':')} className="relative flex flex-wrap gap-x-1.5">
@@ -121,6 +127,7 @@ export const WorkoutList: React.FC<{
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 };
