@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentSession } from '@/lib/authSession';
-import { getStoredGarminIntegration, reconcileGarminWorkoutsForDate } from '@/lib/sheets';
+import { fetchPlanAnalytics, getStoredGarminIntegration, reconcileGarminWorkoutsForDate } from '@/lib/sheets';
 import { getGarminActivitiesForDate, obtainGarminAccessToken } from '@/lib/garmin';
 
 export const dynamic = 'force-dynamic';
@@ -24,11 +24,24 @@ export async function POST(req: NextRequest) {
 
     const token = await obtainGarminAccessToken(stored.apiKey);
     const activities = await getGarminActivitiesForDate(token, date);
+    const plan = await fetchPlanAnalytics(session.username, session.name);
+    const restingCaloriesPerDay = Number(plan.plan.restingCalories);
     const entries = [];
     for (const activity of activities) {
       const name = String(activity.activityName || activity.name || '').trim();
       const rawTimestamp = String(activity.startTimeGMT || activity.startTime || activity.startTimeLocal || '');
-      const calories = Number(activity.calories ?? activity.caloriesBurned ?? activity.caloriesBurnt);
+      const directActiveCalories = Number(activity.activeCalories ?? activity.caloriesActive ?? activity.burnedActive);
+      const totalCalories = Number(activity.calories ?? activity.caloriesBurned ?? activity.caloriesBurnt);
+      const durationSeconds = Number(activity.durationInSeconds ?? activity.duration);
+      const restingCaloriesDuringActivity = Number.isFinite(restingCaloriesPerDay) && restingCaloriesPerDay > 0 &&
+        Number.isFinite(durationSeconds) && durationSeconds > 0
+        ? restingCaloriesPerDay * (durationSeconds / 86400)
+        : 0;
+      const calories = Number.isFinite(directActiveCalories) && directActiveCalories >= 0
+        ? directActiveCalories
+        : Number.isFinite(totalCalories) && totalCalories >= 0
+          ? Math.max(0, totalCalories - restingCaloriesDuringActivity)
+          : Number.NaN;
       const timestamp = new Date(rawTimestamp);
       if (!name || !Number.isFinite(calories) || calories < 0 || Number.isNaN(timestamp.getTime())) continue;
       entries.push({ name, caloriesBurnt: calories, timestamp: timestamp.toISOString(), user: session.name });
