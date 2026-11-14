@@ -1,9 +1,7 @@
-import { proxyRoute, selectHandler } from '@/lib/backend';
+import { proxyRoute } from '@/lib/backend';
 
 export const dynamic = 'force-dynamic';
 
-const sheets = () => import('@/lib/sheetsRoutes/recipes');
-
-export const GET = selectHandler('GET', proxyRoute('/api/recipes'), sheets);
-export const POST = selectHandler('POST', proxyRoute('/api/recipes'), sheets);
-export const PUT = selectHandler('PUT', proxyRoute('/api/recipes'), sheets);
+export const GET = proxyRoute('/api/recipes');
+export const POST = proxyRoute('/api/recipes');
+export const PUT = proxyRoute('/api/recipes');

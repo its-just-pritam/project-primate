@@ -50,11 +50,11 @@ Set these in `.env.local`:
 | Variable | Description |
 | --- | --- |
 | `AUTH_SECRET` | Signs session cookies; must match the backend's `AUTH_SECRET` |
-| `BACKEND_URL` | Base URL of the Kotlin backend, default `http://localhost:8080` |
+| `BACKEND_URL` | Base URL of the Kotlin backend; defaults to `https://primate-core.onrender.com` (set `http://localhost:8080` for local development) |
 
 ### Garmin Connect API queries
 
-The app calls Garmin Connect's Personal API from the server. These `curl` examples show the same endpoints used by [`lib/garmin.ts`](lib/garmin.ts). Set `GARMIN_API_KEY` to the Personal API key configured for your Garmin integration; the token response should be kept private.
+The backend calls Garmin Connect's Personal API from the server. These `curl` examples show the Garmin endpoints used by the app. Set `GARMIN_API_KEY` to the Personal API key configured for your Garmin integration; the token response should be kept private.
 
 ```bash
 export GARMIN_API_KEY='your-garmin-personal-api-key'
@@ -96,13 +96,21 @@ curl --silent --show-error --fail \
 
 The API key is sent only to Garmin's token endpoint; subsequent queries use the access token. Avoid sharing either credential or committing them to the repository.
 
-Moving from the Google Sheets version? Run `scripts/export-sheets-to-sql.mjs` once. Steps are in [primate-backend/README.md](primate-backend/README.md#migrating-from-google-sheets).
+To fetch and print the first 100 activities in one command, pass the API key to the shell script:
+
+```bash
+bash scripts/garmin-activity-list.sh 'your-garmin-personal-api-key'
+```
+
+The script exchanges the key for a short-lived bearer token and prints the activity list as JSON. It does not print either credential.
+
+The frontend now uses the Kotlin backend for app data. The one-time migration helper remains available for importing data from the former Google Sheets version: run `scripts/export-sheets-to-sql.mjs`; its credentials are only needed for that script. See [primate-backend/README.md](primate-backend/README.md#migrating-from-google-sheets).
 
 ## Project structure
 
 ```
 app/            Next.js app router: page.tsx (main screen) and api/ routes
-  api/          Thin proxies to the backend, plus login/signup cookie handling
+  api/          Backend proxies, plus login/signup cookie handling
 primate-backend/ Kotlin + Spring Boot service: PostgreSQL, Liquibase, Garmin sync jobs
 components/     UI: BottomNav, PlanCarousel, ProfileScreen, TrendsView, ...
 lib/            backend.ts (backend client/proxy), authSession.ts, garminClient.ts
@@ -124,5 +132,6 @@ types/          Shared TypeScript types
 - Meal and workout deletes check that the entry still matches what the client showed. Plans are soft-deleted.
 - Plan totals only count activity on or after the plan's start date.
 - Garmin data is synced by backend jobs; the browser never handles Garmin tokens.
+- The app stores a per-account snapshot in the browser's IndexedDB cache, shows it on return, and refreshes from the backend in the background. Signing out clears that account's local snapshot.
 - The `app/icon-mocks` and `app/export-mocks` directories are local-only prototypes and are git-ignored; they are not part of the deployed app.
 - The Manrope font is loaded with `next/font/google`, so production builds need access to Google Fonts during compilation.

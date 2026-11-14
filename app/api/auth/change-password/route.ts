@@ -1,7 +1,5 @@
-import { proxyRoute, selectHandler } from '@/lib/backend';
+import { proxyRoute } from '@/lib/backend';
 
 export const dynamic = 'force-dynamic';
 
-const sheets = () => import('@/lib/sheetsRoutes/auth/change-password');
-
-export const POST = selectHandler('POST', proxyRoute('/api/auth/change-password'), sheets);
+export const POST = proxyRoute('/api/auth/change-password');

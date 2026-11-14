@@ -3,12 +3,15 @@ node_modules/
 out/
 app/icon-mocks/
 app/export-mocks/
-.env*.local
+.env*
+!.env.example
 credentials.json
 *.json.key
 project-primate-*.json
 .DS_Store
 *.tsbuildinfo
+/scripts/
+*mockup*
 
 # Sheets migration output (contains password hashes)
 sheets-export.sql

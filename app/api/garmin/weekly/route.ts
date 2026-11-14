@@ -1,7 +1,5 @@
-import { proxyRoute, selectHandler } from '@/lib/backend';
+import { proxyRoute } from '@/lib/backend';
 
 export const dynamic = 'force-dynamic';
 
-const sheets = () => import('@/lib/sheetsRoutes/garmin/weekly');
-
-export const POST = selectHandler('POST', proxyRoute('/api/garmin/weekly'), sheets);
+export const POST = proxyRoute('/api/garmin/weekly');

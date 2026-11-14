@@ -4,8 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { PlanAnalytics, PlanInput, PlanSummary, ProfileUpdate } from '@/types/nutrition';
 import { COUNTRY_DIAL_CODES, flagEmoji } from '@/lib/countryCodes';
 import { ChevronDown, Eye, EyeOff, Info, LogOut, Mail, Plus, ShieldCheck, Trash2 } from 'lucide-react';
-import { isBackendEnabled } from '@/lib/config';
-import { cacheGarminAccessToken, clearGarminAccessToken, clearGarminDailySummaryCache, responseBody, setGarminTokenCacheScope } from '@/lib/garminClient';
+import { clearGarminDailySummaryCache, responseBody, setGarminCacheScope } from '@/lib/garminClient';
 import { Header } from './Header';
 
 interface ProfileScreenProps {
@@ -20,6 +19,7 @@ interface ProfileScreenProps {
   onRefresh: () => void;
   onExport: () => void;
   isLoading: boolean;
+  isRefreshing?: boolean;
   onContentScroll: (event: React.UIEvent<HTMLDivElement>) => void;
   onSave: (profile: ProfileUpdate) => Promise<boolean>;
   onAddPlan: (plan: PlanInput) => Promise<boolean>;
@@ -267,6 +267,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   onRefresh,
   onExport,
   isLoading,
+  isRefreshing = false,
   onContentScroll,
   onSave,
   onAddPlan,
@@ -323,7 +324,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       setGarminLive(Boolean(body.isLive));
       setGarminMaskedKey(typeof body.apiKeyMasked === 'string' ? body.apiKeyMasked : '');
       setGarminCacheScope(scope);
-      setGarminTokenCacheScope(scope);
+      setGarminCacheScope(scope);
     } catch (statusError) {
       setGarminKeyError(statusError instanceof Error ? statusError.message : 'Could not load Garmin settings.');
     } finally {
@@ -349,12 +350,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       const body = await responseBody(response);
       const scope = typeof body.cacheScope === 'string' ? body.cacheScope : garminCacheScope;
       setGarminCacheScope(scope);
-      setGarminTokenCacheScope(scope);
+      setGarminCacheScope(scope);
       clearGarminDailySummaryCache(scope);
-      clearGarminAccessToken(scope);
-      if (typeof body.accessToken === 'string' && typeof body.expiresAt === 'number' && typeof body.cacheScope === 'string') {
-        cacheGarminAccessToken(body.accessToken, body.expiresAt, body.cacheScope);
-      }
       setGarminKeyDraft('');
       setGarminKeyVisible(false);
       setGarminKeyNotice('Garmin API key verified and saved.');
@@ -374,7 +371,6 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
     try {
       const response = await fetch('/api/garmin/integration', { method: 'DELETE', cache: 'no-store' });
       await responseBody(response);
-      clearGarminAccessToken(garminCacheScope);
       clearGarminDailySummaryCache(garminCacheScope);
       setGarminConnected(false);
       setGarminMaskedKey('');
@@ -548,6 +544,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         onRefresh={onRefresh}
         onExport={onExport}
         isLoading={isLoading}
+        isRefreshing={isRefreshing}
         rightContent={(
           <button
             type="submit"
@@ -655,7 +652,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 </div>
               </div>
             )}
-            {!garminLive && <p className="text-xs leading-5 text-amber-200/80">{isBackendEnabled ? 'The server is unavailable, so the API key cannot be saved.' : 'Google Sheets is not connected, so the API key cannot be saved.'}</p>}
+            {!garminLive && <p className="text-xs leading-5 text-amber-200/80">The server is unavailable, so the API key cannot be saved.</p>}
             <form onSubmit={saveGarminKey} className="space-y-2.5">
               <label className="block space-y-1.5">
                 <span className="text-xs font-medium text-slate-300">{garminConnected ? 'Replace API key' : 'Garmin Personal API key'}</span>
@@ -664,7 +661,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                   <button type="button" aria-label={garminKeyVisible ? 'Hide new API key' : 'Show new API key'} onClick={() => setGarminKeyVisible((visible) => !visible)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 transition hover:text-white">{garminKeyVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
                 </span>
               </label>
-              <div className="flex items-start gap-1.5 text-[10px] leading-4 text-slate-500"><ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-300" /><span>{isBackendEnabled ? 'Your key is stored encrypted on your account and stays masked here.' : 'Your key is saved in your User sheet row and stays masked here.'}</span></div>
+              <div className="flex items-start gap-1.5 text-[10px] leading-4 text-slate-500"><ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-300" /><span>Your key is stored encrypted on your account and stays masked here.</span></div>
               {garminKeyError && <p role="alert" className="text-xs text-rose-300">{garminKeyError}</p>}
               {garminKeyNotice && <p role="status" className="text-xs text-emerald-300">{garminKeyNotice}</p>}
               <div className="flex items-center gap-2">
