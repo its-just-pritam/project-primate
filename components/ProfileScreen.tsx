@@ -19,6 +19,7 @@ interface ProfileScreenProps {
   onRefresh: () => void;
   onExport: () => void;
   isLoading: boolean;
+  isRefreshing?: boolean;
   onContentScroll: (event: React.UIEvent<HTMLDivElement>) => void;
   onSave: (profile: ProfileUpdate) => Promise<boolean>;
   onAddPlan: (plan: PlanInput) => Promise<boolean>;
@@ -266,6 +267,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   onRefresh,
   onExport,
   isLoading,
+  isRefreshing = false,
   onContentScroll,
   onSave,
   onAddPlan,
@@ -542,6 +544,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         onRefresh={onRefresh}
         onExport={onExport}
         isLoading={isLoading}
+        isRefreshing={isRefreshing}
         rightContent={(
           <button
             type="submit"

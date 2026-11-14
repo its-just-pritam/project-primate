@@ -7,10 +7,11 @@ interface HeaderProps {
   onRefresh: () => void;
   onExport: () => void;
   isLoading: boolean;
+  isRefreshing?: boolean;
   rightContent?: React.ReactNode;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onRefresh, onExport, isLoading, rightContent }) => {
+export const Header: React.FC<HeaderProps> = ({ onRefresh, onExport, isLoading, isRefreshing = false, rightContent }) => {
   return (
     <header className="sticky top-0 z-40 bg-[#0b1220]/95 backdrop-blur-md border-b border-slate-800/80 px-4 md:px-8 py-3 flex items-center justify-between">
       <div className="flex items-center space-x-2.5 text-left">
@@ -23,27 +24,30 @@ export const Header: React.FC<HeaderProps> = ({ onRefresh, onExport, isLoading, 
         </div>
       </div>
 
-      <div className="flex items-center space-x-2">
-        {rightContent ?? <>
-          <button
-            type="button"
-            onClick={onExport}
-            disabled={isLoading}
-            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-300 transition-colors hover:bg-slate-800 hover:text-white disabled:opacity-50"
-            title="Draft and export report"
-            aria-label="Draft and export report"
-          >
-            <Share className="h-4 w-4" />
-          </button>
-          <button
-            onClick={onRefresh}
-            disabled={isLoading}
-            className="p-1.5 rounded-lg text-slate-300 transition-colors hover:text-white disabled:opacity-50"
-            title="Refresh Data"
-          >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-emerald-400' : ''}`} />
-          </button>
-        </>}
+      <div className="flex items-center gap-2">
+        <div className="flex items-center space-x-2">
+          {rightContent ?? <>
+            <button
+              type="button"
+              onClick={onExport}
+              disabled={isLoading}
+              className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-300 transition-colors hover:bg-slate-800 hover:text-white disabled:opacity-50"
+              title="Draft and export report"
+              aria-label="Draft and export report"
+            >
+              <Share className="h-4 w-4" />
+            </button>
+            <button
+              onClick={onRefresh}
+              disabled={isLoading || isRefreshing}
+              className="p-1.5 rounded-lg text-slate-300 transition-colors hover:text-white disabled:opacity-50"
+              title={isRefreshing ? 'Refreshing data' : 'Refresh data'}
+              aria-label={isRefreshing ? 'Refreshing data' : 'Refresh data'}
+            >
+              <RefreshCw className={`w-4 h-4 ${isLoading || isRefreshing ? 'animate-spin text-emerald-400' : ''}`} />
+            </button>
+          </>}
+        </div>
       </div>
     </header>
   );

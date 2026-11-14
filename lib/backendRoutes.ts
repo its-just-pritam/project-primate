@@ -38,9 +38,10 @@ export async function signup(request: NextRequest) {
 
 export async function status() {
   try {
-    const { body } = await callBackend('/api/status');
-    return NextResponse.json({ connected: Boolean(body.connected), database: body.database ?? null });
+    const { status, body } = await callBackend('/actuator/health', { timeoutMs: 15000 });
+    const connected = status === 200 && body.status === 'UP';
+    return NextResponse.json({ connected, health: body.status ?? null }, { headers: { 'Cache-Control': 'no-store' } });
   } catch {
-    return NextResponse.json({ connected: false, database: null });
+    return NextResponse.json({ connected: false, health: null }, { headers: { 'Cache-Control': 'no-store' } });
   }
 }

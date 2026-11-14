@@ -3,11 +3,11 @@ import { cookies } from 'next/headers';
 import { SESSION_COOKIE, verifySessionToken } from '@/lib/authSession';
 
 // The Kotlin backend owns app data and verifies the same session token, so routes forward the caller's cookie as a bearer token.
-const BACKEND_URL = (process.env.BACKEND_URL || 'http://localhost:8080').replace(/\/+$/, '');
+const BACKEND_URL = (process.env.BACKEND_URL || 'https://primate-core.onrender.com').replace(/\/+$/, '');
 
 export async function callBackend(
   path: string,
-  { method = 'GET', body, token }: { method?: string; body?: string; token?: string } = {}
+  { method = 'GET', body, token, timeoutMs = 60000 }: { method?: string; body?: string; token?: string; timeoutMs?: number } = {}
 ): Promise<{ status: number; body: any }> {
   const headers: Record<string, string> = { Accept: 'application/json' };
   if (body) headers['Content-Type'] = 'application/json';
@@ -17,7 +17,7 @@ export async function callBackend(
     headers,
     body: body || undefined,
     cache: 'no-store',
-    signal: AbortSignal.timeout(60000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   return { status: response.status, body: await response.json().catch(() => ({})) };
 }

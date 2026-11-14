@@ -27,6 +27,7 @@ import { calculateDailyFatMassChangeGrams, calculateDailyDryMuscleMassChangeGram
 import { ProfileScreen } from '@/components/ProfileScreen';
 import { StartupSplash } from '@/components/StartupSplash';
 import { OnboardingGuide } from '@/components/OnboardingGuide';
+import { clearAppDataCache, readAppDataCache, writeAppDataCache, type AppDataSnapshot } from '@/lib/appDataCache';
 import {
   MealLogEntry,
   WorkoutEntry,
@@ -77,7 +78,12 @@ export default function Home() {
   const [ingredientNames, setIngredientNames] = useState<string[]>([]);
   const [ingredientUnits, setIngredientUnits] = useState<Record<string, { baseQuantity: number; unit: string }>>({});
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
+  const [cacheUserKey, setCacheUserKey] = useState<string | null>(null);
+  const [cacheReady, setCacheReady] = useState(false);
+  const activeDataLoadsRef = useRef(0);
+  const serverDataLoadedRef = useRef(false);
   const initialLoading = isLoading && !hasLoaded;
   const [targets, setTargets] = useState<DailyTargets>(DEFAULT_TARGETS);
   const [plan, setPlan] = useState<PlanAnalytics | null>(null);
@@ -134,16 +140,62 @@ export default function Home() {
     setSelectedDate(next);
   };
 
-  // Fetch initial data
+  const applySnapshot = (snapshot: AppDataSnapshot) => {
+    setLogs(snapshot.logs || []);
+    setWorkouts(snapshot.workouts || []);
+    setRecipes(snapshot.recipes || []);
+    setPackaged(snapshot.packaged || []);
+    setIngredientNames(snapshot.ingredientNames || []);
+    setIngredientUnits(snapshot.ingredientUnits || {});
+    setPlan(snapshot.plan || null);
+    setActivePlans(snapshot.activePlans || []);
+    setOnboardingStep(snapshot.onboardingStep ?? null);
+    setPlanIdx(0);
+    setPlanCarouselIdx(0);
+  };
+
+  // Restore the signed-in user's snapshot first, then refresh it from the backend.
   const loadData = async () => {
-    setIsLoading(true);
+    activeDataLoadsRef.current += 1;
+    serverDataLoadedRef.current = false;
+    if (hasLoaded) setIsRefreshing(true);
+    else setIsLoading(true);
     try {
+      let userKey = cacheUserKey;
+      if (!userKey) {
+        const sessionResponse = await fetch('/api/auth/session', { cache: 'no-store' });
+        if (sessionResponse.ok) {
+          const sessionBody = await sessionResponse.json();
+          const username = sessionBody?.user?.username;
+          if (typeof username === 'string' && username.trim()) {
+            userKey = username.trim().toLowerCase();
+            setCacheUserKey(userKey);
+            try {
+              const cached = await readAppDataCache(userKey);
+              if (cached) {
+                applySnapshot(cached);
+                setHasLoaded(true);
+                setIsLoading(false);
+                setIsRefreshing(true);
+              }
+            } catch (cacheError) {
+              console.warn('Could not restore the local app data cache:', cacheError);
+            }
+          }
+        }
+        setCacheReady(true);
+      }
+
+      const healthResponse = await fetch('/api/status', { cache: 'no-store' });
+      const health = await healthResponse.json().catch(() => ({}));
+      if (!healthResponse.ok || health.connected !== true) return;
+
       const [mealsRes, workoutsRes, recipesRes, planRes, onboardingRes] = await Promise.all([
-        fetch('/api/meals'),
+        fetch('/api/meals', { cache: 'no-store' }),
         fetch('/api/workouts', { cache: 'no-store' }),
-        fetch('/api/recipes'),
-        fetch('/api/plan'),
-        fetch('/api/onboarding'),
+        fetch('/api/recipes', { cache: 'no-store' }),
+        fetch('/api/plan', { cache: 'no-store' }),
+        fetch('/api/onboarding', { cache: 'no-store' }),
       ]);
 
       if (onboardingRes.ok) {
@@ -198,15 +250,43 @@ export default function Home() {
           setActivePlans(planData.plan.hasPlan ? planData.activePlans || [planData.plan] : []);
           setPlanIdx(0);
           setPlanCarouselIdx(0);
+        } else {
+          setPlan(null);
+          setActivePlans([]);
         }
       }
+      serverDataLoadedRef.current = [mealsRes, workoutsRes, recipesRes, planRes, onboardingRes].every((response) => response.ok);
     } catch (err) {
       console.error('Error fetching data:', err);
     } finally {
+      activeDataLoadsRef.current = Math.max(0, activeDataLoadsRef.current - 1);
+      setIsRefreshing(activeDataLoadsRef.current > 0);
       setIsLoading(false);
       setHasLoaded(true);
+      setCacheReady(true);
     }
   };
+
+  useEffect(() => {
+    if (!cacheReady || !cacheUserKey) return;
+    const snapshot: AppDataSnapshot = {
+      logs,
+      workouts,
+      recipes,
+      packaged,
+      ingredientNames,
+      ingredientUnits,
+      plan,
+      activePlans,
+      onboardingStep,
+    };
+    const timeout = window.setTimeout(() => {
+      void writeAppDataCache(cacheUserKey, snapshot).catch((cacheError) => {
+        console.warn('Could not save the local app data cache:', cacheError);
+      });
+    }, 150);
+    return () => window.clearTimeout(timeout);
+  }, [cacheReady, cacheUserKey, logs, workouts, recipes, packaged, ingredientNames, ingredientUnits, plan, activePlans, onboardingStep]);
 
   const syncGarminForSelectedDate = async () => {
     if (garminSyncing) return;
@@ -313,6 +393,52 @@ export default function Home() {
 
   useEffect(() => {
     loadData();
+  }, []);
+
+  const loadDataRef = useRef(loadData);
+  loadDataRef.current = loadData;
+
+  useEffect(() => {
+    let current = true;
+    let checking = false;
+    let wasUnavailable = false;
+    const checkBackend = async () => {
+      if (checking) return;
+      checking = true;
+      try {
+        const response = await fetch('/api/status', { cache: 'no-store' });
+        const status = await response.json().catch(() => ({}));
+        if (!current) return;
+        const ready = response.ok && status.connected === true;
+        if (!ready) {
+          serverDataLoadedRef.current = false;
+          wasUnavailable = true;
+        } else {
+          const recovered = wasUnavailable;
+          wasUnavailable = false;
+          if (!serverDataLoadedRef.current && (activeDataLoadsRef.current === 0 || recovered)) void loadDataRef.current();
+        }
+      } catch {
+        if (current) {
+          serverDataLoadedRef.current = false;
+          wasUnavailable = true;
+        }
+      } finally {
+        checking = false;
+      }
+    };
+
+    void checkBackend();
+    const interval = window.setInterval(() => void checkBackend(), 30000);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') void checkBackend();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      current = false;
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, []);
 
   // The plan currently shown in the swipeable cards drives the budget and trends
@@ -767,12 +893,20 @@ export default function Home() {
             openExportReport();
           }}
           isLoading={isLoading}
+          isRefreshing={isRefreshing}
           onContentScroll={handleContentScroll}
           onClose={closeProfile}
           onSave={handleSaveProfile}
           onAddPlan={(p: PlanInput) => handlePlanRequest('PUT', p)}
           onDeletePlan={(rowNumber, comment) => handlePlanRequest('DELETE', { rowNumber, comment })}
           onSignOut={async () => {
+            setCacheReady(false);
+            setCacheUserKey(null);
+            if (cacheUserKey) {
+              await clearAppDataCache(cacheUserKey).catch((cacheError) => {
+                console.warn('Could not clear the local app data cache:', cacheError);
+              });
+            }
             await fetch('/api/auth/logout', { method: 'POST' });
             window.location.assign('/');
           }}
@@ -797,6 +931,7 @@ export default function Home() {
         onRefresh={loadData}
         onExport={openExportReport}
         isLoading={isLoading}
+        isRefreshing={isRefreshing}
       />
       {exportReport && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm" onMouseDown={(event) => {

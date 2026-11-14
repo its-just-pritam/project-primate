@@ -50,7 +50,7 @@ Set these in `.env.local`:
 | Variable | Description |
 | --- | --- |
 | `AUTH_SECRET` | Signs session cookies; must match the backend's `AUTH_SECRET` |
-| `BACKEND_URL` | Base URL of the Kotlin backend, default `http://localhost:8080` |
+| `BACKEND_URL` | Base URL of the Kotlin backend; defaults to `https://primate-core.onrender.com` (set `http://localhost:8080` for local development) |
 
 ### Garmin Connect API queries
 
@@ -132,5 +132,6 @@ types/          Shared TypeScript types
 - Meal and workout deletes check that the entry still matches what the client showed. Plans are soft-deleted.
 - Plan totals only count activity on or after the plan's start date.
 - Garmin data is synced by backend jobs; the browser never handles Garmin tokens.
+- The app stores a per-account snapshot in the browser's IndexedDB cache, shows it on return, and refreshes from the backend in the background. Signing out clears that account's local snapshot.
 - The `app/icon-mocks` and `app/export-mocks` directories are local-only prototypes and are git-ignored; they are not part of the deployed app.
 - The Manrope font is loaded with `next/font/google`, so production builds need access to Google Fonts during compilation.
