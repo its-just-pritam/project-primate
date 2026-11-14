@@ -44,6 +44,3 @@ export async function status() {
     return NextResponse.json({ connected: false, database: null });
   }
 }
-
-/** Garmin tokens stay inside the backend, so this Sheets-mode endpoint does not exist there. */
-export const notAvailable = () => NextResponse.json({ error: 'Not available' }, { status: 404 });

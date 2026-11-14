@@ -1,15 +1,11 @@
 'use client';
 
-import { isBackendEnabled } from '@/lib/config';
-
-const pendingTokenRequests = new Map<string, Promise<string>>();
 let currentCacheScope: string | null = null;
 type DailySummaryCacheEntry = { date: string; data: unknown; deviceName: string | null };
 const dailySummaryCache = new Map<string, DailySummaryCacheEntry>();
 type GarminChartCacheKind = 'weekly' | 'sleep';
 const chartDataCache = new Map<string, unknown>();
 
-const tokenCacheKey = (scope: string) => `garmin-connect-access-token-${scope}`;
 const dailySummaryKey = (scope: string, date: string) => `${scope}:${date}`;
 const chartCacheKey = (scope: string, kind: GarminChartCacheKind, date: string) => `${scope}:${kind}:${date}`;
 
@@ -44,56 +40,12 @@ export function clearGarminDailySummaryCache(scope?: string | null) {
   });
 }
 
-export function setGarminTokenCacheScope(scope: string | null) {
+export function setGarminCacheScope(scope: string | null) {
   currentCacheScope = scope;
 }
 
-export function getGarminTokenCacheScope() {
+export function getGarminCacheScope() {
   return currentCacheScope;
-}
-
-export function cacheGarminAccessToken(accessToken: string, expiresAt: number, scope: string) {
-  sessionStorage.setItem(tokenCacheKey(scope), JSON.stringify({ accessToken, expiresAt }));
-}
-
-export function clearGarminAccessToken(scope: string | null) {
-  if (scope) sessionStorage.removeItem(tokenCacheKey(scope));
-}
-
-async function getCachedGarminAccessToken() {
-  const scope = currentCacheScope;
-  if (!scope) throw new Error('Garmin connection status has not loaded yet.');
-  const cacheKey = tokenCacheKey(scope);
-  const cached = sessionStorage.getItem(cacheKey);
-  if (cached) {
-    try {
-      const parsed = JSON.parse(cached) as { accessToken?: unknown; expiresAt?: unknown };
-      if (typeof parsed.accessToken === 'string' && typeof parsed.expiresAt === 'number' && parsed.expiresAt > Date.now()) {
-        return parsed.accessToken;
-      }
-    } catch {
-      sessionStorage.removeItem(cacheKey);
-    }
-  }
-
-  const pending = pendingTokenRequests.get(scope);
-  if (pending) return pending;
-  const request = (async () => {
-    const response = await fetch('/api/garmin/access-token', { method: 'POST', cache: 'no-store' });
-    const body = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(body.error || `Request failed (${response.status})`);
-    if (typeof body.accessToken !== 'string' || typeof body.expiresAt !== 'number' || body.cacheScope !== scope) {
-      throw new Error('Garmin did not return an access token.');
-    }
-    cacheGarminAccessToken(body.accessToken, body.expiresAt, scope);
-    return body.accessToken;
-  })();
-  pendingTokenRequests.set(scope, request);
-  try {
-    return await request;
-  } finally {
-    pendingTokenRequests.delete(scope);
-  }
 }
 
 export async function responseBody(response: Response) {
@@ -103,10 +55,6 @@ export async function responseBody(response: Response) {
 }
 
 export async function fetchGarminData(url: string, init: RequestInit) {
-  // The backend syncs and stores Garmin data itself, so the browser needs no Garmin token.
-  if (isBackendEnabled) return fetch(url, { ...init, cache: 'no-store' });
-  const accessToken = await getCachedGarminAccessToken();
-  const headers = new Headers(init.headers);
-  headers.set('Authorization', `Bearer ${accessToken}`);
-  return fetch(url, { ...init, headers, cache: 'no-store' });
+  // Garmin credentials and tokens stay on the backend.
+  return fetch(url, { ...init, cache: 'no-store' });
 }

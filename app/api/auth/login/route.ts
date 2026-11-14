@@ -1,8 +1,6 @@
-import { selectHandler } from '@/lib/backend';
+import { NextRequest } from 'next/server';
 import * as backend from '@/lib/backendRoutes';
 
 export const dynamic = 'force-dynamic';
 
-const sheets = () => import('@/lib/sheetsRoutes/auth/login');
-
-export const POST = selectHandler('POST', backend.login, sheets);
+export const POST = (request: NextRequest) => backend.login(request);

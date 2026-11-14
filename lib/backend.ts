@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { SESSION_COOKIE, verifySessionToken } from '@/lib/authSession';
-import { isBackendEnabled } from '@/lib/config';
 
-// With MIGRATE_TO_BACKEND on, the Kotlin backend (see primate-backend/) owns all data. It verifies the same session token, so
-// routes forward the caller's cookie value as a bearer token.
+// The Kotlin backend owns app data and verifies the same session token, so routes forward the caller's cookie as a bearer token.
 const BACKEND_URL = (process.env.BACKEND_URL || 'http://localhost:8080').replace(/\/+$/, '');
 
 export async function callBackend(
@@ -42,21 +40,6 @@ export async function proxyToBackend(req: NextRequest, path: string) {
 }
 
 type Handler = (req: NextRequest) => Response | Promise<Response>;
-type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
-type SheetsRouteModule = Partial<Record<HttpMethod, Handler>>;
 
-/** Forwards every request for this route to the same path on the backend. */
+/** Forwards authenticated API requests to the backend. */
 export const proxyRoute = (path: string): Handler => (req) => proxyToBackend(req, path);
-
-/**
- * Chooses a route's implementation from MIGRATE_TO_BACKEND: the backend handler when it is on,
- * otherwise the method's handler from the Google Sheets module. The Sheets module is imported
- * lazily so backend mode never loads it (or googleapis).
- */
-export function selectHandler(method: HttpMethod, backend: Handler, loadSheets: () => Promise<SheetsRouteModule>): Handler {
-  return async (req) => {
-    if (isBackendEnabled) return backend(req);
-    const sheetsHandler = (await loadSheets())[method];
-    return sheetsHandler ? sheetsHandler(req) : NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
-  };
-}

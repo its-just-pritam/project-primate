@@ -5,8 +5,7 @@ import type { FormEvent } from 'react';
 import { Activity, LoaderCircle, ShieldCheck } from 'lucide-react';
 import { SummaryDashboard } from '@/components/GarminSummaryDashboard';
 import { GarminLogo } from '@/components/GarminLogo';
-import { isBackendEnabled } from '@/lib/config';
-import { cacheGarminAccessToken, cacheGarminDailySummary, clearGarminAccessToken, clearGarminDailySummaryCache, fetchGarminData, getCachedGarminDailySummary, getGarminTokenCacheScope, responseBody, setGarminTokenCacheScope } from '@/lib/garminClient';
+import { cacheGarminDailySummary, clearGarminDailySummaryCache, fetchGarminData, getCachedGarminDailySummary, getGarminCacheScope, responseBody, setGarminCacheScope } from '@/lib/garminClient';
 
 function currentLocalDate() {
   const now = new Date();
@@ -15,13 +14,12 @@ function currentLocalDate() {
 
 export function GarminCarouselCard({ isActive }: { isActive: boolean }) {
   const [initialSummary] = useState(() => {
-    const scope = getGarminTokenCacheScope();
+    const scope = getGarminCacheScope();
     return scope ? getCachedGarminDailySummary(scope, currentLocalDate()) : null;
   });
   const [reloadKey, setReloadKey] = useState(0);
   const [loading, setLoading] = useState(!initialSummary);
   const [connected, setConnected] = useState<boolean | null>(initialSummary ? true : null);
-  const [cacheScope, setCacheScope] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState('');
   const [connecting, setConnecting] = useState(false);
   const [result, setResult] = useState<{ date: string; data: unknown; deviceName: string | null } | null>(initialSummary);
@@ -31,7 +29,7 @@ export function GarminCarouselCard({ isActive }: { isActive: boolean }) {
     if (!isActive) return;
     let current = true;
     const date = currentLocalDate();
-    const knownScope = getGarminTokenCacheScope();
+    const knownScope = getGarminCacheScope();
     const hasFreshCachedSummary = Boolean(knownScope && getCachedGarminDailySummary(knownScope, date));
     if (!hasFreshCachedSummary) setLoading(true);
     setError('');
@@ -42,8 +40,7 @@ export function GarminCarouselCard({ isActive }: { isActive: boolean }) {
         const status = await responseBody(statusResponse);
         if (!current) return;
         const scope = typeof status.cacheScope === 'string' ? status.cacheScope : null;
-        setCacheScope(scope);
-        setGarminTokenCacheScope(scope);
+        setGarminCacheScope(scope);
         setConnected(Boolean(status.connected));
         if (!status.connected) return;
         if (scope) {
@@ -90,13 +87,8 @@ export function GarminCarouselCard({ isActive }: { isActive: boolean }) {
       });
       const body = await responseBody(response);
       const scope = typeof body.cacheScope === 'string' ? body.cacheScope : null;
-      setCacheScope(scope);
-      setGarminTokenCacheScope(scope);
+      setGarminCacheScope(scope);
       clearGarminDailySummaryCache(scope);
-      clearGarminAccessToken(scope);
-      if (typeof body.accessToken === 'string' && typeof body.expiresAt === 'number' && typeof body.cacheScope === 'string') {
-        cacheGarminAccessToken(body.accessToken, body.expiresAt, body.cacheScope);
-      }
       setApiKey('');
       setConnected(true);
       setReloadKey((key) => key + 1);
@@ -136,7 +128,7 @@ export function GarminCarouselCard({ isActive }: { isActive: boolean }) {
           </div>
           <form onSubmit={connect} className="mt-3 space-y-2.5">
             <input type="password" autoComplete="off" spellCheck={false} required value={apiKey} onChange={(event) => setApiKey(event.target.value)} placeholder="Garmin Personal API key" className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-xs text-white outline-none transition placeholder:text-slate-600 focus:border-sky-400 focus:ring-2 focus:ring-sky-400/20" />
-            <div className="flex items-start gap-1.5 text-[10px] leading-4 text-slate-500"><ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-300" /><span>{isBackendEnabled ? 'The key is stored encrypted on your account and isn’t shown again.' : 'The key is saved to your account’s User sheet row and isn’t shown again.'}</span></div>
+            <div className="flex items-start gap-1.5 text-[10px] leading-4 text-slate-500"><ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-300" /><span>The key is stored encrypted on your account and isn’t shown again.</span></div>
             {error && <p role="alert" className="text-xs text-rose-300">{error}</p>}
             <button type="submit" disabled={connecting || !apiKey.trim()} className="inline-flex items-center gap-2 rounded-lg bg-sky-400/10 px-3 py-2 text-xs font-semibold text-sky-200 transition hover:bg-sky-400/15 disabled:cursor-not-allowed disabled:opacity-50">
               {connecting && <LoaderCircle aria-hidden="true" className="h-3.5 w-3.5 animate-spin" />}{connecting ? 'Verifying and connecting…' : 'Verify and connect'}

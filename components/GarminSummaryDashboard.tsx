@@ -13,7 +13,7 @@ import { LightningIcon } from '@phosphor-icons/react/dist/csr/Lightning';
 import { MoonIcon } from '@phosphor-icons/react/dist/csr/Moon';
 import { PulseIcon } from '@phosphor-icons/react/dist/csr/Pulse';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { cacheGarminChartData, fetchGarminData, getCachedGarminChartData, getGarminTokenCacheScope, responseBody } from '@/lib/garminClient';
+import { cacheGarminChartData, fetchGarminData, getCachedGarminChartData, getGarminCacheScope, responseBody } from '@/lib/garminClient';
 
 function previousDate(date: string) {
   const previous = new Date(`${date}T00:00:00.000Z`);
@@ -335,11 +335,11 @@ export function SummaryDashboard({ date, data, deviceName }: { date: string; dat
   const [activeChart, setActiveChart] = useState<GarminChartMetric | null>(null);
   const chartTouchStart = useRef<{ x: number; y: number } | null>(null);
   const [initialSleepData] = useState(() => {
-    const scope = getGarminTokenCacheScope();
+    const scope = getGarminCacheScope();
     return scope ? getCachedGarminChartData(scope, 'sleep', previousDate(date)) : null;
   });
   const [initialWeekData] = useState(() => {
-    const scope = getGarminTokenCacheScope();
+    const scope = getGarminCacheScope();
     return scope ? getCachedGarminChartData(scope, 'weekly', date) : null;
   });
   const [sleepLoading, setSleepLoading] = useState(false);
@@ -382,7 +382,7 @@ export function SummaryDashboard({ date, data, deviceName }: { date: string; dat
   const oxygenAverage = metric(pulseOx, 'avgValue', 'averageSpo2') ?? metric(summary, 'averageSpo2');
   useEffect(() => {
     let current = true;
-    const scope = getGarminTokenCacheScope();
+    const scope = getGarminCacheScope();
     const cached = scope ? getCachedGarminChartData(scope, 'sleep', sleepDate) : null;
     if (cached !== null) {
       setSleepData(cached);
@@ -422,7 +422,7 @@ export function SummaryDashboard({ date, data, deviceName }: { date: string; dat
     }
     setActiveChart(kind);
     if (kind === 'sleep' || weekLoaded || weekLoading) return;
-    const scope = getGarminTokenCacheScope();
+    const scope = getGarminCacheScope();
     const cached = scope ? getCachedGarminChartData(scope, 'weekly', date) : null;
     if (cached !== null) {
       setWeekData(cached);

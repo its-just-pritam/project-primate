@@ -79,7 +79,3 @@ Update `ApiIntegrationTest`. It currently expects `1` after a body-less `POST`. 
 ## Rollout order
 
 The backend change must ship **before** the app change, or together with it. If the new app runs against the old backend, every save is stored as `1`. Users who have finished would then see the guide again from step 2.
-
-## Google Sheets mode (for reference)
-
-The Sheets data path (`lib/sheets.ts`) is changed in the app itself, not the backend. It follows the same rules: the `Onboarding Step` column holds 0–5, and it never decreases. Existing Sheet rows holding `1` need changing to `5` by hand.
