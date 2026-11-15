@@ -17,6 +17,7 @@ Built with Next.js 14 (App Router), React 18, Tailwind CSS and Recharts; the bac
 - **Trends** – N-day average intake, macro and calorie charts, and deficit projections.
 - **Plans** – create, edit and soft-delete plans, each with a target weight, resting calories, start date and optional comment. A plan is `ACTIVE` once its start date arrives, otherwise `INACTIVE`; deleted plans stay visible as `DELETED`.
 - **Profile** – edit user details and manage plans.
+- **Share packaged foods** – share text or an image from another app to prefill a packaged-food entry, review the nutrition values, and save it to your account.
 - **Weekly export** – draft a shareable nutrition and activity report with seven-day trends, including calories consumed versus burned and estimated body-fat versus wet-muscle changes. Copy or share it, or open WhatsApp with the report prefilled for a recipient you choose.
 - **Mobile navigation** – the bottom menu hides while scrolling down and returns while scrolling up; meal and workout submit buttons move with it.
 

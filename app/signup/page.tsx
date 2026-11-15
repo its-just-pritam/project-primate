@@ -1,6 +1,6 @@
 'use client';
 
-import React, { FormEvent, useState } from 'react';
+import React, { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, UserPlus } from 'lucide-react';
@@ -16,6 +16,12 @@ export default function SignupPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [nextPath, setNextPath] = useState('/');
+
+  useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get('next');
+    if (requested?.startsWith('/') && !requested.startsWith('//')) setNextPath(requested);
+  }, []);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -33,7 +39,7 @@ export default function SignupPage() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Unable to create account');
-      router.replace('/');
+      router.replace(nextPath);
       router.refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Unable to create account');
@@ -90,7 +96,7 @@ export default function SignupPage() {
           {busy ? 'Creating account…' : 'Create account'}
         </button>
         <p className="text-center text-sm text-slate-400">
-          Already have an account? <Link href="/login" className="font-semibold text-emerald-400 hover:text-emerald-300">Sign in</Link>
+          Already have an account? <Link href={nextPath === '/' ? '/login' : `/login?next=${encodeURIComponent(nextPath)}`} className="font-semibold text-emerald-400 hover:text-emerald-300">Sign in</Link>
         </p>
       </form>
     </main>

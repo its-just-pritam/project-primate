@@ -27,7 +27,14 @@ export async function middleware(request: NextRequest) {
   if (path === '/login' || path === '/signup' || path === '/landing' || path.startsWith('/api/auth/')) return NextResponse.next();
   if (await validSession(request.cookies.get(COOKIE)?.value)) return NextResponse.next();
   if (path.startsWith('/api/')) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-  if (path === '/') return NextResponse.rewrite(new URL('/landing', request.url));
+  if (path === '/') {
+    if (request.nextUrl.searchParams.has('shared') || request.nextUrl.searchParams.has('shareError')) {
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('next', `${path}${request.nextUrl.search}`);
+      return NextResponse.redirect(loginUrl);
+    }
+    return NextResponse.rewrite(new URL('/landing', request.url));
+  }
   return NextResponse.redirect(new URL('/login', request.url));
 }
 

@@ -27,7 +27,9 @@ import { calculateDailyFatMassChangeGrams, calculateDailyDryMuscleMassChangeGram
 import { ProfileScreen } from '@/components/ProfileScreen';
 import { StartupSplash } from '@/components/StartupSplash';
 import { OnboardingGuide } from '@/components/OnboardingGuide';
+import { ShareInboxDialog } from '@/components/ShareInboxDialog';
 import { clearAppDataCache, readAppDataCache, writeAppDataCache, type AppDataSnapshot } from '@/lib/appDataCache';
+import { deleteIncomingShare, readIncomingShare, type IncomingShare } from '@/lib/sharedContent';
 import {
   MealLogEntry,
   WorkoutEntry,
@@ -95,6 +97,8 @@ export default function Home() {
   const [exportPeriod, setExportPeriod] = useState('');
   const [isExportReportExpanded, setIsExportReportExpanded] = useState(false);
   const [exportStatus, setExportStatus] = useState('');
+  const [incomingShare, setIncomingShare] = useState<IncomingShare | null>(null);
+  const [shareError, setShareError] = useState('');
   const [selectedDate, setSelectedDate] = useState<string>(
     toLocalDateKey(new Date())
   );
@@ -105,6 +109,31 @@ export default function Home() {
     setIsBottomNavHidden(false);
     lastContentScrollTop.current = 0;
   }, [activeTab]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sharedId = params.get('shared');
+    if (params.get('shareError')) setShareError('Could not receive that share. Try sharing an image or text again.');
+    if (!sharedId) return;
+    let current = true;
+    void readIncomingShare(sharedId).then((share) => {
+      if (current && share) setIncomingShare(share);
+      else if (current) setShareError('The shared content could not be opened. Please share it again.');
+    }).catch(() => {
+      if (current) setShareError('The shared content could not be opened. Please share it again.');
+    });
+    return () => { current = false; };
+  }, []);
+
+  const closeIncomingShare = async () => {
+    if (incomingShare) await deleteIncomingShare(incomingShare.id).catch((error) => console.warn('Could not clear incoming shared content:', error));
+    setIncomingShare(null);
+    setShareError('');
+    const url = new URL(window.location.href);
+    url.searchParams.delete('shared');
+    url.searchParams.delete('shareError');
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+  };
 
   const handleContentScroll = (event: React.UIEvent<HTMLDivElement>) => {
     const scrollTop = event.currentTarget.scrollTop;
@@ -933,6 +962,16 @@ export default function Home() {
         isLoading={isLoading}
         isRefreshing={isRefreshing}
       />
+      {shareError && <div role="alert" className="fixed left-4 right-4 top-20 z-[110] mx-auto flex max-w-md items-center justify-between gap-3 rounded-xl border border-amber-400/20 bg-[#101923]/95 px-3 py-2.5 text-xs text-amber-100 shadow-xl"><span>{shareError}</span><button type="button" onClick={() => { setShareError(''); const url = new URL(window.location.href); url.searchParams.delete('shareError'); window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`); }} className="shrink-0 rounded-md px-2 py-1 font-semibold hover:bg-white/5">Dismiss</button></div>}
+      {incomingShare && <ShareInboxDialog
+        share={incomingShare}
+        onClose={() => void closeIncomingShare()}
+        onSavePackaged={async (entry) => {
+          const saved = await handleAddPackaged(entry);
+          if (saved) setActiveTab('recipes');
+          return saved;
+        }}
+      />}
       {exportReport && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm" onMouseDown={(event) => {
           if (event.target === event.currentTarget) setExportReport('');
