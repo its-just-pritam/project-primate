@@ -16,10 +16,12 @@ export interface PackagedInput {
 interface PackagedFormProps {
   onSubmit: (p: PackagedInput, originalDish?: string) => Promise<boolean>;
   onCancel: () => void;
+  /** Require all primary macros when importing shared nutrition data. */
+  requireMacros?: boolean;
   /** Original name used to identify the row when editing. */
   editingName?: string;
   /** Pre-populated values when editing an existing item. */
-  initialValues?: Partial<PackagedInput>;
+  initialValues?: Omit<Partial<PackagedInput>, 'micros'> & { micros?: Partial<Micronutrients> };
   /** Render inside an existing recipe card. */
   embedded?: boolean;
   embeddedDivider?: boolean;
@@ -43,7 +45,7 @@ const MACROS = [
   { key: 'fats', label: 'Fat (g)' },
 ] as const;
 
-export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel, editingName, initialValues, embedded = false, embeddedDivider = false, formId, dishName, onDishNameChange, hideNameField = false, nameAccessory, nameRowTransitionName }) => {
+export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel, editingName, initialValues, requireMacros = false, embedded = false, embeddedDivider = false, formId, dishName, onDishNameChange, hideNameField = false, nameAccessory, nameRowTransitionName }) => {
   const [name, setName] = useState(initialValues?.dish ?? '');
   const currentName = dishName ?? name;
   const changeName = onDishNameChange ?? setName;
@@ -71,6 +73,10 @@ export const PackagedForm: React.FC<PackagedFormProps> = ({ onSubmit, onCancel, 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentName.trim() || isSubmitting) return;
+    if (requireMacros && ['calories', 'protein', 'carbs', 'fats'].some((key) => !macros[key]?.trim())) {
+      alert('Enter calories, protein, carbs, and fat per serving before saving this shared food.');
+      return;
+    }
     setIsSubmitting(true);
     const ok = await onSubmit({
       dish: currentName.trim(),
