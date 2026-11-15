@@ -111,6 +111,23 @@ function pageNutrition(html: string): SharedPackagedDraft {
   while ((scriptMatch = scriptPattern.exec(html)) !== null) {
     try { visit(JSON.parse(scriptMatch[1].replace(/^\s*<!--|-->\s*$/g, ''))); } catch { /* Ignore malformed page metadata. */ }
   }
+  // ChatGPT public shares serialize the conversation into a fallbackMarkdown field
+  // inside an inline script. Extract it before stripping script contents below.
+  const markdownPattern = /\\?"fallbackMarkdown\\?"\s*,\s*\\?"([\s\S]*?)\\?"(?=\s*,)/g;
+  let markdownMatch: RegExpExecArray | null;
+  while ((markdownMatch = markdownPattern.exec(html)) !== null) {
+    try {
+      const decodedMarkdown: unknown = JSON.parse(`"${markdownMatch[1]}"`);
+      if (typeof decodedMarkdown === 'string') {
+        // The share page wraps its JSON payload in another serialized string layer.
+        const markdown = decodedMarkdown.replace(/\\n/g, '\n').replace(/\\u003c/gi, '<').replace(/\\u003e/gi, '>');
+        const recommended = markdown.match(/\*\*([^*\n]{2,100}?)\*\*\s*\(Recommended entry\)/i)?.[1]
+          ?.replace(/\s*[—–-]\s*\d.*$/, '').trim();
+        if (recommended) summaries.push(`Dish name: ${recommended}`);
+        summaries.push(markdown);
+      }
+    } catch { /* Ignore malformed serialized chat content. */ }
+  }
   const plainText = decodeEntities(html.replace(/<script\b[\s\S]*?<\/script\s*>/gi, ' ').replace(/<style\b[\s\S]*?<\/style\s*>/gi, ' ').replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ');
   summaries.push(plainText.slice(0, 50_000));
   return parseSharedPackagedFood({ id: 'public-link', title: '', text: summaries.join('\n'), url: '', files: [], receivedAt: 0 });
