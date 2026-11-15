@@ -102,9 +102,10 @@ function pageNutrition(html: string): SharedPackagedDraft {
     }
     Object.values(node).forEach(visit);
   };
-  const scripts = html.matchAll(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script\s*>/gi);
-  for (const match of scripts) {
-    try { visit(JSON.parse(match[1].replace(/^\s*<!--|-->\s*$/g, ''))); } catch { /* Ignore malformed page metadata. */ }
+  const scriptPattern = /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script\s*>/gi;
+  let scriptMatch: RegExpExecArray | null;
+  while ((scriptMatch = scriptPattern.exec(html)) !== null) {
+    try { visit(JSON.parse(scriptMatch[1].replace(/^\s*<!--|-->\s*$/g, ''))); } catch { /* Ignore malformed page metadata. */ }
   }
   const plainText = decodeEntities(html.replace(/<script\b[\s\S]*?<\/script\s*>/gi, ' ').replace(/<style\b[\s\S]*?<\/style\s*>/gi, ' ').replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ');
   summaries.push(plainText.slice(0, 50_000));
