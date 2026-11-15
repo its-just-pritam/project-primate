@@ -35,14 +35,18 @@ async function requestPublicPage(url: URL): Promise<{ status: number; location?:
   }
   const records = isIP(url.hostname) ? [{ address: url.hostname, family: isIP(url.hostname) }] : await lookup(url.hostname, { all: true, verbatim: true });
   if (!records.length || records.some((record) => !isPublicIp(record.address))) throw new Error('This link does not point to a public host.');
-  const pinned = records[0];
+  // Prefer IPv4 because many serverless runtimes do not have outbound IPv6 routing.
+  const pinned = records.find((record) => record.family === 4) || records[0];
   return new Promise((resolve, reject) => {
     const req = httpsRequest({
       protocol: 'https:', hostname: url.hostname, port: 443,
       path: `${url.pathname}${url.search}`, method: 'GET',
       headers: { Accept: 'text/html,application/xhtml+xml,application/ld+json;q=0.9', 'User-Agent': 'PlatitoNutritionPreview/1.0' },
       servername: isIP(url.hostname) ? undefined : url.hostname,
-      lookup: ((_hostname: string, _options: unknown, callback: (error: Error | null, address: string, family: number) => void) => callback(null, pinned.address, pinned.family)) as never,
+      lookup: ((_hostname: string, options: { all?: boolean }, callback: (error: Error | null, address: string | { address: string; family: number }[], family?: number) => void) => {
+        if (options?.all) callback(null, [{ address: pinned.address, family: pinned.family }]);
+        else callback(null, pinned.address, pinned.family);
+      }) as never,
       timeout: TIMEOUT_MS,
     }, (res) => {
       const status = res.statusCode || 0;
