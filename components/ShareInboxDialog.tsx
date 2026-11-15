@@ -17,13 +17,45 @@ export function ShareInboxDialog({
 }) {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
-  const initialValues = parseSharedPackagedFood(share);
+  const [initialValues, setInitialValues] = useState(() => parseSharedPackagedFood(share));
+  const [linkStatus, setLinkStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [linkMessage, setLinkMessage] = useState('');
+  const sharedUrl = share.url || share.text.match(/https?:\/\/[^\s<>]+/i)?.[0]?.replace(/[),.;]+$/, '') || '';
 
   useEffect(() => {
     const urls = share.files.map((file) => URL.createObjectURL(file));
     setImageUrls(urls);
     return () => urls.forEach((url) => URL.revokeObjectURL(url));
   }, [share]);
+
+  useEffect(() => {
+    if (!sharedUrl) {
+      setInitialValues(parseSharedPackagedFood(share));
+      setLinkStatus('idle');
+      return;
+    }
+    let cancelled = false;
+    setLinkStatus('loading');
+    setLinkMessage('Checking the public link for nutrition details…');
+    fetch('/api/packaged/import-preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: sharedUrl, title: share.title, text: share.text }),
+    }).then(async (response) => {
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Could not read the public link.');
+      if (cancelled) return;
+      setInitialValues(result.values || parseSharedPackagedFood(share));
+      setLinkStatus('ready');
+      setLinkMessage('Public page details are added where the shared text did not provide a value.');
+    }).catch((error) => {
+      if (cancelled) return;
+      setInitialValues(parseSharedPackagedFood(share));
+      setLinkStatus('error');
+      setLinkMessage(error instanceof Error ? `${error.message} You can continue with the shared text.` : 'Could not read the public link. You can continue with the shared text.');
+    });
+    return () => { cancelled = true; };
+  }, [share, sharedUrl]);
 
   const copyText = async () => {
     const text = [share.title, share.text, share.url].filter(Boolean).join('\n');
@@ -53,6 +85,7 @@ export function ShareInboxDialog({
         {share.title && <p className="mt-4 text-sm font-semibold text-slate-100">{share.title}</p>}
         {share.text && <p className="mt-3 whitespace-pre-wrap break-words rounded-xl bg-slate-950/70 p-3 text-sm leading-6 text-slate-200">{share.text}</p>}
         {share.url && <p className="mt-3 break-all text-xs text-emerald-300">{share.url}</p>}
+        {linkStatus !== 'idle' && <p role="status" className={`mt-3 rounded-lg px-3 py-2 text-xs ${linkStatus === 'error' ? 'bg-amber-400/10 text-amber-200' : 'bg-white/[0.04] text-slate-300'}`}>{linkMessage}</p>}
 
         {imageUrls.length > 0 && (
           <div className="mt-4 space-y-2">
@@ -63,9 +96,10 @@ export function ShareInboxDialog({
           </div>
         )}
 
-        <p className="mt-4 text-xs leading-5 text-slate-400">We filled any clearly labeled nutrition values found in the shared chat text. Review the dish name and nutrition before saving. Shared image files, if present, stay on this device; only packaged-food values are saved to your account.</p>
+        <p className="mt-4 text-xs leading-5 text-slate-400">We filled clearly labeled nutrition values from the shared chat text and, when present, its public page. Review the dish name and nutrition before saving. Shared image files, if present, stay on this device; only packaged-food values are saved to your account.</p>
         {share.text && <button type="button" onClick={() => void copyText()} className="mt-2 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-white/5"><Copy className="h-3.5 w-3.5" />{copied ? 'Copied' : 'Copy shared text'}</button>}
-        <PackagedForm
+        {linkStatus === 'loading' ? <div className="mt-4 h-28 animate-pulse rounded-xl bg-white/[0.04]" aria-label="Loading public link nutrition" /> : <PackagedForm
+          key={`${share.id}-${linkStatus}`}
           initialValues={initialValues}
           requireMacros
           onSubmit={async (entry) => {
@@ -74,7 +108,7 @@ export function ShareInboxDialog({
             return saved;
           }}
           onCancel={onClose}
-        />
+        />}
       </section>
     </div>
   );
